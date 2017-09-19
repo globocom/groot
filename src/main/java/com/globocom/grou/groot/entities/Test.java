@@ -16,9 +16,6 @@
 
 package com.globocom.grou.groot.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.bson.types.ObjectId;
-
 import java.io.Serializable;
 import java.util.*;
 
@@ -35,14 +32,13 @@ public class Test implements Serializable {
         ERROR
     }
 
-    @JsonIgnore
-    private ObjectId id;
+    private String id;
 
     private String name;
 
-    private Project project;
+    private String project;
 
-    private Loader loader;
+    private String loader;
 
     private Map<String, Object> properties = new HashMap<>();
 
@@ -52,19 +48,7 @@ public class Test implements Serializable {
 
     private String status_detailed = "";
 
-    public Test() {
-        this.name = Objects.toString(null);
-        this.project = null;
-        this.properties = Collections.emptyMap();
-    }
-
-    public Test(String name, Project project, Map<String, Object> properties) {
-        this.name = name;
-        this.project = project;
-        this.properties = properties;
-    }
-
-    public ObjectId getId() {
+    public String getId() {
         return id;
     }
 
@@ -72,7 +56,7 @@ public class Test implements Serializable {
         return name;
     }
 
-    public Project getProject() {
+    public String getProject() {
         return project;
     }
 
@@ -106,11 +90,11 @@ public class Test implements Serializable {
         this.status_detailed = status_detailed;
     }
 
-    public Loader getLoader() {
+    public String getLoader() {
         return loader;
     }
 
-    public void setLoader(Loader loader) {
+    public void setLoader(String loader) {
         this.loader = loader;
     }
 }
