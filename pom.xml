@@ -63,6 +63,7 @@
             <groupId>co.paralleluniverse</groupId>
             <artifactId>quasar-core</artifactId>
             <version>0.7.9</version>
+            <classifier>jdk8</classifier>
         </dependency>
         <dependency>
             <groupId>co.paralleluniverse</groupId>
@@ -99,9 +100,23 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <jvmArguments>
+                        -javaagent:${co.paralleluniverse:quasar-core:jar:jdk8}
                         -Dserver.port=8090
+                        -Dco.paralleluniverse.fibers.verifyInstrumentation=true
                     </jvmArguments>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.5.1</version>
+                <executions>
+                    <execution>
+                        <id>getClasspathFilenames</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
