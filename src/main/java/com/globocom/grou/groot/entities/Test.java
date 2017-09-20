@@ -46,7 +46,7 @@ public class Test implements Serializable {
 
     private Status status = Status.SCHEDULED;
 
-    private String status_detailed = "";
+    private String statusDetailed = "";
 
     public String getId() {
         return id;
@@ -82,12 +82,12 @@ public class Test implements Serializable {
         this.status = status;
     }
 
-    public String getStatus_detailed() {
-        return status_detailed;
+    public String getStatusDetailed() {
+        return statusDetailed;
     }
 
-    public void setStatus_detailed(String status_detailed) {
-        this.status_detailed = status_detailed;
+    public void setStatusDetailed(String status_detailed) {
+        this.statusDetailed = status_detailed;
     }
 
     public String getLoader() {

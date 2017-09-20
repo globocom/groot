@@ -3,6 +3,7 @@ package com.globocom.grou.groot.loader;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
+import com.globocom.grou.groot.jbender.JBender;
 import com.globocom.grou.groot.jbender.events.TimingEvent;
 import com.globocom.grou.groot.jbender.executors.http.FiberApacheHttpClientRequestExecutor;
 import com.globocom.grou.groot.jbender.intervals.ConstantIntervalGenerator;
@@ -31,17 +32,20 @@ public class LoaderService {
                 }
             }, 1000000)) {
 
-        final Channel<HttpGet> requestChannel = Channels.newChannel(1000);
-        final Channel<TimingEvent<CloseableHttpResponse>> eventChannel = Channels.newChannel(1000);
+            final Channel<HttpGet> requestChannel = Channels.newChannel(1000);
+            final Channel<TimingEvent<CloseableHttpResponse>> eventChannel = Channels.newChannel(1000);
 
-        new Fiber<Void>("request-generator", () -> {
-            for(int i=0; i < 1000; ++i) {
-                requestChannel.send(new HttpGet("http://localhost:8090/version"));
-            }
+            new Fiber<Void>("request-generator", () -> {
+                for(int i=0; i < 1000; ++i) {
+                    requestChannel.send(new HttpGet("http://localhost:8090/version"));
+                }
 
-            requestChannel.close();
-        }).start();
+                requestChannel.close();
+            }).start();
 
+            new Fiber<Void>("jbender", () -> {
+                JBender.loadTestThroughput(intervalGenerator, 0, requestChannel, requestExecutor, eventChannel);
+            }).start().join();
         }
     }
 }

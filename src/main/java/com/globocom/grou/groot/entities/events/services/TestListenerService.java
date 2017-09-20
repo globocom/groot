@@ -1,5 +1,6 @@
 package com.globocom.grou.groot.entities.events.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.loader.LoaderService;
@@ -11,7 +12,6 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class TestListenerService {
@@ -39,29 +39,23 @@ public class TestListenerService {
         Test test = mapper.readValue(testStr, Test.class);
 
         try {
-            test.setLoader(LOADER_ID);
-            test.setStatus(Test.Status.RUNNING);
-
+            sendToCallback(test, Test.Status.RUNNING, "RUNNING");
+            Thread.sleep(2000);
             loaderService.start();
+            sendToCallback(test, Test.Status.OK, "OK");
 
-            test.setStatus(Test.Status.OK);
-
-            log.info("CallbackEvent (test:" + test.getName() + ") sent to queue " + CALLBACK_QUEUE);
-
-        } catch (ExecutionException e) {
-            test.setStatus(Test.Status.ERROR);
-            test.setStatus_detailed("An execution error has occurred");
+        } catch (Exception e) {
+            sendToCallback(test, Test.Status.ERROR, e.getMessage());
             log.error(e.getMessage());
-
-        } catch (InterruptedException e) {
-            test.setStatus(Test.Status.ERROR);
-            test.setStatus_detailed("An unexpected interruption occurred");
-            log.error(e.getMessage());
-
-        } finally {
-            template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
         }
 
+    }
 
+    void sendToCallback(Test test, Test.Status status, String statusDetail) throws JsonProcessingException {
+        test.setStatus(status);
+        test.setStatusDetailed(statusDetail);
+        test.setLoader(LOADER_ID);
+        template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
+        log.info("CallbackEvent (test:" + test.getName() + ") sent to queue " + CALLBACK_QUEUE);
     }
 }
