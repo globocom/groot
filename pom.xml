@@ -103,6 +103,7 @@
                         -javaagent:${co.paralleluniverse:quasar-core:jar:jdk8}
                         -Dserver.port=8090
                         -Dco.paralleluniverse.fibers.verifyInstrumentation=true
+                        -Dco.paralleluniverse.fibers.detectRunawayFibers=false
                     </jvmArguments>
                 </configuration>
             </plugin>
