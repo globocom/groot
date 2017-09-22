@@ -38,7 +38,6 @@ public class TestListenerService {
     @JmsListener(destination = TEST_QUEUE, concurrency = "1-1")
     public void testQueue(String testStr) throws IOException {
         Test test = mapper.readValue(testStr, Test.class);
-        log.info(testStr);
         String testName = test.getName();
 
         try {
