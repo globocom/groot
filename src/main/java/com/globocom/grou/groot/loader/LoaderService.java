@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
@@ -33,7 +34,13 @@ public class LoaderService {
     private final NonBlockingStatsDClient statsDClient = new NonBlockingStatsDClient(STATSD_PREFIX, STATSD_HOST, STATSD_PORT);
 
     public void start(String testName, String uri, int numConn, int durationTimeMillis) throws IOException, ExecutionException, InterruptedException {
-        final Validator<CloseableHttpResponse> responseValidator = response -> sendToStatsd(testName, response);
+        final AtomicLong lastResponse = new AtomicLong(System.currentTimeMillis());
+        final Validator<CloseableHttpResponse> responseValidator = response -> {
+            int statusCode = response.getStatusLine().getStatusCode();
+            long now = System.currentTimeMillis();
+            long responseTime = now - lastResponse.getAndSet(now);
+            statsDClient.recordExecutionTime(testName + "." + statusCode, responseTime);
+        };
         try (final FiberApacheHttpClientRequestExecutor requestExecutor = new FiberApacheHttpClientRequestExecutor<>(responseValidator, 1000000)) {
 
             final Channel<HttpGet> requestChannel = Channels.newChannel(10000, Channels.OverflowPolicy.DROP);
@@ -53,10 +60,5 @@ public class LoaderService {
             new Fiber<Void>("jbender", jbenderRunner).start().join();
         }
         log.info("Finished test " + testName);
-    }
-
-    private void sendToStatsd(String testName, CloseableHttpResponse response) {
-        int statusCode = response.getStatusLine().getStatusCode();
-        statsDClient.incrementCounter(testName + ".httpStatus" + statusCode);
     }
 }
