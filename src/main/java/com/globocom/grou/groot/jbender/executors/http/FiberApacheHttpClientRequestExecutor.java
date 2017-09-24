@@ -8,6 +8,7 @@ import co.paralleluniverse.fibers.httpclient.FiberHttpClient;
 import co.paralleluniverse.strands.SuspendableCallable;
 import com.globocom.grou.groot.jbender.executors.RequestExecutor;
 import com.globocom.grou.groot.jbender.executors.Validator;
+import com.globocom.grou.groot.jbender.util.ParameterizedRequest;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -17,6 +18,7 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.reactor.IOReactorException;
+import org.apache.http.protocol.HttpContext;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -70,7 +72,8 @@ public class FiberApacheHttpClientRequestExecutor<X extends HttpRequestBase> imp
     try {
       ret = new Fiber<>((SuspendableCallable<CloseableHttpResponse>) () -> {
         try {
-          return client.execute(request);
+          final HttpContext context = ((ParameterizedRequest)request).getContext();
+          return client.execute(request, context);
         } catch (final IOException e) {
           throw Exceptions.rethrowUnwrap(e);
         }
