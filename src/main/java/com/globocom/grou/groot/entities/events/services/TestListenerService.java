@@ -12,7 +12,6 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @Service
 public class TestListenerService {
@@ -37,18 +36,18 @@ public class TestListenerService {
 
     @JmsListener(destination = TEST_QUEUE, concurrency = "1-1")
     public void testQueue(String testStr) throws IOException {
-        Test test = mapper.readValue(testStr, Test.class);
-        String testName = test.getName();
-
+        Test test = null;
         try {
-            String uri = Optional.ofNullable((String) test.getProperties().get("uri")).orElseThrow(() -> new IllegalArgumentException("uri property undefined"));
-            int numConn = Optional.ofNullable((Integer) test.getProperties().get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined"));
-            int durationTimeMillis = Optional.ofNullable((Integer) test.getProperties().get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined"));
-            loaderService.start(testName, uri, numConn, durationTimeMillis);
+            test = mapper.readValue(testStr, Test.class);
+            loaderService.start(test, test.getProperties());
             sendToCallback(test, Test.Status.OK, "OK");
         } catch (Exception e) {
-            sendToCallback(test, Test.Status.ERROR, e.getMessage());
-            log.error(testName + ": " + e.getMessage());
+            if (test != null) {
+                sendToCallback(test, Test.Status.ERROR, e.getMessage());
+                log.error(test.getName() + ": " + e.getMessage());
+            } else {
+                log.error(testStr + ": " + e.getMessage());
+            }
         }
 
     }
