@@ -23,57 +23,47 @@ import co.paralleluniverse.strands.channels.Channels;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.jbender.JBender;
 import com.globocom.grou.groot.jbender.events.TimingEvent;
-import com.globocom.grou.groot.jbender.executors.Validator;
-import com.globocom.grou.groot.jbender.executors.http.FiberApacheHttpClientRequestExecutor;
-import com.globocom.grou.groot.jbender.util.ParameterizedRequest;
-import io.galeb.statsd.NonBlockingStatsDClient;
+import com.globocom.grou.groot.jbender.executors.http.FiberAHC2RequestExecutor;
+import com.globocom.grou.groot.jbender.util.AHC2ParameterizedRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.asynchttpclient.Response;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
 public class LoaderService {
 
-    private static final String STATSD_PREFIX = Optional.ofNullable(System.getenv("STATSD_PREFIX")).orElse("grou");
-    private static final String STATSD_HOST   = Optional.ofNullable(System.getenv("STATSD_HOST")).orElse("localhost");
-    private static final int    STATSD_PORT   = Integer.parseInt(Optional.ofNullable(System.getenv("STATSD_PORT")).orElse("8125"));
-
     private final Log log = LogFactory.getLog(this.getClass());
 
-    private final NonBlockingStatsDClient statsDClient = new NonBlockingStatsDClient(STATSD_PREFIX, STATSD_HOST, STATSD_PORT);
+    private final JBender jBender;
 
-    public void start(Test test, final Map<String, Object> properties) throws IOException, ExecutionException, InterruptedException {
+    @Autowired
+    public LoaderService(JBender jBender) {
+        this.jBender = jBender;
+    }
+
+    public void start(Test test, final Map<String, Object> properties) throws Exception {
         final String testName = test.getName();
-        final String testProject = test.getProject();
         final int numConn = Optional.ofNullable((Integer) properties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined"));
         final int durationTimeMillis = Optional.ofNullable((Integer) properties.get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined"));
 
-        final AtomicLong lastResponse = new AtomicLong(System.currentTimeMillis());
-        final Validator<CloseableHttpResponse> responseValidator = response -> {
-            int statusCode = response.getStatusLine().getStatusCode();
-            long now = System.currentTimeMillis();
-            long responseTime = now - lastResponse.getAndSet(now);
-            statsDClient.recordExecutionTime(testProject + "." + testName + "." + statusCode, responseTime);
-        };
-        try (final FiberApacheHttpClientRequestExecutor requestExecutor = new FiberApacheHttpClientRequestExecutor<>(responseValidator, 1000000)) {
+        final AHC2ParameterizedRequest requestBuilder = new AHC2ParameterizedRequest(test);
 
-            final Channel<HttpEntityEnclosingRequestBase> requestChannel = Channels.newChannel(10000, Channels.OverflowPolicy.DROP);
-            final Channel<TimingEvent<CloseableHttpResponse>> eventChannel = Channels.newChannel(10000, Channels.OverflowPolicy.DROP);
+        try (final FiberAHC2RequestExecutor requestExecutor = new FiberAHC2RequestExecutor(numConn)) {
+
+            final Channel<AHC2ParameterizedRequest> requestChannel = Channels.newChannel(10000, Channels.OverflowPolicy.DROP);
+            final Channel<TimingEvent<Response>> eventChannel = Channels.newChannel(10000, Channels.OverflowPolicy.DROP);
             final long start = System.currentTimeMillis();
             log.info("Starting test " + testName);
             final SuspendableRunnable requestGeneratorRunner = () -> {
                 try {
                     while (System.currentTimeMillis() - start < durationTimeMillis) {
-                        requestChannel.send(new ParameterizedRequest(properties));
+                        requestChannel.send(requestBuilder);
                     }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
@@ -82,7 +72,7 @@ public class LoaderService {
                     requestChannel.close();
                 }
             };
-            final SuspendableRunnable jbenderRunner = () -> JBender.loadTestConcurrency(numConn, 0, requestChannel, requestExecutor, eventChannel);
+            final SuspendableRunnable jbenderRunner = () -> jBender.loadTestConcurrency(numConn, 0, requestChannel, requestExecutor, eventChannel);
 
             new Fiber<Void>("request-generator", requestGeneratorRunner).start();
             new Fiber<Void>("jbender", jbenderRunner).start().join();

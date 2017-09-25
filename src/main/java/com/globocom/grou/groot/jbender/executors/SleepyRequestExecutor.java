@@ -19,6 +19,7 @@ package com.globocom.grou.groot.jbender.executors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
+import io.galeb.statsd.StatsDClient;
 
 public class SleepyRequestExecutor<Q> implements RequestExecutor<Q, Void> {
   private final int sleepMillis;
@@ -32,6 +33,11 @@ public class SleepyRequestExecutor<Q> implements RequestExecutor<Q, Void> {
   @Override
   public Void execute(final long nanoTime, final Q request) throws SuspendExecution, InterruptedException {
     Strand.sleep(sleepMillis, sleepNanos);
+    return null;
+  }
+
+  @Override
+  public RequestExecutor<Q, Void> statsdClient(StatsDClient statsdClient) {
     return null;
   }
 }

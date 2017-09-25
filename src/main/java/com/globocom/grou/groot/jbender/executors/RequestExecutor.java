@@ -18,6 +18,9 @@
 package com.globocom.grou.groot.jbender.executors;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import io.galeb.statsd.StatsDClient;
+
+import java.util.concurrent.ExecutionException;
 
 /**
  * Request executor interface.
@@ -34,5 +37,7 @@ public interface RequestExecutor<Q, S> {
    *
    * @return The response value.
    */
-  S execute(long nanoTime, Q request) throws SuspendExecution, InterruptedException;
+  S execute(long nanoTime, Q request) throws SuspendExecution, InterruptedException, ExecutionException;
+
+  RequestExecutor<Q, S> statsdClient(StatsDClient statsdClient);
 }

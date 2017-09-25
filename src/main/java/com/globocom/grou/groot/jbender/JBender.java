@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2017-2017 Globo.com
  * All rights reserved.
@@ -29,19 +28,29 @@ import co.paralleluniverse.strands.concurrent.Semaphore;
 import com.globocom.grou.groot.jbender.events.TimingEvent;
 import com.globocom.grou.groot.jbender.executors.RequestExecutor;
 import com.globocom.grou.groot.jbender.intervals.IntervalGenerator;
+import com.globocom.grou.groot.jbender.util.AHC2ParameterizedRequest;
 import com.globocom.grou.groot.jbender.util.WaitGroup;
+import com.globocom.grou.groot.statsd.StatsdService;
+import io.galeb.statsd.StatsDClient;
+import org.asynchttpclient.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * JBender has static methods for running load tests by throughput or concurrency.
- */
+@Service
 public final class JBender {
+
   private static final Logger LOG = LoggerFactory.getLogger(JBender.class);
 
-  private JBender() {}
+  private final StatsDClient statsdClient;
+
+  @Autowired
+  public JBender(StatsdService statsdService) {
+    this.statsdClient = statsdService.client();
+  }
 
   /**
    * Run a load test with the given throughput, using as many fibers as necessary.
@@ -63,16 +72,14 @@ public final class JBender {
    *                 object.
    * @param eventChannel a TimingEvent is sent on this channel for every request executed during
    *                     the load test (whether the request succeeds or not).
-   * @param <Req> the request type.
-   * @param <Res> the response type.
    * @throws SuspendExecution
    * @throws InterruptedException
    */
-  public static <Req, Res> void loadTestThroughput(final IntervalGenerator intervalGen,
+  public void loadTestThroughput(final IntervalGenerator intervalGen,
                                                    final int warmupRequests,
-                                                   final ReceivePort<Req> requests,
-                                                   final RequestExecutor<Req, Res> executor,
-                                                   final SendPort<TimingEvent<Res>> eventChannel)
+                                                   final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                   final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                   final SendPort<TimingEvent<Response>> eventChannel)
     throws InterruptedException, SuspendExecution
   {
     loadTestThroughput(intervalGen, warmupRequests, requests, executor, eventChannel, null, null);
@@ -100,16 +107,14 @@ public final class JBender {
    *                     the load test (whether the request succeeds or not).
    * @param fiberScheduler an optional scheduler for fibers that will perform the requests (the
    *                       default one will be used if {@code null}).
-   * @param <Req> the request type.
-   * @param <Res> the response type.
    * @throws SuspendExecution
    * @throws InterruptedException
    */
-  public static <Req, Res> void loadTestThroughput(final IntervalGenerator intervalGen,
+  public void loadTestThroughput(final IntervalGenerator intervalGen,
                                                    final int warmupRequests,
-                                                   final ReceivePort<Req> requests,
-                                                   final RequestExecutor<Req, Res> executor,
-                                                   final SendPort<TimingEvent<Res>> eventChannel,
+                                                   final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                   final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                   final SendPort<TimingEvent<Response>> eventChannel,
                                                    final FiberScheduler fiberScheduler)
           throws InterruptedException, SuspendExecution
   {
@@ -138,16 +143,14 @@ public final class JBender {
    *                     the load test (whether the request succeeds or not).
    * @param strandFactory an optional factory for strands that will perform the requests (the
    *                      default one will be used if {@code null}).
-   * @param <Req> the request type.
-   * @param <Res> the response type.
    * @throws SuspendExecution
    * @throws InterruptedException
    */
-  public static <Req, Res> void loadTestThroughput(final IntervalGenerator intervalGen,
+  public void loadTestThroughput(final IntervalGenerator intervalGen,
                                                    final int warmupRequests,
-                                                   final ReceivePort<Req> requests,
-                                                   final RequestExecutor<Req, Res> executor,
-                                                   final SendPort<TimingEvent<Res>> eventChannel,
+                                                   final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                   final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                   final SendPort<TimingEvent<Response>> eventChannel,
                                                    final StrandFactory strandFactory)
           throws InterruptedException, SuspendExecution
   {
@@ -173,16 +176,14 @@ public final class JBender {
    *                 object.
    * @param eventChannel a TimingEvent is sent on this channel for every request executed during
    *                     the load test (whether the request succeeds or not).
-   * @param <Req> the request type.
-   * @param <Res> the response type.
    * @throws SuspendExecution
    * @throws InterruptedException
    */
-  public static <Req, Res> void loadTestConcurrency(final int concurrency,
+  public void loadTestConcurrency(final int concurrency,
                                                     final int warmupRequests,
-                                                    final ReceivePort<Req> requests,
-                                                    final RequestExecutor<Req, Res> executor,
-                                                    final SendPort<TimingEvent<Res>> eventChannel)
+                                                    final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                    final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                    final SendPort<TimingEvent<Response>> eventChannel)
     throws SuspendExecution, InterruptedException
   {
     loadTestConcurrency(concurrency, warmupRequests, requests, executor, eventChannel, null, null);
@@ -209,16 +210,14 @@ public final class JBender {
    *                     the load test (whether the request succeeds or not).
    * @param fiberScheduler an optional scheduler for fibers that will perform the requests (the
    *                       default one will be used if {@code null}).
-   * @param <Req> the request type.
-   * @param <Res> the response type.
    * @throws SuspendExecution
    * @throws InterruptedException
    */
-  public static <Req, Res> void loadTestConcurrency(final int concurrency,
+  public void loadTestConcurrency(final int concurrency,
                                                     final int warmupRequests,
-                                                    final ReceivePort<Req> requests,
-                                                    final RequestExecutor<Req, Res> executor,
-                                                    final SendPort<TimingEvent<Res>> eventChannel,
+                                                    final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                    final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                    final SendPort<TimingEvent<Response>> eventChannel,
                                                     final FiberScheduler fiberScheduler)
           throws SuspendExecution, InterruptedException
   {
@@ -246,39 +245,37 @@ public final class JBender {
    *                     the load test (whether the request succeeds or not).
    * @param strandFactory an optional factory for strands that will perform the requests (the
    *                      default one will be used if {@code null}).
-   * @param <Req> the request type.
-   * @param <Res> the response type.
    * @throws SuspendExecution
    * @throws InterruptedException
    */
-  public static <Req, Res> void loadTestConcurrency(final int concurrency,
+  public void loadTestConcurrency(final int concurrency,
                                                     final int warmupRequests,
-                                                    final ReceivePort<Req> requests,
-                                                    final RequestExecutor<Req, Res> executor,
-                                                    final SendPort<TimingEvent<Res>> eventChannel,
+                                                    final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                    final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                    final SendPort<TimingEvent<Response>> eventChannel,
                                                     final StrandFactory strandFactory)
           throws SuspendExecution, InterruptedException
   {
     loadTestConcurrency(concurrency, warmupRequests, requests, executor, eventChannel, null, strandFactory);
   }
 
-  private static class RequestExecOutcome<Res> {
+  private static class RequestExecOutcome<Response> {
     final long execTime;
-    final Res response;
+    final Response response;
     final Exception exception;
 
-    public RequestExecOutcome(final long execTime, final Res response, final Exception exception) {
+    public RequestExecOutcome(final long execTime, final Response response, final Exception exception) {
       this.execTime = execTime;
       this.response = response;
       this.exception = exception;
     }
   }
 
-  private static <Req, Res> void loadTestThroughput(final IntervalGenerator intervalGen,
+  private void loadTestThroughput(final IntervalGenerator intervalGen,
                                                     int warmupRequests,
-                                                    final ReceivePort<Req> requests,
-                                                    final RequestExecutor<Req, Res> executor,
-                                                    final SendPort<TimingEvent<Res>> eventChannel,
+                                                    final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                    final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                    final SendPort<TimingEvent<Response>> eventChannel,
                                                     final FiberScheduler fiberScheduler,
                                                     final StrandFactory strandFactory)
           throws SuspendExecution, InterruptedException
@@ -292,7 +289,7 @@ public final class JBender {
       final WaitGroup waitGroup = new WaitGroup();
       while (true) {
         final long receiveNanosStart = System.nanoTime();
-        final Req request = requests.receive();
+        final AHC2ParameterizedRequest request = requests.receive();
         LOG.trace("Receive request time: {}", System.nanoTime() - receiveNanosStart);
         if (request == null) {
           break;
@@ -318,7 +315,7 @@ public final class JBender {
 
         final SuspendableCallable<Void> sc = () -> {
           try {
-            final RequestExecOutcome<Res> outcome = executeRequest(request, executor);
+            final RequestExecOutcome<Response> outcome = executeRequest(request, executor);
             if (curWarmupRequests <= 0) {
               report(curWaitNanos, curOverageNanos, outcome, eventChannel);
             }
@@ -328,13 +325,7 @@ public final class JBender {
           }
           return null;
         };
-        if (fiberScheduler != null) {
-          new Fiber<>(fiberScheduler, sc).start();
-        } else if (strandFactory != null) {
-          strandFactory.newStrand(sc).start();
-        } else {
-          new Fiber<>(sc).start();
-        }
+        startFiber(fiberScheduler, strandFactory, sc);
 
         final long nowNanos = System.nanoTime();
         overageNanos += nowNanos - overageStart - waitNanos;
@@ -349,11 +340,11 @@ public final class JBender {
     }
   }
 
-  private static <Req, Res> void loadTestConcurrency(final int concurrency,
+  private void loadTestConcurrency(final int concurrency,
                                                      int warmupRequests,
-                                                     final ReceivePort<Req> requests,
-                                                     final RequestExecutor<Req, Res> executor,
-                                                     final SendPort<TimingEvent<Res>> eventChannel,
+                                                     final ReceivePort<AHC2ParameterizedRequest> requests,
+                                                     final RequestExecutor<AHC2ParameterizedRequest, Response> executor,
+                                                     final SendPort<TimingEvent<Response>> eventChannel,
                                                      final FiberScheduler fiberScheduler,
                                                      final StrandFactory strandFactory)
           throws SuspendExecution, InterruptedException
@@ -363,7 +354,7 @@ public final class JBender {
       final Semaphore running = new Semaphore(concurrency);
 
       while (true) {
-        final Req request = requests.receive();
+        final AHC2ParameterizedRequest request = requests.receive();
         if (request == null) {
           break;
         }
@@ -373,7 +364,7 @@ public final class JBender {
         final long curWarmupRequests = warmupRequests;
         final SuspendableCallable<Void> sc = () -> {
           try {
-            final RequestExecOutcome<Res> outcome = executeRequest(request, executor);
+            final RequestExecOutcome<Response> outcome = executeRequest(request, executor);
             if (curWarmupRequests <= 0) {
               report(0, 0, outcome, eventChannel);
             }
@@ -383,13 +374,7 @@ public final class JBender {
           }
           return null;
         };
-        if (fiberScheduler != null) {
-          new Fiber<>(fiberScheduler, sc).start();
-        } else if (strandFactory != null) {
-          strandFactory.newStrand(sc).start();
-        } else {
-          new Fiber<>(sc).start();
-        }
+        startFiber(fiberScheduler, strandFactory, sc);
 
         warmupRequests = Math.max(warmupRequests - 1, 0);
       }
@@ -400,25 +385,35 @@ public final class JBender {
     }
   }
 
-  private static <Req, Res> RequestExecOutcome<Res> executeRequest(final Req request, final RequestExecutor<Req, Res> executor)
+  private void startFiber(FiberScheduler fiberScheduler, StrandFactory strandFactory, SuspendableCallable<Void> sc) {
+    if (fiberScheduler != null) {
+      new Fiber<>(fiberScheduler, sc).start();
+    } else if (strandFactory != null) {
+      strandFactory.newStrand(sc).start();
+    } else {
+      new Fiber<>(sc).start();
+    }
+  }
+
+  private RequestExecOutcome<Response> executeRequest(final AHC2ParameterizedRequest request, final RequestExecutor<AHC2ParameterizedRequest, Response> executor)
           throws SuspendExecution, InterruptedException
   {
-    Res response = null;
+    Response response = null;
     Exception exc = null;
     final long startNanos = System.nanoTime();
     try {
-      response = executor.execute(startNanos, request);
+      response = executor.statsdClient(statsdClient).execute(startNanos, request);
     } catch (final Exception ex) {
-      LOG.error("Exception while executing request {}", request, ex);
+      if (LOG.isDebugEnabled()) LOG.debug("Exception while executing request {}", request, ex);
       exc = ex;
     }
     return new RequestExecOutcome<>(System.nanoTime() - startNanos, response, exc);
   }
 
-  private static <Res> void report(final long curWaitNanos,
+  private void report(final long curWaitNanos,
                                    long curOverageNanos,
-                                   final RequestExecOutcome<Res> outcome,
-                                   final SendPort<TimingEvent<Res>> eventChannel)
+                                   final RequestExecOutcome<Response> outcome,
+                                   final SendPort<TimingEvent<Response>> eventChannel)
       throws SuspendExecution, InterruptedException
   {
     if (outcome.exception == null) {

@@ -1,0 +1,41 @@
+/*
+ * Copyright (c) 2017-2017 Globo.com
+ * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.globocom.grou.groot.statsd;
+
+import io.galeb.statsd.NonBlockingStatsDClient;
+import io.galeb.statsd.StatsDClient;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class StatsdService {
+
+    private static final String STATSD_PREFIX = Optional.ofNullable(System.getenv("STATSD_PREFIX")).orElse("grou");
+    private static final String STATSD_HOST   = Optional.ofNullable(System.getenv("STATSD_HOST")).orElse("localhost");
+    private static final int    STATSD_PORT   = Integer.parseInt(Optional.ofNullable(System.getenv("STATSD_PORT")).orElse("8125"));
+
+    private final NonBlockingStatsDClient statsDClient;
+
+    public StatsdService() {
+        statsDClient = new NonBlockingStatsDClient(STATSD_PREFIX, STATSD_HOST, STATSD_PORT);
+    }
+
+    public StatsDClient client() {
+        return statsDClient;
+    }
+}

@@ -22,6 +22,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class Application {
 
+    public static final String GROOT_USERAGENT = "Grou$Groot/1.0";
+
     public static void main(String... args) {
         SpringApplication.run(Application.class, args);
     }

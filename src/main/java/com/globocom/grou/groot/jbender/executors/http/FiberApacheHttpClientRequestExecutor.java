@@ -21,10 +21,10 @@ import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.httpclient.FiberHttpClient;
-import co.paralleluniverse.strands.SuspendableCallable;
 import com.globocom.grou.groot.jbender.executors.RequestExecutor;
 import com.globocom.grou.groot.jbender.executors.Validator;
 import com.globocom.grou.groot.jbender.util.ParameterizedRequest;
+import io.galeb.statsd.StatsDClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -47,6 +47,8 @@ public class FiberApacheHttpClientRequestExecutor<X extends HttpRequestBase> imp
 
   private final Validator<CloseableHttpResponse> validator;
   private final FiberHttpClient client;
+
+  private StatsDClient statsdclient = null;
 
   public FiberApacheHttpClientRequestExecutor(final Validator<CloseableHttpResponse> resValidator, final int maxConnections, final int timeout, final int parallelism) throws IOReactorException {
     final DefaultConnectingIOReactor ioreactor = new DefaultConnectingIOReactor(IOReactorConfig.custom().
@@ -79,22 +81,42 @@ public class FiberApacheHttpClientRequestExecutor<X extends HttpRequestBase> imp
     this(null, maxConnections, 0);
   }
 
+  @Override
+  public FiberApacheHttpClientRequestExecutor<X> statsdClient(StatsDClient statsdClient) {
+    this.statsdclient = statsdClient;
+    return this;
+  }
+
   // TODO Figure out meaningful and sensible default for maxConnections and add no-args constructor
 
   @Override
   public CloseableHttpResponse execute(final long nanoTime, final HttpRequestBase request) throws SuspendExecution, InterruptedException {
+    final String testName = ((ParameterizedRequest)request).getTestName();
+    final String testProject = ((ParameterizedRequest)request).getTestProject();
+
     // TODO See if timeout can be configured per-request
     final CloseableHttpResponse ret;
     try {
-      ret = new Fiber<>((SuspendableCallable<CloseableHttpResponse>) () -> {
+      ret = new Fiber<>(() -> {
         try {
           final HttpContext context = ((ParameterizedRequest)request).getContext();
-          return client.execute(request, context);
+          CloseableHttpResponse response = client.execute(request, context);
+          if (statsdclient != null) {
+            int statusCode = response.getStatusLine().getStatusCode();
+            statsdclient.recordExecutionTime(testProject + "." + testName + "." + statusCode, nanoTime);
+          }
+          return response;
         } catch (final IOException e) {
+          if (statsdclient != null) {
+            statsdclient.increment(testProject + "." + testName + "." + e.getMessage().replaceAll("[ .:]", "_") + ".count");
+          }
           throw Exceptions.rethrowUnwrap(e);
         }
       }).start().get();
     } catch (final ExecutionException e) {
+      if (statsdclient != null) {
+        statsdclient.increment(testProject + "." + testName + "." + e.getMessage().replaceAll("[ .:]", "_") + ".count");
+      }
       throw Exceptions.rethrowUnwrap(e);
     }
     if (validator != null) {
