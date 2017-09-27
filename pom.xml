@@ -77,11 +77,6 @@
             <classifier>jdk8</classifier>
         </dependency>
         <dependency>
-            <groupId>co.paralleluniverse</groupId>
-            <artifactId>comsat-httpclient</artifactId>
-            <version>0.7.0</version>
-        </dependency>
-        <dependency>
             <groupId>io.galeb</groupId>
             <artifactId>galeb-statsd</artifactId>
             <version>4.0.0-SNAPSHOT</version>
@@ -120,7 +115,6 @@
                         -Dserver.port=8090
                         -Dco.paralleluniverse.fibers.verifyInstrumentation=true
                         -Dco.paralleluniverse.fibers.detectRunawayFibers=false
-                        -Dorg.asynchttpclient.useInsecureTrustManager=true
                     </jvmArguments>
                 </configuration>
             </plugin>
