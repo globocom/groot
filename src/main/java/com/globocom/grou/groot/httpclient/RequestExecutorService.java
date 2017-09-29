@@ -49,16 +49,18 @@ public class RequestExecutorService {
             @Override
             public Response onCompleted(Response response) throws Exception {
                 int statusCode = response.getStatusCode();
-                statsdClient.recordExecutionTime(prefixStatsdKey + "." + statusCode, System.currentTimeMillis() - start);
+                int bodySize = response.getResponseBodyAsBytes().length;
+                statsdClient.recordExecutionTime(prefixStatsdKey + ".status." + statusCode, System.currentTimeMillis() - start);
+                statsdClient.count(prefixStatsdKey + ".responseSize", bodySize);
                 return response;
             }
 
             @Override
             public void onThrowable(Throwable t) {
-                log.error(t);
-                if (!((t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException))) {
+                if (!((t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task"))) {
                     String messageException = t.getMessage().replaceAll("[ .:/]", "_").replaceAll(".*Exception__", "");
                     statsdClient.recordExecutionTime(prefixStatsdKey + "." + messageException, System.currentTimeMillis() - start);
+                    log.error(t);
                 }
             }
         });

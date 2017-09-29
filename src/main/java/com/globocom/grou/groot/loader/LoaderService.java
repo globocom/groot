@@ -21,12 +21,15 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import com.globocom.grou.groot.Application;
+import com.globocom.grou.groot.statsd.SystemInfo;
 import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.httpclient.RequestExecutorService;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
+import com.globocom.grou.groot.httpclient.RequestExecutorService;
+import com.globocom.grou.groot.statsd.MonitorService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -42,17 +45,18 @@ import static org.asynchttpclient.Dsl.config;
 public class LoaderService {
 
     private final RequestExecutorService asyncHttpClientService;
+    private final MonitorService connectionsCounterService;
 
     private final Log log = LogFactory.getLog(this.getClass());
 
     @Autowired
-    public LoaderService(RequestExecutorService asyncHttpClientService) {
+    public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService connectionsCounterService) {
         this.asyncHttpClientService = asyncHttpClientService;
+        this.connectionsCounterService = connectionsCounterService;
     }
 
     public void start(Test test, final Map<String, Object> properties) throws Exception {
         final String testName = test.getName();
-        final int numConn = Optional.ofNullable((Integer) properties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined"));
         final int durationTimeMillis = Optional.ofNullable((Integer) properties.get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined"));
 
         final ParameterizedRequest requestBuilder = new ParameterizedRequest(test);
@@ -75,7 +79,10 @@ public class LoaderService {
         };
 
         final SuspendableRunnable requestExecutor = () -> {
-            try (final AsyncHttpClient asyncHttpClient = newAsyncHttpClient(numConn, durationTimeMillis)) {
+            AsyncHttpClient asyncHttpClient = null;
+            try {
+                asyncHttpClient = newAsyncHttpClient(properties, durationTimeMillis);
+                connectionsCounterService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
                 while (true) {
                     final ParameterizedRequest request = requestChannel.receive();
                     if (request == null) {
@@ -83,8 +90,15 @@ public class LoaderService {
                     }
                     asyncHttpClientService.execute(asyncHttpClient, request);
                 }
-            } catch (IOException e) {
-                log.error(e);
+            } finally {
+                if (asyncHttpClient != null) {
+                    try {
+                        connectionsCounterService.reset();
+                        asyncHttpClient.close();
+                    } catch (IOException e) {
+                        log.error(e);
+                    }
+                }
             }
         };
 
@@ -94,18 +108,29 @@ public class LoaderService {
         log.info("Finished test " + testName);
     }
 
-    private AsyncHttpClient newAsyncHttpClient(int numConn, int durationTimeMillis) {
-        return asyncHttpClient(config()
-                    .setFollowRedirect(false)
-                    .setSoReuseAddress(true)
-                    .setKeepAlive(true)
-                    .setConnectTimeout(2000)
-                    .setPooledConnectionIdleTimeout(durationTimeMillis)
-                    .setConnectionTtl(durationTimeMillis)
-                    .setMaxConnectionsPerHost(numConn)
-                    .setMaxConnections(numConn)
-                    .setUseInsecureTrustManager(true)
-                    .setUserAgent(Application.GROOT_USERAGENT).build());
+    private AsyncHttpClient newAsyncHttpClient(final Map<String, Object> testProperties, int durationTimeMillis) throws IllegalArgumentException {
+        int numConn = Optional.ofNullable((Integer) testProperties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined"));
+        int connectTimeout = Optional.ofNullable((Integer) testProperties.get("connectTimeout")).orElse(2000);
+        boolean keepAlive = Optional.ofNullable((Boolean) testProperties.get("keepAlive")).orElse(true);
+        boolean followRedirect = Optional.ofNullable((Boolean) testProperties.get("followRedirect")).orElse(false);
+
+        DefaultAsyncHttpClientConfig.Builder config = config()
+                .setFollowRedirect(followRedirect)
+                .setSoReuseAddress(true)
+                .setKeepAlive(keepAlive)
+                .setConnectTimeout(connectTimeout)
+                .setPooledConnectionIdleTimeout(durationTimeMillis)
+                .setConnectionTtl(durationTimeMillis)
+                .setMaxConnectionsPerHost(numConn)
+                .setMaxConnections(numConn)
+                .setUseInsecureTrustManager(true)
+                .setUserAgent(Application.GROOT_USERAGENT);
+
+        if (SystemInfo.getOS().startsWith("linux")) {
+            config.setUseNativeTransport(true);
+        }
+
+        return asyncHttpClient(config);
     }
 
 }
