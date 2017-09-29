@@ -35,14 +35,12 @@ public final class SystemInfo {
     public static int totalSocketsTcpEstablished() {
         try {
             if (getOS().startsWith("linux")) {
-                final Process process = Runtime.getRuntime().exec("ss -s");
-                final BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                final BufferedReader br = exec("ss -s");
                 br.readLine();
                 return Integer.valueOf(br.readLine().replaceAll(".*estab ([0-9]+).*", "$1"));
             }
             if (getOS().startsWith("mac")) {
-                final Process process = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", "netstat -an -p tcp | grep EST | wc -l"});
-                final BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                final BufferedReader br = exec("/bin/sh", "-c", "netstat -an -p tcp | grep EST | wc -l");
                 return Integer.valueOf(br.readLine().trim());
             }
             return -1;
@@ -63,4 +61,10 @@ public final class SystemInfo {
     public static long memFree() {
         return OS.getFreePhysicalMemorySize();
     }
+    
+    private static BufferedReader exec(String... command) throws IOException {
+        final Process process = Runtime.getRuntime().exec(command);
+        return new BufferedReader(new InputStreamReader(process.getInputStream()));
+    }
+
 }
