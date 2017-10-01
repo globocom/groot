@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.configurations;
 
+import com.globocom.grou.groot.SystemEnv;
 import org.apache.activemq.artemis.api.core.client.loadbalance.RoundRobinConnectionLoadBalancingPolicy;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +28,6 @@ import org.springframework.jms.core.JmsTemplate;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
-import java.util.Optional;
 
 import static org.springframework.jms.core.JmsTemplate.RECEIVE_TIMEOUT_NO_WAIT;
 
@@ -35,20 +35,13 @@ import static org.springframework.jms.core.JmsTemplate.RECEIVE_TIMEOUT_NO_WAIT;
 @EnableJms
 public class JmsConfiguration {
 
-    private static final long DEFAULT_JMS_TIMEOUT  = Long.parseLong(Optional.ofNullable(System.getenv("JMS_TIMEOUT")).orElse("10000"));
-
-    private static final String BROKER_CONN = Optional.ofNullable(System.getenv("BROKER_CONN")).orElse("tcp://localhost:61616?blockOnDurableSend=false&consumerWindowSize=0&protocols=Core");
-    private static final String BROKER_USER = Optional.ofNullable(System.getenv("BROKER_USER")).orElse("guest");
-    private static final String BROKER_PASS = Optional.ofNullable(System.getenv("BROKER_PASS")).orElse("guest");
-    private static final boolean  BROKER_HA = Boolean.parseBoolean(Optional.ofNullable(System.getenv("BROKER_HA")).orElse("false"));
-
     @Bean(name="jmsConnectionFactory")
     public CachingConnectionFactory cachingConnectionFactory() throws JMSException {
         CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory();
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_CONN);
-        connectionFactory.setUser(BROKER_USER);
-        connectionFactory.setPassword(BROKER_PASS);
-        if (BROKER_HA) {
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(SystemEnv.BROKER_CONN.getValue());
+        connectionFactory.setUser(SystemEnv.BROKER_USER.getValue());
+        connectionFactory.setPassword(SystemEnv.BROKER_PASS.getValue());
+        if (Boolean.valueOf(SystemEnv.BROKER_HA.getValue())) {
             connectionFactory.setConnectionLoadBalancingPolicyClassName(RoundRobinConnectionLoadBalancingPolicy.class.getName());
         }
         cachingConnectionFactory.setTargetConnectionFactory(connectionFactory);
@@ -63,7 +56,7 @@ public class JmsConfiguration {
         jmsTemplate.setExplicitQosEnabled(true);
         jmsTemplate.setDeliveryPersistent(false);
         jmsTemplate.setReceiveTimeout(RECEIVE_TIMEOUT_NO_WAIT);
-        jmsTemplate.setTimeToLive(DEFAULT_JMS_TIMEOUT);
+        jmsTemplate.setTimeToLive(Long.parseLong(SystemEnv.JMS_TIMEOUT.getValue()));
         return jmsTemplate;
     }
 

@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.loader;
 
+import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
 import com.globocom.grou.groot.httpclient.RequestExecutorService;
@@ -34,8 +35,6 @@ import java.util.Optional;
 @Service
 public class LoaderService {
 
-    private static final String MAX_TEST_DURATION = Optional.ofNullable(System.getenv("MAX_TEST_DURATION")).orElse("600000");
-
     private final RequestExecutorService asyncHttpClientService;
     private final MonitorService connectionsCounterService;
 
@@ -49,7 +48,7 @@ public class LoaderService {
 
     public void start(Test test, final Map<String, Object> properties) throws Exception {
         final String testName = test.getName();
-        final int durationTimeMillis = Math.min(Integer.parseInt(MAX_TEST_DURATION),
+        final int durationTimeMillis = Math.min(Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue()),
                 Optional.ofNullable((Integer) properties.get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined")));
         int connectTimeout = Optional.ofNullable((Integer) test.getProperties().get("connectTimeout")).orElse(2000);
 

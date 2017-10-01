@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.monit;
 
+import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
@@ -36,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -44,18 +44,18 @@ import java.util.stream.Collectors;
 @Service
 public class MonitorService {
 
-    private static final String LOADER_STATSD_KEY = Optional.ofNullable(System.getenv("LOADER_STATSD_KEY")).orElse("loaders");
-    private static final String TARGET_STATSD_KEY = Optional.ofNullable(System.getenv("TARGET_STATSD_KEY")).orElse("targets");
-    private static final String RESPONSE_STATSD_KEY = Optional.ofNullable(System.getenv("RESPONSE_STATSD_KEY")).orElse("response");
-
     private final Log log = LogFactory.getLog(this.getClass());
 
     private final AtomicReference<Test> test = new AtomicReference<>(null);
 
+    private final String hostnameFormated = SystemInfo.hostname().replaceAll("[.]", "_");;
+
     private final StatsDClient statsdClient;
     private volatile int delta = 0;
     private List<MetricsCollector> targets = Collections.emptyList();
-    private String prefixResponse = "UNKNOW.UNKNOW." + RESPONSE_STATSD_KEY;
+    private String prefixResponse = "UNKNOW.UNKNOW." + SystemEnv.STATSD_RESPONSE_KEY.getValue();
+    private String prefixStatsdLoaderKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_LOADER_KEY.getValue() + hostnameFormated;
+    private String prefixStatsdTargetsKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_TARGET_KEY.getValue();
 
     @Autowired
     public MonitorService(final StatsdService statsdService) {
@@ -67,11 +67,13 @@ public class MonitorService {
             throw new IllegalStateException("Already monitoring other test");
         }
         this.delta = delta;
+        prefixStatsdLoaderKey = String.format("%s.%s.%s.%s.", test.getProject(), test.getName(), SystemEnv.STATSD_LOADER_KEY.getValue(), hostnameFormated);
+        prefixStatsdTargetsKey = String.format("%s.%s.%s.", test.getProject(), test.getName(), SystemEnv.STATSD_TARGET_KEY.getValue());
         extractMonitTargets(test);
     }
 
     private void extractMonitTargets(final Test test) {
-        this.prefixResponse = String.format("%s.%s.%s.", test.getProject(), test.getName(), RESPONSE_STATSD_KEY);
+        this.prefixResponse = String.format("%s.%s.%s.", test.getProject(), test.getName(), SystemEnv.STATSD_RESPONSE_KEY.getValue());
         final Map<String, Object> properties = test.getProperties();
         String monitTargets = (String) properties.get("monitTargets");
         if (monitTargets != null) {
@@ -95,7 +97,9 @@ public class MonitorService {
     public synchronized void reset() {
         this.test.set(null);
         this.targets = Collections.emptyList();
-        this.prefixResponse = "UNKNOW.UNKNOW." + RESPONSE_STATSD_KEY + ".";
+        this.prefixResponse = "UNKNOW.UNKNOW." + SystemEnv.STATSD_RESPONSE_KEY.getValue() + ".";
+        this.prefixStatsdLoaderKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_LOADER_KEY.getValue() + hostnameFormated;
+        this.prefixStatsdTargetsKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_TARGET_KEY.getValue();
         delta = 0;
     }
 
@@ -122,10 +126,6 @@ public class MonitorService {
     @Scheduled(fixedRate = 1000)
     public synchronized void sendMetrics() throws IOException {
         if (test.get() != null) {
-            String hostnameFormated = SystemInfo.hostname().replaceAll("[.]", "_");
-            String prefixStatsdLoaderKey = String.format("%s.%s.%s.%s.", test.get().getProject(), test.get().getName(), LOADER_STATSD_KEY, hostnameFormated);
-            String prefixStatsdTargetsKey = String.format("%s.%s.%s.", test.get().getProject(), test.get().getName(), TARGET_STATSD_KEY);
-
             int tcpConn = SystemInfo.totalSocketsTcpEstablished();
             statsdClient.gauge(prefixStatsdLoaderKey + "conns", tcpConn - delta);
             statsdClient.gauge(prefixStatsdLoaderKey + "cpu", SystemInfo.cpuLoad());
