@@ -17,8 +17,8 @@
 package com.globocom.grou.groot.httpclient;
 
 import com.globocom.grou.groot.Application;
-import com.globocom.grou.groot.statsd.MonitorService;
-import com.globocom.grou.groot.statsd.SystemInfo;
+import com.globocom.grou.groot.monit.MonitorService;
+import com.globocom.grou.groot.monit.SystemInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncCompletionHandler;

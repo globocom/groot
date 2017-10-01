@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.statsd.collectors;
+package com.globocom.grou.groot.monit.collectors;
 
 import java.net.URI;
 

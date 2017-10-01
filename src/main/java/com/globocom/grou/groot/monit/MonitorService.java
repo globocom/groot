@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.statsd;
+package com.globocom.grou.groot.monit;
 
 import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.statsd.collectors.MetricsCollector;
-import com.globocom.grou.groot.statsd.collectors.MetricsCollectorByScheme;
+import com.globocom.grou.groot.monit.collectors.MetricsCollector;
+import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import io.galeb.statsd.StatsDClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

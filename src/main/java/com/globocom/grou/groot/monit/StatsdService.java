@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.statsd;
+package com.globocom.grou.groot.monit;
 
 import io.galeb.statsd.NonBlockingStatsDClient;
 import io.galeb.statsd.StatsDClient;
