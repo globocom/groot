@@ -71,12 +71,6 @@
             <version>4.1.15.Final</version>
         </dependency>
         <dependency>
-            <groupId>co.paralleluniverse</groupId>
-            <artifactId>quasar-core</artifactId>
-            <version>0.7.9</version>
-            <classifier>jdk8</classifier>
-        </dependency>
-        <dependency>
             <groupId>io.galeb</groupId>
             <artifactId>galeb-statsd</artifactId>
             <version>4.0.0-SNAPSHOT</version>
@@ -111,7 +105,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <jvmArguments>
-                        -javaagent:${co.paralleluniverse:quasar-core:jar:jdk8}
                         -Dserver.port=8090
                         -Dco.paralleluniverse.fibers.verifyInstrumentation=true
                         -Dco.paralleluniverse.fibers.detectRunawayFibers=false
