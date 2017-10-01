@@ -35,7 +35,7 @@ public final class SystemInfo {
     public static int totalSocketsTcpEstablished() {
         try {
             if (getOS().startsWith("linux")) {
-                final BufferedReader br = exec("ss -s");
+                final BufferedReader br = exec("/bin/sh", "-c", "ss -s");
                 br.readLine();
                 return Integer.valueOf(br.readLine().replaceAll(".*estab ([0-9]+).*", "$1"));
             }
