@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.loader.LoaderService;
+import com.globocom.grou.groot.monit.SystemInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,6 @@ public class TestListenerService {
 
     private static final String CALLBACK_QUEUE = "grou:test_callback";
     private static final String TEST_QUEUE     = "grou:test_queue";
-    private static final String LOADER_ID      = "local";
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -71,7 +71,7 @@ public class TestListenerService {
     private void sendToCallback(Test test, Test.Status status, String statusDetail) throws JsonProcessingException {
         test.setStatus(status);
         test.setStatusDetailed(statusDetail);
-        test.setLoader(LOADER_ID);
+        test.setLoader(SystemInfo.hostname());
         template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
         log.info(String.format("CallbackEvent (test: %s, status: %s) sent to queue %s", test.getName(), status.toString(), CALLBACK_QUEUE));
     }
