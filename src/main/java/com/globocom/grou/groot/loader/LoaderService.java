@@ -51,6 +51,7 @@ public class LoaderService {
         final String testName = test.getName();
         final int durationTimeMillis = Math.min(Integer.parseInt(MAX_TEST_DURATION),
                 Optional.ofNullable((Integer) properties.get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined")));
+        int connectTimeout = Optional.ofNullable((Integer) test.getProperties().get("connectTimeout")).orElse(2000);
 
         final ParameterizedRequest requestBuilder = new ParameterizedRequest(test);
 
@@ -65,8 +66,12 @@ public class LoaderService {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
-            connectionsCounterService.reset();
-            log.info("Finished test " + testName);
+            try {
+                Thread.sleep(connectTimeout);
+            } finally {
+                connectionsCounterService.reset();
+                log.info("Finished test " + testName);
+            }
         }
     }
 
