@@ -16,17 +16,26 @@
 
 package com.globocom.grou.groot.httpclient;
 
+import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.statsd.StatsdService;
+import com.globocom.grou.groot.statsd.SystemInfo;
 import io.galeb.statsd.StatsDClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.asynchttpclient.Response;
 import org.asynchttpclient.exception.TooManyConnectionsException;
 import org.asynchttpclient.exception.TooManyConnectionsPerHostException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.Optional;
+
+import static org.asynchttpclient.Dsl.asyncHttpClient;
+import static org.asynchttpclient.Dsl.config;
 
 @Service
 public class RequestExecutorService {
@@ -64,5 +73,30 @@ public class RequestExecutorService {
                 }
             }
         });
+    }
+
+    public AsyncHttpClient newClient(final Map<String, Object> testProperties, int durationTimeMillis) throws IllegalArgumentException {
+        int numConn = Optional.ofNullable((Integer) testProperties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined"));
+        int connectTimeout = Optional.ofNullable((Integer) testProperties.get("connectTimeout")).orElse(2000);
+        boolean keepAlive = Optional.ofNullable((Boolean) testProperties.get("keepAlive")).orElse(true);
+        boolean followRedirect = Optional.ofNullable((Boolean) testProperties.get("followRedirect")).orElse(false);
+
+        DefaultAsyncHttpClientConfig.Builder config = config()
+                .setFollowRedirect(followRedirect)
+                .setSoReuseAddress(true)
+                .setKeepAlive(keepAlive)
+                .setConnectTimeout(connectTimeout)
+                .setPooledConnectionIdleTimeout(durationTimeMillis)
+                .setConnectionTtl(durationTimeMillis)
+                .setMaxConnectionsPerHost(numConn)
+                .setMaxConnections(numConn)
+                .setUseInsecureTrustManager(true)
+                .setUserAgent(Application.GROOT_USERAGENT);
+
+        if (SystemInfo.getOS().startsWith("linux")) {
+            config.setUseNativeTransport(true);
+        }
+
+        return asyncHttpClient(config);
     }
 }
