@@ -61,6 +61,14 @@ public final class SystemInfo {
     public static long memFree() {
         return OS.getFreePhysicalMemorySize();
     }
+
+    public static String hostname() {
+        String hostname;
+        if ((hostname = System.getenv("HOSTNAME")) == null) {
+            hostname = ManagementFactory.getRuntimeMXBean().getName();
+        }
+        return hostname;
+    }
     
     private static BufferedReader exec(String... command) throws IOException {
         final Process process = Runtime.getRuntime().exec(command);
