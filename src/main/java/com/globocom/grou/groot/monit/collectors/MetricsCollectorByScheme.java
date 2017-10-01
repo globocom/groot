@@ -61,6 +61,21 @@ public enum MetricsCollectorByScheme {
         }
 
         @Override
+        public float getLoad1m() {
+            return 0.0f;
+        }
+
+        @Override
+        public float getLoad5m() {
+            return 0.0f;
+        }
+
+        @Override
+        public float getLoad15m() {
+            return 0.0f;
+        }
+
+        @Override
         public String getTargetFormated() {
             return targetHost + targetPort;
         }

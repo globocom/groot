@@ -23,5 +23,8 @@ public interface MetricsCollector {
     int getConns();
     int getMemFree();
     int getCpuUsed();
+    float getLoad1m();
+    float getLoad5m();
+    float getLoad15m();
     String getTargetFormated();
 }

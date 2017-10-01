@@ -16,67 +16,98 @@
 
 package com.globocom.grou.groot.monit.collectors;
 
+import com.globocom.grou.groot.monit.collectors.snmp.SimpleSnmpClient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.snmp4j.event.ResponseEvent;
+import org.snmp4j.smi.OID;
+
+import java.io.IOException;
 import java.net.URI;
 
 public class SnmpMetricsCollector implements MetricsCollector {
 
-    private URI targetUri;
-    private String snmpServer = "localhost";
-    private String snmpPortStr = "161";
-    private String snmpCommunity = "public";
-    private String snmpVersion = "2c";
-    private String targetFormated;
+    private static final OID[] OID_CONN_ESTAB     = {new OID("1.3.6.1.2.1.6.9.0")};
+    private static final OID[] OID_MEM_AVAIL_REAL = {new OID("1.3.6.1.4.1.2021.4.6.0")};
+    private static final OID[] OID_MEM_BUFFER     = {new OID("1.3.6.1.4.1.2021.4.14.0")};
+    private static final OID[] OID_MEM_CACHED     = {new OID("1.3.6.1.4.1.2021.4.15.0")};
+    private static final OID[] OID_CPU            = {new OID("1.3.6.1.2.1.6.9.0")};
+    private static final OID[] OID_LOAD1          = {new OID("1.3.6.1.4.1.2021.10.1.3.1")};
+    private static final OID[] OID_LOAD5          = {new OID("1.3.6.1.4.1.2021.10.1.3.2")};
+    private static final OID[] OID_LOAD15         = {new OID("1.3.6.1.4.1.2021.10.1.3.3")};
+
+    private final Log log = LogFactory.getLog(this.getClass());
+
+    private String targetFormated = "";
+    private URI uri = null;
 
     @Override
     public MetricsCollector setUri(final URI uri) {
-        targetUri = uri;
-        String targetHost = uri.getHost().replaceAll("[.]", "_");
+        this.uri = uri;
         String targetPort = uri.getPort() > 0 ? "__" + uri.getPort() : "";
-        targetFormated = targetHost + targetPort;
-        snmpServer = uri.getHost();
-        String query = uri.getQuery();
-        String[] attrs = query.split("&");
-        for (String attr : attrs) {
-            int indexOf;
-            if ((indexOf = attr.indexOf("=")) > 0) {
-                String key = attr.substring(0, indexOf);
-                String value = attr.substring(indexOf + 1);
-                switch (key) {
-                    case "snmpServer":
-                        snmpServer = value;
-                        break;
-                    case "snmpPort":
-                        snmpPortStr = value;
-                        break;
-                    case "snmpCommunity":
-                        snmpCommunity = value;
-                        break;
-                    case "snmpVersion":
-                        snmpVersion = value;
-                        break;
-                }
-            }
-        }
+        targetFormated = uri.getHost().replaceAll("[.]", "_") + targetPort;
         return this;
     }
 
     @Override
     public int getConns() {
-        return 0;
+        return getSnmpValueInt(OID_CONN_ESTAB);
     }
 
     @Override
     public int getMemFree() {
-        return 0;
+        int memAvailReal = getSnmpValueInt(OID_MEM_AVAIL_REAL);
+        int memBuffer = getSnmpValueInt(OID_MEM_BUFFER);
+        int memCached = getSnmpValueInt(OID_MEM_CACHED);
+        return memAvailReal + memBuffer + memCached ;
     }
 
     @Override
     public int getCpuUsed() {
-        return 0;
+        return getSnmpValueInt(OID_CPU);
+    }
+
+    @Override
+    public float getLoad1m() {
+        return Float.valueOf(getSnmpValueStr(OID_LOAD1));
+    }
+
+    @Override
+    public float getLoad5m() {
+        return Float.valueOf(getSnmpValueStr(OID_LOAD5));
+    }
+
+    @Override
+    public float getLoad15m() {
+        return Float.valueOf(getSnmpValueStr(OID_LOAD15));
     }
 
     @Override
     public String getTargetFormated() {
         return targetFormated;
+    }
+
+    private int getSnmpValueInt(final OID[] oid) {
+        int value;
+        try (final SimpleSnmpClient snmpClient = new SimpleSnmpClient(uri)) {
+            ResponseEvent event = snmpClient.get(oid);
+            value = SimpleSnmpClient.extractSingleInt(event);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            value = -1;
+        }
+        return value;
+    }
+
+    private String getSnmpValueStr(final OID[] oid) {
+        String value;
+        try (final SimpleSnmpClient snmpClient = new SimpleSnmpClient(uri)) {
+            ResponseEvent event = snmpClient.get(oid);
+            value = SimpleSnmpClient.extractSingleString(event);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            value = "0.0";
+        }
+        return value;
     }
 }

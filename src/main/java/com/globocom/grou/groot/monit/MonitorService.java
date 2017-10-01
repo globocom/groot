@@ -127,7 +127,7 @@ public class MonitorService {
     public synchronized void sendMetrics() throws IOException {
         if (test.get() != null) {
             int tcpConn = SystemInfo.totalSocketsTcpEstablished();
-            statsdClient.gauge(prefixStatsdLoaderKey + "conns", tcpConn - delta);
+            statsdClient.gauge(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn - delta));
             statsdClient.gauge(prefixStatsdLoaderKey + "cpu", SystemInfo.cpuLoad());
             statsdClient.gauge(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree());
 
@@ -136,10 +136,16 @@ public class MonitorService {
                 int targetConns = target.getConns();
                 int targetMemFree = target.getMemFree();
                 int targetCpuUsed = target.getCpuUsed();
+                float targetLoad1m = target.getLoad1m();
+                float targetLoad5m = target.getLoad5m();
+                float targetLoad15m = target.getLoad15m();
 
                 statsdClient.gauge(prefixStatsd + "conns", targetConns);
                 statsdClient.gauge(prefixStatsd + "cpu", targetCpuUsed);
                 statsdClient.gauge(prefixStatsd + "memFree", targetMemFree);
+                statsdClient.gauge(prefixStatsd + "load1m", targetLoad1m);
+                statsdClient.gauge(prefixStatsd + "load5m", targetLoad5m);
+                statsdClient.gauge(prefixStatsd + "load15m", targetLoad15m);
             });
         }
     }
