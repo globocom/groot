@@ -31,7 +31,7 @@ public class SnmpMetricsCollector implements MetricsCollector {
     private static final OID[] OID_MEM_AVAIL_REAL = {new OID("1.3.6.1.4.1.2021.4.6.0")};
     private static final OID[] OID_MEM_BUFFER     = {new OID("1.3.6.1.4.1.2021.4.14.0")};
     private static final OID[] OID_MEM_CACHED     = {new OID("1.3.6.1.4.1.2021.4.15.0")};
-    private static final OID[] OID_CPU            = {new OID("1.3.6.1.2.1.6.9.0")};
+    private static final OID[] OID_CPU_IDLE       = {new OID("1.3.6.1.4.1.2021.11.11.0")};
     private static final OID[] OID_LOAD1          = {new OID("1.3.6.1.4.1.2021.10.1.3.1")};
     private static final OID[] OID_LOAD5          = {new OID("1.3.6.1.4.1.2021.10.1.3.2")};
     private static final OID[] OID_LOAD15         = {new OID("1.3.6.1.4.1.2021.10.1.3.3")};
@@ -64,7 +64,7 @@ public class SnmpMetricsCollector implements MetricsCollector {
 
     @Override
     public int getCpuUsed() {
-        return getSnmpValueInt(OID_CPU);
+        return 100 - getSnmpValueInt(OID_CPU_IDLE);
     }
 
     @Override
