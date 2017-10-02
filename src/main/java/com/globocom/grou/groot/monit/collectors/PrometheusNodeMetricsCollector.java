@@ -55,9 +55,9 @@ public class PrometheusNodeMetricsCollector implements MetricsCollector {
     }
 
     @Override
-    public int getMemFree() {
+    public double getMemFree() {
         try {
-            return (int) new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_MemAvailable")).doubleValue();
+            return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_MemAvailable")).doubleValue();
         } catch (Exception e) {
             return -1;
         }

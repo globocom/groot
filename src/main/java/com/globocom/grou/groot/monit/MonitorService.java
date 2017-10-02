@@ -134,7 +134,7 @@ public class MonitorService {
             targets.forEach(target -> {
                 String prefixStatsd = prefixStatsdTargetsKey + target.getTargetFormated() + ".";
                 int targetConns = target.getConns();
-                int targetMemFree = target.getMemFree();
+                double targetMemFree = target.getMemFree();
                 int targetCpuUsed = target.getCpuUsed();
                 float targetLoad1m = target.getLoad1m();
                 float targetLoad5m = target.getLoad5m();

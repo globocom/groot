@@ -52,8 +52,8 @@ public enum MetricsCollectorByScheme {
         }
 
         @Override
-        public int getMemFree() {
-            return 0;
+        public double getMemFree() {
+            return 0.0;
         }
 
         @Override

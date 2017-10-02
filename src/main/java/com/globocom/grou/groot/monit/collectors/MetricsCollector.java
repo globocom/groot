@@ -21,7 +21,7 @@ import java.net.URI;
 public interface MetricsCollector {
     MetricsCollector setUri(URI uri);
     int getConns();
-    int getMemFree();
+    double getMemFree();
     int getCpuUsed();
     float getLoad1m();
     float getLoad5m();
