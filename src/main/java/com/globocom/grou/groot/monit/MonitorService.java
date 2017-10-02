@@ -128,7 +128,7 @@ public class MonitorService {
         if (test.get() != null) {
             int tcpConn = SystemInfo.totalSocketsTcpEstablished();
             statsdClient.gauge(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn - delta));
-            statsdClient.gauge(prefixStatsdLoaderKey + "cpu", SystemInfo.cpuLoad());
+            statsdClient.gauge(prefixStatsdLoaderKey + "cpu", 100 * SystemInfo.cpuLoad());
             statsdClient.gauge(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree());
 
             targets.forEach(target -> {
