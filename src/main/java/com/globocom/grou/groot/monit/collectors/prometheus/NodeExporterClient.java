@@ -17,22 +17,36 @@
 package com.globocom.grou.groot.monit.collectors.prometheus;
 
 import com.globocom.grou.groot.Application;
+import io.prometheus.client.Metrics;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import org.asynchttpclient.RequestBuilder;
 import org.asynchttpclient.Response;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
 
 public class NodeExporterClient {
+
+    private static final String PB_ACCEPT_HEADER =
+            "application/vnd.google.protobuf;" +
+            "proto=io.prometheus.client.MetricFamily;" +
+            "encoding=delimited;" +
+            "q=0.7,text/plain;" +
+            "version=0.0.4;" +
+            "q=0.3,*/*;" +
+            "q=0.1";
+
+    private final Log log = LogFactory.getLog(this.getClass());
 
     private final AsyncHttpClient asyncHttpClient;
 
@@ -41,6 +55,7 @@ public class NodeExporterClient {
                 .setFollowRedirect(false)
                 .setSoReuseAddress(true)
                 .setKeepAlive(true)
+                .setCompressionEnforced(true)
                 .setConnectTimeout(2000)
                 .setMaxConnectionsPerHost(100)
                 .setMaxConnections(100)
@@ -49,20 +64,52 @@ public class NodeExporterClient {
         asyncHttpClient = asyncHttpClient(config);
     }
 
-    public Map<String, String> get(String url) throws ExecutionException, InterruptedException, IOException {
+    public Map<String, String> get(String url)  {
         Map<String, String> result = new HashMap<>();
-        Response response = asyncHttpClient.prepareGet(url).execute().get();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(response.getResponseBodyAsStream(), Charset.defaultCharset().name()));
+        RequestBuilder builder = new RequestBuilder().setHeader("Accept", PB_ACCEPT_HEADER).setUrl(url);
+        try {
+            Response response = asyncHttpClient.executeRequest(builder).get();
 
-        String line;
-        while ((line = reader.readLine()) != null) {
-            int index = line.indexOf(" ");
-            if (index > 0 && !"#".equals(line.substring(0,1))) {
-                String key = line.substring(0, index);
-                String value = line.substring(index + 1);
-                result.put(key, value);
+            final ByteBuffer buf = response.getResponseBodyAsByteBuffer();
+            final InputStream body = new InputStream() {
+
+                @Override
+                public int read() throws IOException {
+                    if (!buf.hasRemaining()) {
+                        return -1;
+                    }
+                    return buf.get() & 0xFF;
+                }
+
+                @Override
+                public int read(byte[] bytes, int off, int len) throws IOException {
+                    if (!buf.hasRemaining()) {
+                        return -1;
+                    }
+
+                    len = Math.min(len, buf.remaining());
+                    buf.get(bytes, off, len);
+                    return len;
+                }
+            };
+
+            while (buf.remaining() > 0) {
+                Metrics.MetricFamily metrics = Metrics.MetricFamily.parseDelimitedFrom(body);
+                if (metrics.getType() == Metrics.MetricType.SUMMARY) continue;
+                metrics.getMetricList().forEach(metric -> {
+                    String labels = metric.getLabelList().stream().map(l -> l.getName() + "=\"" + l.getValue() + "\"").collect(Collectors.joining(","));
+                    if (!labels.isEmpty()) labels = "{" + labels + "}";
+                    String key = metrics.getName() + labels;
+                    double value = (metric.hasCounter()) ? metric.getCounter().getValue() : ((metric.hasGauge()) ? metric.getGauge().getValue() : -1);
+
+                    if (log.isDebugEnabled()) log.debug(key + " " + value);
+                    result.put(key, String.valueOf(value));
+                });
             }
+        } catch (Exception ignore) {
+            //
         }
+
         return result;
     }
 }
