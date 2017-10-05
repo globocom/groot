@@ -17,13 +17,12 @@
 package com.globocom.grou.groot.monit.collectors.prometheus;
 
 import com.globocom.grou.groot.Application;
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.Response;
 import io.prometheus.client.Metrics;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.DefaultAsyncHttpClientConfig;
-import org.asynchttpclient.RequestBuilder;
-import org.asynchttpclient.Response;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,9 +30,6 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static org.asynchttpclient.Dsl.asyncHttpClient;
-import static org.asynchttpclient.Dsl.config;
 
 public class NodeExporterClient {
 
@@ -48,27 +44,23 @@ public class NodeExporterClient {
 
     private final Log log = LogFactory.getLog(this.getClass());
 
-    private final AsyncHttpClient asyncHttpClient;
-
-    public NodeExporterClient() {
-        DefaultAsyncHttpClientConfig.Builder config = config()
+    private static final AsyncHttpClient CLIENT;
+    static {
+        AsyncHttpClientConfig config = new AsyncHttpClientConfig.Builder()
                 .setFollowRedirect(false)
-                .setSoReuseAddress(true)
-                .setKeepAlive(true)
                 .setCompressionEnforced(true)
                 .setConnectTimeout(2000)
                 .setMaxConnectionsPerHost(100)
                 .setMaxConnections(100)
-                .setUseInsecureTrustManager(true)
-                .setUserAgent(Application.GROOT_USERAGENT);
-        asyncHttpClient = asyncHttpClient(config);
+                .setAcceptAnyCertificate(true)
+                .setUserAgent(Application.GROOT_USERAGENT).build();
+        CLIENT = new AsyncHttpClient(config);
     }
 
     public Map<String, Double> get(String url)  {
         Map<String, Double> result = new HashMap<>();
-        RequestBuilder builder = new RequestBuilder().setHeader("Accept", PB_ACCEPT_HEADER).setUrl(url);
         try {
-            Response response = asyncHttpClient.executeRequest(builder).get();
+            Response response = CLIENT.prepareGet(url).setHeader("Accept", PB_ACCEPT_HEADER).execute().get();
 
             final ByteBuffer buf = response.getResponseBodyAsByteBuffer();
             final InputStream body = new InputStream() {
