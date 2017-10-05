@@ -125,10 +125,18 @@ public class SimpleSnmpClient implements AutoCloseable {
     }
 
     public static String extractSingleString(ResponseEvent event) {
-        return event.getResponse().get(0).getVariable().toString();
+        final PDU response = event.getResponse();
+        if (response != null && response.size() > 0) {
+            return response.get(0).getVariable().toString();
+        }
+        return "";
     }
 
     public static int extractSingleInt(ResponseEvent event) {
-        return event.getResponse().get(0).getVariable().toInt();
+        final PDU response = event.getResponse();
+        if (response != null && response.size() > 0) {
+            return response.get(0).getVariable().toInt();
+        }
+        return -1;
     }
 }

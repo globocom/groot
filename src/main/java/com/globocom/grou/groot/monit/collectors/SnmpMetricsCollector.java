@@ -69,17 +69,29 @@ public class SnmpMetricsCollector implements MetricsCollector {
 
     @Override
     public float getLoad1m() {
-        return Float.valueOf(getSnmpValueStr(OID_LOAD1));
+        try {
+            return Float.valueOf(getSnmpValueStr(OID_LOAD1));
+        } catch (NumberFormatException ignore) {
+            return -1.0f;
+        }
     }
 
     @Override
     public float getLoad5m() {
-        return Float.valueOf(getSnmpValueStr(OID_LOAD5));
+        try {
+            return Float.valueOf(getSnmpValueStr(OID_LOAD5));
+        } catch (NumberFormatException ignore) {
+            return -1.0f;
+        }
     }
 
     @Override
     public float getLoad15m() {
-        return Float.valueOf(getSnmpValueStr(OID_LOAD15));
+        try {
+            return Float.valueOf(getSnmpValueStr(OID_LOAD15));
+        } catch (NumberFormatException ignore) {
+            return -1.0f;
+        }
     }
 
     @Override
