@@ -64,8 +64,8 @@ public class NodeExporterClient {
         asyncHttpClient = asyncHttpClient(config);
     }
 
-    public Map<String, String> get(String url)  {
-        Map<String, String> result = new HashMap<>();
+    public Map<String, Double> get(String url)  {
+        Map<String, Double> result = new HashMap<>();
         RequestBuilder builder = new RequestBuilder().setHeader("Accept", PB_ACCEPT_HEADER).setUrl(url);
         try {
             Response response = asyncHttpClient.executeRequest(builder).get();
@@ -103,7 +103,7 @@ public class NodeExporterClient {
                     double value = (metric.hasCounter()) ? metric.getCounter().getValue() : ((metric.hasGauge()) ? metric.getGauge().getValue() : -1);
 
                     if (log.isDebugEnabled()) log.debug(key + " " + value);
-                    result.put(key, String.valueOf(value));
+                    result.put(key, value);
                 });
             }
         } catch (Exception ignore) {

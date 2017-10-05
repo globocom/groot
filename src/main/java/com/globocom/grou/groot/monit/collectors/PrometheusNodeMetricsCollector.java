@@ -22,6 +22,8 @@ import org.apache.commons.logging.LogFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class PrometheusNodeMetricsCollector implements MetricsCollector {
@@ -48,7 +50,7 @@ public class PrometheusNodeMetricsCollector implements MetricsCollector {
     @Override
     public int getConns() {
         try {
-            return Integer.parseInt(nodeExporterClient.get(nodeUrl).get("node_tcp_connection_states{state=\"established\"}"));
+            return Optional.ofNullable(nodeExporterClient.get(nodeUrl).get("node_tcp_connection_states{state=\"established\"}")).orElse(-1.0).intValue();
         } catch (Exception e) {
             return -1;
         }
@@ -59,7 +61,7 @@ public class PrometheusNodeMetricsCollector implements MetricsCollector {
         try {
             return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_MemAvailable")).doubleValue();
         } catch (Exception e) {
-            return -1;
+            return -1.0;
         }
     }
 
@@ -68,7 +70,7 @@ public class PrometheusNodeMetricsCollector implements MetricsCollector {
         try {
             double totalIdle = nodeExporterClient.get(nodeUrl).entrySet().stream()
                     .filter(e -> e.getKey().startsWith("node_cpu") && e.getKey().endsWith("mode=\"idle\"}"))
-                    .map(e -> Double.parseDouble(e.getValue())).collect(Collectors.summarizingDouble(Double::doubleValue)).getAverage();
+                    .map(Map.Entry::getValue).collect(Collectors.summarizingDouble(Double::doubleValue)).getAverage();
 
             int result = 0;
             if (lastTotalIdle >= 0.0D) {
@@ -84,27 +86,27 @@ public class PrometheusNodeMetricsCollector implements MetricsCollector {
     @Override
     public float getLoad1m() {
         try {
-            return Float.parseFloat(nodeExporterClient.get(nodeUrl).get("node_load1"));
+            return Optional.ofNullable(nodeExporterClient.get(nodeUrl).get("node_load1")).orElse(-1.0).floatValue();
         } catch (Exception e) {
-            return -1;
+            return -1.0f;
         }
     }
 
     @Override
     public float getLoad5m() {
         try {
-            return Float.parseFloat(nodeExporterClient.get(nodeUrl).get("node_load5"));
+            return Optional.ofNullable(nodeExporterClient.get(nodeUrl).get("node_load5")).orElse(-1.0).floatValue();
         } catch (Exception e) {
-            return -1;
+            return -1.0f;
         }
     }
 
     @Override
     public float getLoad15m() {
         try {
-            return Float.parseFloat(nodeExporterClient.get(nodeUrl).get("node_load15"));
+            return Optional.ofNullable(nodeExporterClient.get(nodeUrl).get("node_load15")).orElse(-1.0).floatValue();
         } catch (Exception e) {
-            return -1;
+            return -1.0f;
         }
     }
 
