@@ -26,24 +26,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class PrometheusNodeMetricsCollector implements MetricsCollector {
+public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
     private final Log log = LogFactory.getLog(this.getClass());
 
     private final NodeExporterClient nodeExporterClient = new NodeExporterClient();
 
     private String nodeUrl = "";
-    private String targetFormated;
-    private String nodeHost = null;
-    private String nodePort = null;
     private double lastTotalIdle = -1.0;
 
     @Override
-    public MetricsCollector setUri(URI uri) {
-        nodeUrl = "http://" + uri.getHost() + ":9100/metrics";
-        extractQueryParams(uri);
-        String targetPort = uri.getPort() > 0 ? "__" + uri.getPort() : "";
-        targetFormated = uri.getHost().replaceAll("[.]", "_") + targetPort;
+    public MetricsCollector setUri(final URI uri) {
+        super.setUri(uri);
+        nodeUrl = "http://" + uriHost + ":" + uriPort + "/metrics";
         return this;
     }
 
@@ -111,30 +106,8 @@ public class PrometheusNodeMetricsCollector implements MetricsCollector {
     }
 
     @Override
-    public String getTargetFormated() {
-        return targetFormated;
+    protected int defaultPort() {
+        return 9100;
     }
 
-    private void extractQueryParams(final URI uri) {
-        String query = uri.getQuery();
-        String[] attrs = query.split("&");
-        for (String attr : attrs) {
-            int indexOf;
-            if ((indexOf = attr.indexOf("=")) > 0) {
-                String key = attr.substring(0, indexOf);
-                String value = attr.substring(indexOf + 1);
-                switch (key) {
-                    case "nodeHost":
-                        nodeHost = value;
-                        break;
-                    case "nodePort":
-                        nodePort = value;
-                        break;
-                }
-            }
-        }
-        if (nodeHost == null) nodeHost = uri.getHost();
-        if (nodePort == null) nodePort = "9100";
-        nodeUrl = "http://" + nodeHost + ":" + nodePort + "/metrics";
-    }
 }

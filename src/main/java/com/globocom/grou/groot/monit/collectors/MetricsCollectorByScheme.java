@@ -34,17 +34,7 @@ public enum MetricsCollectorByScheme {
         return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).newInstance()).setUri(uri);
     }
 
-    public static class ZeroCollector implements MetricsCollector {
-
-        private String targetHost;
-        private String targetPort;
-
-        @Override
-        public MetricsCollector setUri(final URI uri) {
-            targetHost = uri.getHost().replaceAll("[.]", "_");
-            targetPort = uri.getPort() > 0 ? "__" + uri.getPort() : "";
-            return this;
-        }
+    public static class ZeroCollector extends MetricsCollector {
 
         @Override
         public int getConns() {
@@ -77,8 +67,8 @@ public enum MetricsCollectorByScheme {
         }
 
         @Override
-        public String getTargetFormated() {
-            return targetHost + targetPort;
+        protected int defaultPort() {
+            return 0;
         }
     }
 

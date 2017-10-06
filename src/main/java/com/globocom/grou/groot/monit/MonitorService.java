@@ -132,7 +132,7 @@ public class MonitorService {
             statsdClient.gauge(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree());
 
             targets.forEach(target -> {
-                String prefixStatsd = prefixStatsdTargetsKey + target.getTargetFormated() + ".";
+                String prefixStatsd = prefixStatsdTargetsKey + target.getKey() + ".";
                 int targetConns = target.getConns();
                 double targetMemFree = target.getMemFree();
                 int targetCpuUsed = target.getCpuUsed();

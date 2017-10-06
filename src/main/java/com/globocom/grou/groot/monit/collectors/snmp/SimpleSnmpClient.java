@@ -31,7 +31,8 @@ import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 
 import java.io.IOException;
-import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Ref: https://blog.jayway.com/2010/05/21/introduction-to-snmp4j
@@ -40,46 +41,23 @@ import java.net.URI;
 
 public class SimpleSnmpClient implements AutoCloseable {
 
-    private String snmpHostTarget = "localhost";
-    private String snmpPortStr = "161";
-    private String snmpCommunity = "public";
-    private String snmpVersion = "2c";
+    private final String snmpHost;
+    private final int snmpPort;
+    private final String community;
+    private final String version;
 
     private Snmp snmp;
 
-    public SimpleSnmpClient(URI uri) {
+    public SimpleSnmpClient(String uriHost, int uriPort, final Map<String, String> queryParams) {
         super();
-        extractQueryParams(uri);
+        this.snmpHost = uriHost;
+        this.snmpPort = uriPort;
+        this.community = Optional.ofNullable(queryParams.get("community")).orElse("public");
+        this.version = Optional.ofNullable(queryParams.get("version")).orElse("2c");
         try {
             start();
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private void extractQueryParams(final URI uri) {
-        String query = uri.getQuery();
-        String[] attrs = query.split("&");
-        for (String attr : attrs) {
-            int indexOf;
-            if ((indexOf = attr.indexOf("=")) > 0) {
-                String key = attr.substring(0, indexOf);
-                String value = attr.substring(indexOf + 1);
-                switch (key) {
-                    case "snmpTarget":
-                        snmpHostTarget = value;
-                        break;
-                    case "snmpPort":
-                        snmpPortStr = value;
-                        break;
-                    case "snmpCommunity":
-                        snmpCommunity = value;
-                        break;
-                    case "snmpVersion":
-                        snmpVersion = value;
-                        break;
-                }
-            }
         }
     }
 
@@ -91,7 +69,6 @@ public class SimpleSnmpClient implements AutoCloseable {
     private void start() throws IOException {
         TransportMapping<? extends Address> transport = new DefaultUdpTransportMapping();
         snmp = new Snmp(transport);
-        // Do not forget this line!
         transport.listen();
     }
 
@@ -114,13 +91,13 @@ public class SimpleSnmpClient implements AutoCloseable {
     }
 
     private Target getTarget() {
-        Address targetAddress = GenericAddress.parse("udp:" + snmpHostTarget + "/" + snmpPortStr);
+        Address targetAddress = GenericAddress.parse("udp:" + snmpHost + "/" + snmpPort);
         CommunityTarget target = new CommunityTarget();
-        target.setCommunity(new OctetString(snmpCommunity));
+        target.setCommunity(new OctetString(community));
         target.setAddress(targetAddress);
         target.setRetries(2);
         target.setTimeout(1500);
-        target.setVersion("2c".equals(snmpVersion) ? SnmpConstants.version2c : SnmpConstants.version1);
+        target.setVersion("1".equals(version) ? SnmpConstants.version1 : SnmpConstants.version2c);
         return target;
     }
 

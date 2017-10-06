@@ -17,14 +17,57 @@
 package com.globocom.grou.groot.monit.collectors;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-public interface MetricsCollector {
-    MetricsCollector setUri(URI uri);
-    int getConns();
-    double getMemFree();
-    int getCpuUsed();
-    float getLoad1m();
-    float getLoad5m();
-    float getLoad15m();
-    String getTargetFormated();
+public abstract class MetricsCollector {
+
+    String uriHost = null;
+    int uriPort = -1;
+    protected String key = null;
+    Map<String, String> queryParams = Collections.emptyMap();
+
+    public MetricsCollector setUri(URI uri) {
+        this.uriHost = (uri != null) ? uri.getHost() : "localhost";
+        this.uriPort = (uri == null || uri.getPort() < 0) ? defaultPort() : uri.getPort();
+        this.queryParams = extractQueryParams(uri);
+        String keyParams = queryParams.get("key");
+        this.key = (keyParams != null) ? sanitizeToStatsd(key) : sanitizeToStatsd(uriHost);
+        return this;
+    }
+
+    public abstract int getConns();
+    public abstract double getMemFree();
+    public abstract int getCpuUsed();
+    public abstract float getLoad1m();
+    public abstract float getLoad5m();
+    public abstract float getLoad15m();
+
+    protected abstract int defaultPort();
+
+    public String getKey() {
+        return key;
+    }
+
+    private String sanitizeToStatsd(String str) {
+        return str.replaceAll("[.: ]", "_");
+    }
+
+    private Map<String, String> extractQueryParams(final URI uri) {
+        if (uri == null) return Collections.emptyMap();
+        final Map<String, String> result = new HashMap<>();
+        String query = uri.getQuery();
+        String[] attrs = query.split("&");
+        for (String attr : attrs) {
+            int indexOf;
+            if ((indexOf = attr.indexOf("=")) > 0) {
+                String key = attr.substring(0, indexOf);
+                String value = attr.substring(indexOf + 1);
+                result.put(key, value);
+            }
+        }
+        return result;
+    }
+
 }
