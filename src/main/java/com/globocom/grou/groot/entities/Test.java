@@ -17,7 +17,10 @@
 package com.globocom.grou.groot.entities;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings({"unused", "FieldCanBeLocal"})
 public class Test implements Serializable {
@@ -29,7 +32,8 @@ public class Test implements Serializable {
         ENQUEUED,
         RUNNING,
         OK,
-        ERROR
+        ERROR,
+        UNDEF
     }
 
     private String id;
@@ -38,15 +42,13 @@ public class Test implements Serializable {
 
     private String project;
 
-    private String loader;
+    private Set<Loader> loaders = new HashSet<>();
 
     private Map<String, Object> properties = new HashMap<>();
 
     private Set<String> tags = new HashSet<>();
 
     private Status status = Status.SCHEDULED;
-
-    private String statusDetailed = "";
 
     public String getId() {
         return id;
@@ -82,19 +84,13 @@ public class Test implements Serializable {
         this.status = status;
     }
 
-    public String getStatusDetailed() {
-        return statusDetailed;
+    public Set<Loader> getLoaders() {
+        return loaders;
     }
 
-    public void setStatusDetailed(String status_detailed) {
-        this.statusDetailed = status_detailed;
-    }
-
-    public String getLoader() {
-        return loader;
-    }
-
-    public void setLoader(String loader) {
-        this.loader = loader;
+    public void setLoaders(Set<Loader> loaders) {
+        if (loaders != null) {
+            this.loaders = loaders;
+        }
     }
 }

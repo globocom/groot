@@ -23,9 +23,10 @@ import java.util.Map;
 
 public abstract class MetricsCollector {
 
+    private String key = null;
+
     String uriHost = null;
     int uriPort = -1;
-    protected String key = null;
     Map<String, String> queryParams = Collections.emptyMap();
 
     public MetricsCollector setUri(URI uri) {

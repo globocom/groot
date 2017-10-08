@@ -20,9 +20,9 @@ import java.net.URI;
 
 @SuppressWarnings("unused")
 public enum MetricsCollectorByScheme {
-    ZERO (ZeroCollector.class),
-    SNMP (SnmpMetricsCollector.class),
-    PROMETHEUS(PrometheusNodeMetricsCollector.class);
+    ZERO       (ZeroCollector.class),
+    SNMP       (SnmpMetricsCollector.class),
+    PROMETHEUS (PrometheusNodeMetricsCollector.class);
 
     private final Class<? extends MetricsCollector> targetCollectorClass;
 

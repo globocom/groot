@@ -53,17 +53,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-artemis</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>io.netty</artifactId>
-                    <groupId>netty-all</groupId>
-                </exclusion>
-            </exclusions>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -121,8 +111,6 @@
                 <configuration>
                     <jvmArguments>
                         -Dserver.port=8090
-                        -Dco.paralleluniverse.fibers.verifyInstrumentation=true
-                        -Dco.paralleluniverse.fibers.detectRunawayFibers=false
                     </jvmArguments>
                 </configuration>
             </plugin>

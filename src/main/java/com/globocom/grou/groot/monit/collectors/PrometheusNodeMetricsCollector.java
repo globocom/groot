@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
-    private final Log log = LogFactory.getLog(this.getClass());
+    private static final Log LOGGER = LogFactory.getLog(PrometheusNodeMetricsCollector.class);
 
     private final NodeExporterClient nodeExporterClient = new NodeExporterClient();
 

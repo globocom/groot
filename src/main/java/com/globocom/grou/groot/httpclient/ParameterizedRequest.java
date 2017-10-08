@@ -18,7 +18,6 @@ package com.globocom.grou.groot.httpclient;
 
 import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.entities.Test;
-import org.apache.http.HttpHeaders;
 import org.asynchttpclient.Dsl;
 import org.asynchttpclient.RequestBuilder;
 import org.springframework.http.HttpMethod;
@@ -31,13 +30,8 @@ import java.util.Optional;
 @SuppressWarnings("unchecked")
 public class ParameterizedRequest extends RequestBuilder {
 
-    private final String testName;
-    private final String testProject;
-
     public ParameterizedRequest(Test test) {
         super(Optional.ofNullable((String) test.getProperties().get("method")).orElse(HttpMethod.GET.name()));
-        this.testName = test.getName();
-        this.testProject = test.getProject();
 
         final Map<String, Object> properties = test.getProperties();
         final URI uri = URI.create(Optional.ofNullable((String) properties.get("uri")).orElseThrow(() -> new IllegalArgumentException("uri property undefined")));
@@ -45,7 +39,7 @@ public class ParameterizedRequest extends RequestBuilder {
         setUrl(uri.toString());
 
         Optional.ofNullable((Map<String, String>) properties.get("headers")).orElse(Collections.emptyMap()).forEach(this::setHeader);
-        setHeader(HttpHeaders.USER_AGENT, Application.GROOT_USERAGENT);
+        setHeader("User-Agent", Application.GROOT_USERAGENT);
         if (method.matches("(POST|PUT|PATCH)")) {
             String body = Optional.ofNullable((String) properties.get("body")).orElseThrow(() -> new IllegalArgumentException("body property undefined"));
             if (body.isEmpty()) throw new IllegalArgumentException("body is empty");
@@ -62,11 +56,4 @@ public class ParameterizedRequest extends RequestBuilder {
         }
     }
 
-    public String getTestName() {
-        return testName;
-    }
-
-    public String getTestProject() {
-        return testProject;
-    }
 }

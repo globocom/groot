@@ -42,7 +42,7 @@ public class NodeExporterClient {
             "q=0.3,*/*;" +
             "q=0.1";
 
-    private final Log log = LogFactory.getLog(this.getClass());
+    private static final Log LOGGER = LogFactory.getLog(NodeExporterClient.class);
 
     private static final AsyncHttpClient CLIENT;
     static {
@@ -94,7 +94,7 @@ public class NodeExporterClient {
                     String key = metrics.getName() + labels;
                     double value = (metric.hasCounter()) ? metric.getCounter().getValue() : ((metric.hasGauge()) ? metric.getGauge().getValue() : -1);
 
-                    if (log.isDebugEnabled()) log.debug(key + " " + value);
+                    if (LOGGER.isDebugEnabled()) LOGGER.debug(key + " " + value);
                     result.put(key, value);
                 });
             }

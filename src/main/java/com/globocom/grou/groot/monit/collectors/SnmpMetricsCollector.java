@@ -35,7 +35,7 @@ public class SnmpMetricsCollector extends MetricsCollector {
     private static final OID[] OID_LOAD5          = {new OID("1.3.6.1.4.1.2021.10.1.3.2")};
     private static final OID[] OID_LOAD15         = {new OID("1.3.6.1.4.1.2021.10.1.3.3")};
 
-    private final Log log = LogFactory.getLog(this.getClass());
+    private static final Log LOGGER = LogFactory.getLog(SnmpMetricsCollector.class);
 
     @Override
     public int getConns() {
@@ -93,7 +93,7 @@ public class SnmpMetricsCollector extends MetricsCollector {
             ResponseEvent event = snmpClient.get(oid);
             value = SimpleSnmpClient.extractSingleInt(event);
         } catch (IOException e) {
-            log.error(e.getMessage(), e);
+            LOGGER.error(e.getMessage(), e);
             value = -1;
         }
         return value;
@@ -105,7 +105,7 @@ public class SnmpMetricsCollector extends MetricsCollector {
             ResponseEvent event = snmpClient.get(oid);
             value = SimpleSnmpClient.extractSingleString(event);
         } catch (IOException e) {
-            log.error(e.getMessage(), e);
+            LOGGER.error(e.getMessage(), e);
             value = "0.0";
         }
         return value;

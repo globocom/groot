@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class RootController {
 
-    private final Log log = LogFactory.getLog(this.getClass());
+    private static final Log LOGGER = LogFactory.getLog(RootController.class);
 
     @Value("${build.project}")
     private String buildProject;
@@ -39,7 +39,6 @@ public class RootController {
 
     @GetMapping("/version")
     public String getVersion() {
-        //log.info("GET /version");
         return String.format("{\"name\":\"%s\", \"version\":\"%s\", \"build\":\"%s\"}", buildProject, buildVersion, buildTimestamp);
     }
 

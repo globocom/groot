@@ -25,29 +25,54 @@ import java.util.Optional;
 public enum SystemEnv {
 
     /**
-     * JMS timeout
+     * Redis hostname.
      */
-    JMS_TIMEOUT ("JMS_TIMEOUT", 10000L),
+    REDIS_HOSTNAME ("REDIS_HOSTNAME", "127.0.0.1"),
 
     /**
-     * Broker connection URIs
+     * Redis port.
      */
-    BROKER_CONN ("BROKER_CONN", "tcp://localhost:61616?blockOnDurableSend=false&consumerWindowSize=0&protocols=Core"),
+    REDIS_PORT ("REDIS_PORT", 6379),
 
     /**
-     * Broker user
+     * Redis password.
      */
-    BROKER_USER ("BROKER_USER", "guest"),
+    REDIS_PASSWORD ("REDIS_PASSWORD", ""),
 
     /**
-     * Broker password
+     * Redis database.
      */
-    BROKER_PASS ("BROKER_PASS", "guest"),
+    REDIS_DATABASE ("REDIS_DATABASE", ""),
 
     /**
-     * Broker HA enable
+     * Redis use sentinel.
      */
-    BROKER_HA ("BROKER_HA", Boolean.FALSE),
+    REDIS_USE_SENTINEL ("REDIS_USE_SENTINEL", Boolean.FALSE),
+
+    /**
+     * Redis sentinel master name.
+     */
+    REDIS_SENTINEL_MASTER_NAME ("REDIS_SENTINEL_MASTER_NAME", "mymaster"),
+
+    /**
+     * Redis sentinel nodes.
+     */
+    REDIS_SENTINEL_NODES ("REDIS_SENTINEL_NODES", "127.0.0.1:26379"),
+
+    /**
+     * Redis max idle.
+     */
+    REDIS_MAXIDLE  ("REDIS_MAXIDLE", "100"),
+
+    /**
+     * Redis timeout.
+     */
+    REDIS_TIMEOUT  ("REDIS_TIMEOUT", "60000"),
+
+    /**
+     * Redis max total.
+     */
+    REDIS_MAXTOTAL ("REDIS_MAXTOTAL", "128"),
 
     /**
      * Max test duration (ms)

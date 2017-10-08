@@ -24,10 +24,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.Charset;
 
 public final class SystemInfo {
 
-    private static final Log log = LogFactory.getLog(SystemInfo.class);
+    private static final Log LOGGER = LogFactory.getLog(SystemInfo.class);
+
     private static final UnixOperatingSystemMXBean OS = (UnixOperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 
     private SystemInfo() { }
@@ -37,15 +39,17 @@ public final class SystemInfo {
             if (getOS().startsWith("linux")) {
                 final BufferedReader br = exec("/bin/sh", "-c", "ss -s");
                 br.readLine();
-                return Integer.valueOf(br.readLine().replaceAll(".*estab ([0-9]+).*", "$1"));
+                String secondLine = br.readLine();
+                return secondLine != null ? Integer.parseInt(secondLine.replaceAll(".*estab ([0-9]+).*", "$1")) : -1;
             }
             if (getOS().startsWith("mac")) {
                 final BufferedReader br = exec("/bin/sh", "-c", "netstat -an -p tcp | grep EST | wc -l");
-                return Integer.valueOf(br.readLine().trim());
+                String firstLine = br.readLine();
+                return firstLine != null ? Integer.parseInt(firstLine.trim()) : -1;
             }
             return -1;
         } catch (IOException e) {
-            log.error(e);
+            LOGGER.error(e);
             return -1;
         }
     }
@@ -72,7 +76,7 @@ public final class SystemInfo {
     
     private static BufferedReader exec(String... command) throws IOException {
         final Process process = Runtime.getRuntime().exec(command);
-        return new BufferedReader(new InputStreamReader(process.getInputStream()));
+        return new BufferedReader(new InputStreamReader(process.getInputStream(), Charset.defaultCharset()));
     }
 
 }

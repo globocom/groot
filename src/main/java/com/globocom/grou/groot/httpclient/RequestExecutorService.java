@@ -37,7 +37,7 @@ import static org.asynchttpclient.Dsl.config;
 @Service
 public class RequestExecutorService {
 
-    private final Log log = LogFactory.getLog(this.getClass());
+    private static final Log LOGGER = LogFactory.getLog(RequestExecutorService.class);
 
     private final MonitorService monitorService;
 
@@ -69,7 +69,8 @@ public class RequestExecutorService {
     }
 
     public AsyncHttpClient newClient(final Map<String, Object> testProperties, int durationTimeMillis) throws IllegalArgumentException {
-        int numConn = Optional.ofNullable((Integer) testProperties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined"));
+        Integer parallelLoaders = (Integer) (Optional.ofNullable(testProperties.get("parallelLoaders")).orElse(1));
+        int numConn = Optional.ofNullable((Integer) testProperties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined")) / Math.max(1, parallelLoaders);
         int connectTimeout = Optional.ofNullable((Integer) testProperties.get("connectTimeout")).orElse(2000);
         boolean keepAlive = Optional.ofNullable((Boolean) testProperties.get("keepAlive")).orElse(true);
         boolean followRedirect = Optional.ofNullable((Boolean) testProperties.get("followRedirect")).orElse(false);

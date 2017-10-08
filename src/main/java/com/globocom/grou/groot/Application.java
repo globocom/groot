@@ -18,8 +18,10 @@ package com.globocom.grou.groot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class Application {
 
     public static final String GROOT_USERAGENT = "Grou$Groot/1.0";

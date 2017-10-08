@@ -16,10 +16,11 @@
 
 package com.globocom.grou.groot.monit;
 
-import com.globocom.grou.groot.SystemEnv;
 import io.galeb.statsd.NonBlockingStatsDClient;
 import io.galeb.statsd.StatsDClient;
 import org.springframework.stereotype.Service;
+
+import static com.globocom.grou.groot.SystemEnv.*;
 
 @Service
 public class StatsdService {
@@ -28,9 +29,9 @@ public class StatsdService {
 
     public StatsdService() {
         statsDClient = new NonBlockingStatsDClient(
-                SystemEnv.STATSD_PREFIX.getValue(),
-                SystemEnv.STATSD_HOST.getValue(),
-                Integer.valueOf(SystemEnv.STATSD_PORT.getValue()));
+                STATSD_PREFIX.getValue(),
+                STATSD_HOST.getValue(),
+                Integer.parseInt(STATSD_PORT.getValue()));
     }
 
     public StatsDClient client() {

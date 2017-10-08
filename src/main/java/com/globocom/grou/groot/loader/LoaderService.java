@@ -26,35 +26,44 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
 public class LoaderService {
 
+    private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
+
     private final RequestExecutorService asyncHttpClientService;
     private final MonitorService connectionsCounterService;
-
-    private final Log log = LogFactory.getLog(this.getClass());
+    private final StringRedisTemplate template;
+    private final AtomicReference<Test.Status> status = new AtomicReference<>(Test.Status.UNDEF);
 
     @Autowired
-    public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService connectionsCounterService) {
+    public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService connectionsCounterService, StringRedisTemplate template) {
         this.asyncHttpClientService = asyncHttpClientService;
         this.connectionsCounterService = connectionsCounterService;
+        this.template = template;
     }
 
     public void start(Test test, final Map<String, Object> properties) throws Exception {
+        status.set(Test.Status.RUNNING);
         final String testName = test.getName();
+        final String projectName = test.getProject();
         final int durationTimeMillis = Math.min(Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue()),
                 Optional.ofNullable((Integer) properties.get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined")));
         int connectTimeout = Optional.ofNullable((Integer) test.getProperties().get("connectTimeout")).orElse(2000);
 
         final ParameterizedRequest requestBuilder = new ParameterizedRequest(test);
 
-        log.info("Starting test " + testName);
+        LOGGER.info("Starting test " + projectName + "." + testName);
         final long start = System.currentTimeMillis();
 
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
@@ -63,15 +72,21 @@ public class LoaderService {
                 asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
             }
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            LOGGER.error(e.getMessage(), e);
         } finally {
             try {
                 Thread.sleep(connectTimeout);
             } finally {
                 connectionsCounterService.reset();
-                log.info("Finished test " + testName);
+                status.set(Test.Status.UNDEF);
+                LOGGER.info("Finished test " + projectName + "." + testName);
             }
         }
+    }
+
+    @Scheduled(fixedRate = 30000)
+    public void register() {
+        template.opsForValue().set("grou:loader:" + SystemInfo.hostname(), status.get().toString(), 40000, TimeUnit.MILLISECONDS);
     }
 
 }
