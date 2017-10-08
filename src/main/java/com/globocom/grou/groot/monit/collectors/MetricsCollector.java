@@ -33,7 +33,7 @@ public abstract class MetricsCollector {
         this.uriPort = (uri == null || uri.getPort() < 0) ? defaultPort() : uri.getPort();
         this.queryParams = extractQueryParams(uri);
         String keyParams = queryParams.get("key");
-        this.key = (keyParams != null) ? sanitizeToStatsd(key) : sanitizeToStatsd(uriHost);
+        this.key = (keyParams != null) ? sanitizeToStatsd(keyParams) : sanitizeToStatsd(uriHost);
         return this;
     }
 
