@@ -47,6 +47,7 @@ public class TestListenerService {
 
     private final LoaderService loaderService;
     private final StringRedisTemplate template;
+    private final Object lock = new Object();
 
     @Autowired
     public TestListenerService(LoaderService loaderService, StringRedisTemplate template) {
@@ -59,20 +60,22 @@ public class TestListenerService {
         return new MessageListenerAdapter((MessageListener) (message, bytes) -> {
             byte[] body = message.getBody();
             try {
-                testQueue(new String(body, Charset.defaultCharset()));
+                testStart(new String(body, Charset.defaultCharset()));
             } catch (IOException e) {
                 LOGGER.error(e.getMessage(), e);
             }
         });
     }
 
-    private void testQueue(String testStr) throws IOException {
+    private void testStart(String testStr) throws IOException {
         Test test = null;
         try {
             test = mapper.readValue(testStr, Test.class);
-            sendToCallback(test, Test.Status.RUNNING, "");
-            loaderService.start(test, test.getProperties());
-            sendToCallback(test, Test.Status.OK, "OK");
+            synchronized (lock) {
+                sendToCallback(test, Test.Status.RUNNING, "");
+                loaderService.start(test, test.getProperties());
+                sendToCallback(test, Test.Status.OK, "OK");
+            }
         } catch (Exception e) {
             if (test != null) {
                 sendToCallback(test, Test.Status.ERROR, e.getMessage());
