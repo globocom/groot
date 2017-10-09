@@ -18,6 +18,7 @@ package com.globocom.grou.groot.loader;
 
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
+import com.globocom.grou.groot.entities.Test.Status;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
 import com.globocom.grou.groot.httpclient.RequestExecutorService;
 import com.globocom.grou.groot.monit.MonitorService;
@@ -40,12 +41,14 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class LoaderService {
 
+    private static final String GROU_LOADER_REDIS_KEY = "grou:loader:" + SystemInfo.hostname();
+
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
     private final RequestExecutorService asyncHttpClientService;
     private final MonitorService connectionsCounterService;
     private final StringRedisTemplate template;
-    private final AtomicReference<Test.Status> status = new AtomicReference<>(Test.Status.UNDEF);
+    private final AtomicReference<Status> status = new AtomicReference<>(Status.UNDEF);
 
     @Autowired
     public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService connectionsCounterService, StringRedisTemplate template) {
@@ -55,7 +58,7 @@ public class LoaderService {
     }
 
     public void start(Test test, final Map<String, Object> properties) throws Exception {
-        status.set(Test.Status.RUNNING);
+        updateStatus(Status.RUNNING);
         final String testName = test.getName();
         final String projectName = test.getProject();
         final int durationTimeMillis = Math.min(Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue()),
@@ -79,20 +82,29 @@ public class LoaderService {
                 Thread.sleep(connectTimeout);
             } finally {
                 connectionsCounterService.reset();
-                status.set(Test.Status.UNDEF);
+                updateStatus(Status.UNDEF);
                 LOGGER.info("Finished test " + projectName + "." + testName);
             }
         }
     }
 
-    @Scheduled(fixedRate = 30000)
+    private void updateStatus(Status loaderStatus) {
+        status.set(loaderStatus);
+        updateRedis();
+    }
+
+    private void updateRedis() {
+        template.opsForValue().set(GROU_LOADER_REDIS_KEY, status.get().toString(), 15000, TimeUnit.MILLISECONDS);
+    }
+
+    @Scheduled(fixedRate = 10000)
     public void register() {
-        template.opsForValue().set("grou:loader:" + SystemInfo.hostname(), status.get().toString(), 40000, TimeUnit.MILLISECONDS);
+        updateRedis();
     }
 
     @PreDestroy
     public void shutdown() {
-        template.delete("grou:loader:" + SystemInfo.hostname());
+        template.delete(GROU_LOADER_REDIS_KEY);
     }
 
 }
