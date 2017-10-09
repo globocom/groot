@@ -44,10 +44,7 @@ public class SnmpMetricsCollector extends MetricsCollector {
 
     @Override
     public double getMemFree() {
-        int memAvailReal = getSnmpValueInt(OID_MEM_AVAIL_REAL);
-        int memBuffer = getSnmpValueInt(OID_MEM_BUFFER);
-        int memCached = getSnmpValueInt(OID_MEM_CACHED);
-        return memAvailReal + memBuffer + memCached ;
+        return getSnmpValueInt(OID_MEM_AVAIL_REAL);
     }
 
     @Override
