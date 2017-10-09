@@ -17,6 +17,7 @@
 package com.globocom.grou.groot.entities;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,6 +39,14 @@ public class Test implements Serializable {
 
     private String id;
 
+    private String createdBy;
+
+    private Date createdDate;
+
+    private String lastModifiedBy;
+
+    private Date lastModifiedDate;
+
     private String name;
 
     private String project;
@@ -52,6 +61,22 @@ public class Test implements Serializable {
 
     public String getId() {
         return id;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public Date getCreatedDate() {
+        return createdDate;
+    }
+
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    public Date getLastModifiedDate() {
+        return lastModifiedDate;
     }
 
     public String getName() {
