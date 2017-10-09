@@ -30,6 +30,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PreDestroy;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -87,6 +88,11 @@ public class LoaderService {
     @Scheduled(fixedRate = 30000)
     public void register() {
         template.opsForValue().set("grou:loader:" + SystemInfo.hostname(), status.get().toString(), 40000, TimeUnit.MILLISECONDS);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        template.delete("grou:loader:" + SystemInfo.hostname());
     }
 
 }
