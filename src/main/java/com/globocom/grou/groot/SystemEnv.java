@@ -82,12 +82,12 @@ public enum SystemEnv {
     /**
      * Statsd loader prefix key
      */
-    STATSD_LOADER_KEY ("STATSD_LOADER_KEY", "loaders"),
+    STATSD_LOADER_KEY ("STATSD_LOADER_KEY", "loader"),
 
     /**
      * Statsd target prefix key
      */
-    STATSD_TARGET_KEY ("STATSD_TARGET_KEY", "targets"),
+    STATSD_TARGET_KEY ("STATSD_TARGET_KEY", "target"),
 
     /**
      * Statsd response prefix key
@@ -107,7 +107,12 @@ public enum SystemEnv {
     /**
      * Statsd port
      */
-    STATSD_PORT ("STATSD_PORT", 8125);
+    STATSD_PORT ("STATSD_PORT", 8125),
+
+    /**
+     * Prefix tag field (Useful to Statsite OpenTSDB sink)
+     */
+    PREFIX_TAG ("PREFIX_TAG", "_t_");
 
     /**
      * Gets SystemEnv value.
