@@ -113,8 +113,8 @@ public class TestListenerService {
         } else {
             throw new IllegalArgumentException("durationTimeMillis property undefined or less than 1000 ms");
         }
-        if (properties.get("url") == null) {
-            throw new IllegalArgumentException("url property undefined");
+        if (properties.get("uri") == null) {
+            throw new IllegalArgumentException("uri property undefined");
         }
         Object numConn = properties.get("numConn");
         if (!(numConn != null && numConn instanceof  Integer && (Integer) numConn > 0)) {
