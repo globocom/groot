@@ -29,7 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Optional;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
@@ -69,11 +68,16 @@ public class RequestExecutorService {
     }
 
     public AsyncHttpClient newClient(final Map<String, Object> testProperties, int durationTimeMillis) throws IllegalArgumentException {
-        Integer parallelLoaders = (Integer) (Optional.ofNullable(testProperties.get("parallelLoaders")).orElse(1));
-        int numConn = Optional.ofNullable((Integer) testProperties.get("numConn")).orElseThrow(() -> new IllegalArgumentException("numConn property undefined")) / Math.max(1, parallelLoaders);
-        int connectTimeout = Optional.ofNullable((Integer) testProperties.get("connectTimeout")).orElse(2000);
-        boolean keepAlive = Optional.ofNullable((Boolean) testProperties.get("keepAlive")).orElse(true);
-        boolean followRedirect = Optional.ofNullable((Boolean) testProperties.get("followRedirect")).orElse(false);
+        Object parallelLoadersObj = testProperties.get("parallelLoaders");
+        Object connectTimeoutObj = testProperties.get("connectTimeout");
+        Object keepAliveObj = testProperties.get("keepAlive");
+        Object followRedirectObj = testProperties.get("followRedirect");
+
+        int parallelLoaders = parallelLoadersObj != null && parallelLoadersObj instanceof Integer ? (int) parallelLoadersObj : 1;
+        int numConn = (Integer) testProperties.get("numConn") / Math.max(1, parallelLoaders);
+        int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
+        boolean keepAlive = keepAliveObj == null || !(keepAliveObj instanceof Boolean) || (boolean) keepAliveObj;
+        boolean followRedirect = (followRedirectObj != null && followRedirectObj instanceof Boolean) && (boolean) followRedirectObj;
 
         DefaultAsyncHttpClientConfig.Builder config = config()
                 .setFollowRedirect(followRedirect)
@@ -87,7 +91,7 @@ public class RequestExecutorService {
                 .setUseInsecureTrustManager(true)
                 .setUserAgent(Application.GROOT_USERAGENT);
 
-        if (SystemInfo.getOS().startsWith("linux")) {
+        if (SystemInfo.isLinux()) {
             config.setUseNativeTransport(true);
         }
 

@@ -18,6 +18,7 @@ package com.globocom.grou.groot.entities.events.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.loader.LoaderService;
@@ -33,6 +34,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -72,8 +74,9 @@ public class TestListenerService {
         try {
             test = mapper.readValue(testStr, Test.class);
             synchronized (lock) {
+                checkProperties(test.getProperties());
                 sendToCallback(test, Test.Status.RUNNING, "");
-                loaderService.start(test, test.getProperties());
+                loaderService.start(test);
                 sendToCallback(test, Test.Status.OK, "OK");
             }
         } catch (Exception e) {
@@ -98,5 +101,24 @@ public class TestListenerService {
         test.setLoaders(loaders);
         template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
         LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), status.toString(), CALLBACK_QUEUE));
+    }
+
+    private void checkProperties(final Map<String, Object> properties) throws IllegalArgumentException {
+        Object durationTimeMillis = properties.get("durationTimeMillis");
+        if ((durationTimeMillis != null && durationTimeMillis instanceof Integer && (Integer) durationTimeMillis >= 1000)) {
+            String maxTestDuration = SystemEnv.MAX_TEST_DURATION.getValue();
+            if ((Integer) durationTimeMillis > Integer.parseInt(maxTestDuration)) {
+                throw new IllegalArgumentException("durationTimeMillis property is greater than MAX_TEST_DURATION: " + maxTestDuration);
+            }
+        } else {
+            throw new IllegalArgumentException("durationTimeMillis property undefined or less than 1000 ms");
+        }
+        if (properties.get("url") == null) {
+            throw new IllegalArgumentException("url property undefined");
+        }
+        Object numConn = properties.get("numConn");
+        if (!(numConn != null && numConn instanceof  Integer && (Integer) numConn > 0)) {
+            throw new IllegalArgumentException("numConn property undefined or less than 1 conn");
+        }
     }
 }

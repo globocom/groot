@@ -33,7 +33,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -48,6 +47,7 @@ public class LoaderService {
     private final RequestExecutorService asyncHttpClientService;
     private final MonitorService connectionsCounterService;
     private final StringRedisTemplate template;
+    private final AtomicReference<String> currentTest = new AtomicReference<>("");
     private final AtomicReference<Status> status = new AtomicReference<>(Status.UNDEF);
 
     @Autowired
@@ -57,19 +57,24 @@ public class LoaderService {
         this.template = template;
     }
 
-    public void start(Test test, final Map<String, Object> properties) throws Exception {
+    public void start(Test test) throws Exception {
         updateStatus(Status.RUNNING);
         final String testName = test.getName();
         final String projectName = test.getProject();
-        final int durationTimeMillis = Math.min(Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue()),
-                Optional.ofNullable((Integer) properties.get("durationTimeMillis")).orElseThrow(() -> new IllegalArgumentException("durationTimeMillis property undefined")));
-        int connectTimeout = Optional.ofNullable((Integer) test.getProperties().get("connectTimeout")).orElse(2000);
+        currentTest.set(projectName + "." + testName);
+        final Map<String, Object> properties = test.getProperties();
+        updateStatus(Status.RUNNING);
+
+        int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
+        int durationTimeMillis = Math.min(maxTestDuration, (Integer) properties.get("durationTimeMillis"));
+        Object connectTimeoutObj = properties.get("connectTimeout");
+        int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
 
         final ParameterizedRequest requestBuilder = new ParameterizedRequest(test);
 
-        LOGGER.info("Starting test " + projectName + "." + testName);
-        final long start = System.currentTimeMillis();
+        LOGGER.info("Starting test " + currentTest.get());
 
+        final long start = System.currentTimeMillis();
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
             connectionsCounterService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (System.currentTimeMillis() - start < durationTimeMillis) {
@@ -81,25 +86,30 @@ public class LoaderService {
             try {
                 Thread.sleep(connectTimeout);
             } finally {
-                connectionsCounterService.reset();
-                updateStatus(Status.UNDEF);
-                LOGGER.info("Finished test " + projectName + "." + testName);
+                stop();
             }
         }
     }
 
-    private void updateStatus(Status loaderStatus) {
-        status.set(loaderStatus);
-        updateRedis();
+    private void stop() {
+        connectionsCounterService.reset();
+        updateStatus(Status.UNDEF);
+        LOGGER.info("Finished test " + currentTest.get());
+        currentTest.set("");
     }
 
-    private void updateRedis() {
-        template.opsForValue().set(GROU_LOADER_REDIS_KEY, status.get().toString(), 15000, TimeUnit.MILLISECONDS);
+    private void updateStatus(Status loaderStatus) {
+        status.set(loaderStatus);
+        updateStatusKey();
+    }
+
+    private void updateStatusKey() {
+        template.opsForValue().set(GROU_LOADER_REDIS_KEY, status.get() + (!"".equals(currentTest.get()) ? ":" + currentTest.get() : ""), 15000, TimeUnit.MILLISECONDS);
     }
 
     @Scheduled(fixedRate = 10000)
     public void register() {
-        updateRedis();
+        updateStatusKey();
     }
 
     @PreDestroy

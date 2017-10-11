@@ -36,13 +36,13 @@ public final class SystemInfo {
 
     public static int totalSocketsTcpEstablished() {
         try {
-            if (getOS().startsWith("linux")) {
+            if (isLinux()) {
                 final BufferedReader br = exec("/bin/sh", "-c", "ss -s");
                 br.readLine();
                 String secondLine = br.readLine();
                 return secondLine != null ? Integer.parseInt(secondLine.replaceAll(".*estab ([0-9]+).*", "$1")) : -1;
             }
-            if (getOS().startsWith("mac")) {
+            if (isMac()) {
                 final BufferedReader br = exec("/bin/sh", "-c", "netstat -an -p tcp | grep EST | wc -l");
                 String firstLine = br.readLine();
                 return firstLine != null ? Integer.parseInt(firstLine.trim()) : -1;
@@ -56,6 +56,14 @@ public final class SystemInfo {
 
     public static String getOS() {
         return System.getProperty("os.name", "UNDEF").toLowerCase();
+    }
+
+    public static boolean isLinux() {
+        return getOS().toLowerCase().startsWith("linux");
+    }
+
+    public static boolean isMac() {
+        return getOS().toLowerCase().startsWith("mac");
     }
 
     public static double cpuLoad() {
