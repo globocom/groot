@@ -49,7 +49,7 @@ public class MonitorService {
 
     private final String prefixTag = SystemEnv.PREFIX_TAG.getValue();
     private final AtomicReference<Test> test = new AtomicReference<>(null);
-    private final String hostnameFormated = SystemInfo.hostname().replaceAll("[.]", "_");
+    private final String hostnameFormated = SystemInfo.hostname();
     private final Object lock = new Object();
 
     private final StatsDClient statsdClient;
@@ -76,22 +76,27 @@ public class MonitorService {
         }
     }
 
+    private String sanitize(String key) {
+        return key.replaceAll("[.:/\\s\\t/\\\\]", "_");
+    }
+
+    private String getPrefixBase(final Test test) {
+        String testName = test != null ? sanitize(test.getName()) : UNKNOWN;
+        String testProject = test != null ? sanitize(test.getProject()) : UNKNOWN;
+        String testTags = test != null ? sanitize(test.getTags().stream().sorted().collect(Collectors.joining("_"))) : UNKNOWN;
+        return String.format("%sproject.%s.%stags.%s.%stest.%s.", prefixTag, testProject, prefixTag, testTags, prefixTag, testName);
+    }
+
     private String getPrefixStatsdTargets(final Test test) {
-        String testName = test != null ? test.getName() : UNKNOWN;
-        String testProject = test != null ? test.getProject() : UNKNOWN;
-        return String.format("%sproject.%s.%stest.%s.%s%s.", prefixTag, testProject, prefixTag, testName, prefixTag, SystemEnv.STATSD_TARGET_KEY.getValue());
+        return getPrefixBase(test) + prefixTag + SystemEnv.STATSD_TARGET_KEY.getValue() + ".";
     }
 
     private String getPrefixStatsdLoader(final Test test) {
-        String testName = test != null ? test.getName() : UNKNOWN;
-        String testProject = test != null ? test.getProject() : UNKNOWN;
-        return String.format("%sproject.%s.%stest.%s.%s%s.%s.", prefixTag, testProject, prefixTag, testName, prefixTag, SystemEnv.STATSD_LOADER_KEY.getValue(), hostnameFormated);
+        return getPrefixBase(test) + prefixTag + SystemEnv.STATSD_LOADER_KEY.getValue() + "." + sanitize(hostnameFormated) + ".";
     }
 
     private String getStatsdPrefixResponse(final Test test) {
-        String testName = test != null ? test.getName() : UNKNOWN;
-        String testProject = test != null ? test.getProject() : UNKNOWN;
-        return String.format("%sproject.%s.%stest.%s.%s.", prefixTag, testProject, prefixTag, testName, SystemEnv.STATSD_RESPONSE_KEY.getValue());
+        return getPrefixBase(test) + SystemEnv.STATSD_RESPONSE_KEY.getValue() + ".";
     }
 
     private void extractMonitTargets(final Test test) {
@@ -135,7 +140,7 @@ public class MonitorService {
         try {
             int statusCode = response.getStatusCode();
             int bodySize = response.getResponseBodyAsBytes().length;
-            statsdClient.recordExecutionTime(prefixResponse + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
+            statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
             statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
         } catch (Exception e) {
             fail(e, start);
@@ -144,8 +149,8 @@ public class MonitorService {
 
     public void fail(final Throwable t, long start) {
         if (!((t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task"))) {
-            String messageException = t.getMessage().replaceAll("[ .:/]", "_").replaceAll(".*Exception__", "");
-            statsdClient.recordExecutionTime(prefixResponse + "status." + messageException, System.currentTimeMillis() - start);
+            String messageException = sanitize(t.getMessage()).replaceAll(".*Exception__", "");
+            statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + messageException, System.currentTimeMillis() - start);
             statsdClient.recordExecutionTime(prefixResponse + "size", 0);
             LOGGER.error(t);
         }
@@ -156,9 +161,9 @@ public class MonitorService {
         synchronized (lock) {
             if (test.get() != null) {
                 int tcpConn = SystemInfo.totalSocketsTcpEstablished();
-                statsdClient.gauge(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn - delta));
-                statsdClient.gauge(prefixStatsdLoaderKey + "cpu", 100 * SystemInfo.cpuLoad());
-                statsdClient.gauge(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree());
+                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn - delta));
+                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "cpu", (long) (100 * SystemInfo.cpuLoad()));
+                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree());
 
                 targets.forEach(target -> {
                     String prefixStatsd = prefixStatsdTargetsKey + target.getKey() + ".";
@@ -169,9 +174,9 @@ public class MonitorService {
                     float targetLoad5m = target.getLoad5m();
                     float targetLoad15m = target.getLoad15m();
 
-                    statsdClient.gauge(prefixStatsd + "conns", targetConns);
-                    statsdClient.gauge(prefixStatsd + "cpu", targetCpuUsed);
-                    statsdClient.gauge(prefixStatsd + "memFree", targetMemFree);
+                    statsdClient.recordExecutionTime(prefixStatsd + "conns", targetConns);
+                    statsdClient.recordExecutionTime(prefixStatsd + "cpu", targetCpuUsed);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree);
                     statsdClient.gauge(prefixStatsd + "load1m", targetLoad1m);
                     statsdClient.gauge(prefixStatsd + "load5m", targetLoad5m);
                     statsdClient.gauge(prefixStatsd + "load15m", targetLoad15m);
