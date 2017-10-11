@@ -84,7 +84,8 @@ public class MonitorService {
         String testName = test != null ? sanitize(test.getName()) : UNKNOWN;
         String testProject = test != null ? sanitize(test.getProject()) : UNKNOWN;
         String testTags = test != null ? sanitize(test.getTags().stream().sorted().collect(Collectors.joining("_"))) : UNKNOWN;
-        return String.format("%sproject.%s.%stags.%s.%stest.%s.", prefixTag, testProject, prefixTag, testTags, prefixTag, testName);
+        testTags = "".equals(testTags) ? "UNDEF" : testTags;
+        return String.format("%sproject.%s.%salltags.%s.%stest.%s.", prefixTag, testProject, prefixTag, testTags, prefixTag, testName);
     }
 
     private String getPrefixStatsdTargets(final Test test) {
