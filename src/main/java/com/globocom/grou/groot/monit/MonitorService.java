@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +45,9 @@ public class MonitorService {
 
     private static final Log LOGGER = LogFactory.getLog(MonitorService.class);
 
+    private static final String UNKNOWN = "UNKNOWN";
+
+    private final String prefixTag = SystemEnv.PREFIX_TAG.getValue();
     private final AtomicReference<Test> test = new AtomicReference<>(null);
     private final String hostnameFormated = SystemInfo.hostname().replaceAll("[.]", "_");
     private final Object lock = new Object();
@@ -51,9 +55,9 @@ public class MonitorService {
     private final StatsDClient statsdClient;
     private volatile int delta = 0;
     private List<MetricsCollector> targets = Collections.emptyList();
-    private String prefixResponse = "UNKNOW.UNKNOW." + SystemEnv.STATSD_RESPONSE_KEY.getValue();
-    private String prefixStatsdLoaderKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_LOADER_KEY.getValue() + hostnameFormated;
-    private String prefixStatsdTargetsKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_TARGET_KEY.getValue();
+    private String prefixResponse = prefixTag + "project.UNKNOWN." + prefixTag + "test.UNKNOWN." + SystemEnv.STATSD_RESPONSE_KEY.getValue();
+    private String prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
+    private String prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
 
     @Autowired
     public MonitorService(final StatsdService statsdService) {
@@ -66,41 +70,63 @@ public class MonitorService {
                 throw new IllegalStateException("Already monitoring other test");
             }
             this.delta = delta;
-            prefixStatsdLoaderKey = String.format("%s.%s.%s.%s.", test.getProject(), test.getName(), SystemEnv.STATSD_LOADER_KEY.getValue(), hostnameFormated);
-            prefixStatsdTargetsKey = String.format("%s.%s.%s.", test.getProject(), test.getName(), SystemEnv.STATSD_TARGET_KEY.getValue());
+            prefixStatsdLoaderKey = getPrefixStatsdLoader(test);
+            prefixStatsdTargetsKey = getPrefixStatsdTargets(test);
             extractMonitTargets(test);
         }
     }
 
+    private String getPrefixStatsdTargets(final Test test) {
+        String testName = test != null ? test.getName() : UNKNOWN;
+        String testProject = test != null ? test.getProject() : UNKNOWN;
+        return String.format("%sproject.%s.%stest.%s.%s%s.", prefixTag, testProject, prefixTag, testName, prefixTag, SystemEnv.STATSD_TARGET_KEY.getValue());
+    }
+
+    private String getPrefixStatsdLoader(final Test test) {
+        String testName = test != null ? test.getName() : UNKNOWN;
+        String testProject = test != null ? test.getProject() : UNKNOWN;
+        return String.format("%sproject.%s.%stest.%s.%s%s.%s.", prefixTag, testProject, prefixTag, testName, prefixTag, SystemEnv.STATSD_LOADER_KEY.getValue(), hostnameFormated);
+    }
+
+    private String getStatsdPrefixResponse(final Test test) {
+        String testName = test != null ? test.getName() : UNKNOWN;
+        String testProject = test != null ? test.getProject() : UNKNOWN;
+        return String.format("%sproject.%s.%stest.%s.%s.", prefixTag, testProject, prefixTag, testName, SystemEnv.STATSD_RESPONSE_KEY.getValue());
+    }
+
     private void extractMonitTargets(final Test test) {
-        this.prefixResponse = String.format("%s.%s.%s.", test.getProject(), test.getName(), SystemEnv.STATSD_RESPONSE_KEY.getValue());
+        this.prefixResponse = getStatsdPrefixResponse(test);
         final Map<String, Object> properties = test.getProperties();
         String monitTargets = (String) properties.get("monitTargets");
         if (monitTargets != null) {
-            targets = Arrays.stream(monitTargets.split(",")).map(String::trim).map(URI::create).map(uri -> {
-                String uriScheme = uri.getScheme();
-                if (uriScheme != null) {
-                    try {
-                        return MetricsCollectorByScheme.valueOf(uriScheme.toUpperCase()).collect(uri);
-                    } catch (Exception e) {
-                        LOGGER.warn("Monitoring scheme problem (" + uri.getScheme() + "). Using ZeroCollector because " + e.getMessage());
-                        return new MetricsCollectorByScheme.ZeroCollector().setUri(uri);
-                    }
-                }
-                return new MetricsCollectorByScheme.ZeroCollector().setUri(uri);
-            }).collect(Collectors.toList());
+            targets = Arrays.stream(monitTargets.split(",")).map(String::trim).map(URI::create).map(mapUriToMetricsCollector()).collect(Collectors.toList());
         } else {
             targets = Collections.emptyList();
         }
+    }
+
+    private Function<URI, MetricsCollector> mapUriToMetricsCollector() {
+        return uri -> {
+            String uriScheme = uri.getScheme();
+            if (uriScheme != null) {
+                try {
+                    return MetricsCollectorByScheme.valueOf(uriScheme.toUpperCase()).collect(uri);
+                } catch (Exception e) {
+                    LOGGER.warn("Monitoring scheme problem (" + uri.getScheme() + "). Using ZeroCollector because " + e.getMessage());
+                    return new MetricsCollectorByScheme.ZeroCollector().setUri(uri);
+                }
+            }
+            return new MetricsCollectorByScheme.ZeroCollector().setUri(uri);
+        };
     }
 
     public void reset() {
         synchronized (lock) {
             this.test.set(null);
             this.targets = Collections.emptyList();
-            this.prefixResponse = "UNKNOW.UNKNOW." + SystemEnv.STATSD_RESPONSE_KEY.getValue() + ".";
-            this.prefixStatsdLoaderKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_LOADER_KEY.getValue() + hostnameFormated;
-            this.prefixStatsdTargetsKey = "UNKNOW.UNKNOW." + SystemEnv.STATSD_TARGET_KEY.getValue();
+            this.prefixResponse = getStatsdPrefixResponse(null);
+            this.prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
+            this.prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
             delta = 0;
         }
     }
@@ -109,7 +135,7 @@ public class MonitorService {
         try {
             int statusCode = response.getStatusCode();
             int bodySize = response.getResponseBodyAsBytes().length;
-            statsdClient.recordExecutionTime(prefixResponse + "status." + statusCode, System.currentTimeMillis() - start);
+            statsdClient.recordExecutionTime(prefixResponse + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
             statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
         } catch (Exception e) {
             fail(e, start);

@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.entities;
 
+import org.springframework.data.annotation.Transient;
+
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,6 +60,8 @@ public class Test implements Serializable {
     private Set<String> tags = new HashSet<>();
 
     private Status status = Status.SCHEDULED;
+
+    private String dashboard;
 
     public String getId() {
         return id;
@@ -117,5 +121,9 @@ public class Test implements Serializable {
         if (loaders != null) {
             this.loaders = loaders;
         }
+    }
+
+    public String getDashboard() {
+        return dashboard;
     }
 }

@@ -16,7 +16,7 @@ clean:
 	mvn clean
 
 run:
-	sleep 5; java -jar target/groot.jar
+	sleep 5; java -Dserver.port=8090 -jar target/groot.jar
 
 dist: groot
 	type fpm > /dev/null 2>&1 && \
