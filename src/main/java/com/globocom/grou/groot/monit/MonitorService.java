@@ -55,7 +55,7 @@ public class MonitorService {
     private final StatsDClient statsdClient;
     private volatile int delta = 0;
     private List<MetricsCollector> targets = Collections.emptyList();
-    private String prefixResponse = prefixTag + "project.UNKNOWN." + prefixTag + "test.UNKNOWN." + SystemEnv.STATSD_RESPONSE_KEY.getValue();
+    private String prefixResponse = getStatsdPrefixResponse(null);
     private String prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
     private String prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
 
