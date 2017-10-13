@@ -154,8 +154,16 @@ public class MonitorService {
     }
 
     public void fail(final Throwable t, long start) {
-        if (!((t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task"))) {
-            String messageException = sanitize(t.getMessage(), "_").replaceAll(".*[.]([^.]+Exception__)", "$1");
+        boolean isInternalProblem = (t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task");
+        if (!isInternalProblem) {
+            String messageException = t.getMessage();
+            if (messageException.contains("connection timed out")) {
+                messageException = "timed_out";
+            } else if (messageException.contains("ConnectException")) {
+                messageException = "conn_fail";
+            } else {
+                messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
+            }
             statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + messageException, System.currentTimeMillis() - start);
             statsdClient.recordExecutionTime(prefixResponse + "size", 0);
             LOGGER.error(t);
