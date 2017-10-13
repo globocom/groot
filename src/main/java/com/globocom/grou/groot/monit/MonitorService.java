@@ -159,7 +159,7 @@ public class MonitorService {
             String messageException = t.getMessage();
             if (messageException.contains("connection timed out")) {
                 messageException = "timed_out";
-            } else if (messageException.contains("ConnectException")) {
+            } else if (t instanceof java.net.ConnectException) {
                 messageException = "conn_fail";
             } else {
                 messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
