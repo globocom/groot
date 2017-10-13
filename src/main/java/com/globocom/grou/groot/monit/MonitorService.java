@@ -76,24 +76,29 @@ public class MonitorService {
         }
     }
 
-    private String sanitize(String key) {
-        return key.replaceAll("[.:/\\s\\t/\\\\]", "_");
+    private String sanitize(String key, String to) {
+        return key.replaceAll("[@.:/\\s\\t/\\\\]", to).toLowerCase();
     }
 
     private String getPrefixBase(final Test test) {
-        String testName = test != null ? sanitize(test.getName()) : UNKNOWN;
-        String testProject = test != null ? sanitize(test.getProject()) : UNKNOWN;
-        String testTags = test != null ? sanitize(test.getTags().stream().sorted().collect(Collectors.joining("_"))) : UNKNOWN;
-        testTags = "".equals(testTags) ? "UNDEF" : testTags;
+        String testName = UNKNOWN;
+        String testProject = UNKNOWN;
+        String testTags = "UNDEF";
+        if (test != null) {
+            testName = sanitize(test.getName(), "_");
+            testProject = sanitize(test.getProject(), "_");
+            testTags = sanitize(test.getTags().stream().sorted().collect(Collectors.joining()), "");
+            testTags = "".equals(testTags) ? "UNDEF" : testTags;
+        }
         return String.format("%sproject.%s.%salltags.%s.%stest.%s.", prefixTag, testProject, prefixTag, testTags, prefixTag, testName);
     }
 
     private String getPrefixStatsdTargets(final Test test) {
-        return getPrefixBase(test) + prefixTag + SystemEnv.STATSD_TARGET_KEY.getValue() + ".";
+        return getPrefixBase(test) + "targets." + prefixTag + SystemEnv.STATSD_TARGET_KEY.getValue() + ".";
     }
 
     private String getPrefixStatsdLoader(final Test test) {
-        return getPrefixBase(test) + prefixTag + SystemEnv.STATSD_LOADER_KEY.getValue() + "." + sanitize(hostnameFormated) + ".";
+        return getPrefixBase(test) + "loaders." + prefixTag + SystemEnv.STATSD_LOADER_KEY.getValue() + "." + sanitize(hostnameFormated, "_") + ".";
     }
 
     private String getStatsdPrefixResponse(final Test test) {
@@ -150,7 +155,7 @@ public class MonitorService {
 
     public void fail(final Throwable t, long start) {
         if (!((t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task"))) {
-            String messageException = sanitize(t.getMessage()).replaceAll(".*Exception__", "");
+            String messageException = sanitize(t.getMessage(), "_").replaceAll(".*[.]([^.]+Exception__)", "$1");
             statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + messageException, System.currentTimeMillis() - start);
             statsdClient.recordExecutionTime(prefixResponse + "size", 0);
             LOGGER.error(t);
