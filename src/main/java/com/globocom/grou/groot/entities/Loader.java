@@ -23,8 +23,15 @@ public class Loader implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    public enum Status {
+        RUNNING,
+        OK,
+        IDLE,
+        ERROR
+    }
+
     private String name = "UNDEF";
-    private Test.Status status = Test.Status.UNDEF;
+    private Status status = Status.IDLE;
     private String statusDetailed = "";
 
     public String getName() {
@@ -35,11 +42,11 @@ public class Loader implements Serializable {
         this.name = name;
     }
 
-    public Test.Status getStatus() {
+    public Status getStatus() {
         return status;
     }
 
-    public void setStatus(Test.Status status) {
+    public void setStatus(Status status) {
         this.status = status;
     }
 
