@@ -17,8 +17,8 @@
 package com.globocom.grou.groot.loader;
 
 import com.globocom.grou.groot.SystemEnv;
+import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.entities.Test.Status;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
 import com.globocom.grou.groot.httpclient.RequestExecutorService;
 import com.globocom.grou.groot.monit.MonitorService;
@@ -45,15 +45,15 @@ public class LoaderService {
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
     private final RequestExecutorService asyncHttpClientService;
-    private final MonitorService connectionsCounterService;
+    private final MonitorService monitorService;
     private final StringRedisTemplate template;
     private final AtomicReference<String> currentTest = new AtomicReference<>("");
-    private final AtomicReference<Status> status = new AtomicReference<>(Status.UNDEF);
+    private final AtomicReference<Status> status = new AtomicReference<>(Status.IDLE);
 
     @Autowired
-    public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService connectionsCounterService, StringRedisTemplate template) {
+    public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService monitorService, StringRedisTemplate template) {
         this.asyncHttpClientService = asyncHttpClientService;
-        this.connectionsCounterService = connectionsCounterService;
+        this.monitorService = monitorService;
         this.template = template;
     }
 
@@ -76,7 +76,7 @@ public class LoaderService {
 
         final long start = System.currentTimeMillis();
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
-            connectionsCounterService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
+            monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (System.currentTimeMillis() - start < durationTimeMillis) {
                 asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
             }
@@ -92,8 +92,8 @@ public class LoaderService {
     }
 
     private void stop() {
-        connectionsCounterService.reset();
-        updateStatus(Status.UNDEF);
+        monitorService.reset();
+        updateStatus(Status.IDLE);
         LOGGER.info("Finished test " + currentTest.get());
         currentTest.set("");
     }
