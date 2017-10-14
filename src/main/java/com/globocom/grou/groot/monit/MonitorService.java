@@ -21,11 +21,18 @@ import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import io.galeb.statsd.StatsDClient;
+import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.EmptyHttpHeaders;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.Response;
 import org.asynchttpclient.exception.TooManyConnectionsException;
 import org.asynchttpclient.exception.TooManyConnectionsPerHostException;
+import org.asynchttpclient.netty.NettyResponse;
+import org.asynchttpclient.netty.NettyResponseStatus;
+import org.asynchttpclient.uri.Uri;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -133,12 +140,27 @@ public class MonitorService {
 
     public void reset() {
         synchronized (lock) {
+            completeWithFakeEmptyResponse();
             this.test.set(null);
             this.targets = Collections.emptyList();
             this.prefixResponse = getStatsdPrefixResponse(null);
             this.prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
             this.prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
             delta = 0;
+        }
+    }
+
+    private void completeWithFakeEmptyResponse() {
+        try {
+            Thread.sleep(1000);
+            int noContent = 204;
+            DefaultHttpResponse noContentResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.valueOf(noContent));
+            Uri testUri = Uri.create((String) test.get().getProperties().get("uri"));
+            NettyResponseStatus nettyResponseStatus = new NettyResponseStatus(testUri, noContentResponse, null);
+            NettyResponse emptyResponse = new NettyResponse(nettyResponseStatus, EmptyHttpHeaders.INSTANCE, Collections.emptyList());
+            completed(emptyResponse, System.currentTimeMillis());
+        } catch (InterruptedException ignore) {
+            //
         }
     }
 
