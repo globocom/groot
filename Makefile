@@ -4,6 +4,8 @@ VERSION=${GROOT_VERSION}
 RPM_VER=${GROOT_VERSION}
 RELEASE=1
 
+PORT ?= 8090
+
 .PHONY: all test clean run
 
 groot: clean
@@ -16,7 +18,7 @@ clean:
 	mvn clean
 
 run:
-	sleep 5; java -Dserver.port=8090 -jar target/groot.jar
+	java -Dserver.port=${PORT} -jar target/groot.jar
 
 dist: groot
 	type fpm > /dev/null 2>&1 && \
