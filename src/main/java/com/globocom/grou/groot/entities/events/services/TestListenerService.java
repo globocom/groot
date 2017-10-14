@@ -34,8 +34,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 public class TestListenerService {
@@ -91,14 +91,11 @@ public class TestListenerService {
     }
 
     private void sendToCallback(Test test, Test.Status status, String statusDetail) throws JsonProcessingException {
-        Set<Loader> loaders = test.getLoaders();
         final Loader loader = new Loader();
         loader.setName(SystemInfo.hostname());
-        loaders.remove(loader);
-        loader.setStatus(status);
+        loader.setStatus(Enum.valueOf(Loader.Status.class, status.toString()));
         loader.setStatusDetailed(statusDetail);
-        loaders.add(loader);
-        test.setLoaders(loaders);
+        test.setLoaders(Collections.singleton(loader));
         template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
         LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), status.toString(), CALLBACK_QUEUE));
     }
