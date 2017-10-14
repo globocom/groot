@@ -104,7 +104,8 @@ public class LoaderService {
     }
 
     private void updateStatusKey() {
-        template.opsForValue().set(GROU_LOADER_REDIS_KEY, status.get() + (!"".equals(currentTest.get()) ? ":" + currentTest.get() : ""), 15000, TimeUnit.MILLISECONDS);
+        String doubleDotWithTestName = !"".equals(currentTest.get()) ? ":" + currentTest.get() : "";
+        template.opsForValue().set(GROU_LOADER_REDIS_KEY, status.get() + doubleDotWithTestName, 15000, TimeUnit.MILLISECONDS);
     }
 
     @Scheduled(fixedRate = 10000)
