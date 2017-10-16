@@ -3,4 +3,5 @@ chmod 777 -R /opt/groot/logs || true
 mkdir -p /opt/logs/groot|| true
 ln -sf /opt/groot/logs /opt/logs/groot
 ln -sf /opt/groot/lib/wrapper/bin/initscript /etc/init.d/groot
+useradd -d /opt/groot -s /bin/bash groot
 /usr/bin/systemctl enable groot || true
