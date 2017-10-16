@@ -183,6 +183,8 @@ public class MonitorService {
                 messageException = "timed_out";
             } else if (t instanceof java.net.ConnectException) {
                 messageException = "conn_fail";
+            } else if (t instanceof java.net.UnknownHostException) {
+                messageException = "unknown_host";
             } else {
                 messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
             }
