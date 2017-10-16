@@ -17,6 +17,7 @@
 package com.globocom.grou.groot.loader;
 
 import com.globocom.grou.groot.SystemEnv;
+import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PreDestroy;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
@@ -47,8 +49,9 @@ public class LoaderService {
     private final RequestExecutorService asyncHttpClientService;
     private final MonitorService monitorService;
     private final StringRedisTemplate template;
-    private final AtomicReference<String> currentTest = new AtomicReference<>("");
     private final AtomicReference<Status> status = new AtomicReference<>(Status.IDLE);
+    private final AtomicReference<String> currentTest = new AtomicReference<>("");
+    private final AtomicBoolean abortNow = new AtomicBoolean(false);
 
     @Autowired
     public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService monitorService, StringRedisTemplate template) {
@@ -57,8 +60,7 @@ public class LoaderService {
         this.template = template;
     }
 
-    public void start(Test test) throws Exception {
-        updateStatus(Status.RUNNING);
+    public void start(final Test test) throws Exception {
         final String testName = test.getName();
         final String projectName = test.getProject();
         currentTest.set(projectName + "." + testName);
@@ -66,7 +68,7 @@ public class LoaderService {
         updateStatus(Status.RUNNING);
 
         int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
-        int durationTimeMillis = Math.min(maxTestDuration, (Integer) properties.get("durationTimeMillis"));
+        int durationTimeMillis = Math.min(maxTestDuration, (int) properties.get("durationTimeMillis"));
         Object connectTimeoutObj = properties.get("connectTimeout");
         int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
 
@@ -77,7 +79,7 @@ public class LoaderService {
         final long start = System.currentTimeMillis();
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
-            while (System.currentTimeMillis() - start < durationTimeMillis) {
+            while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
                 asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
             }
         } catch (Exception e) {
@@ -94,6 +96,7 @@ public class LoaderService {
     private void stop() {
         monitorService.reset();
         updateStatus(Status.IDLE);
+        abortNow.set(false);
         LOGGER.info("Finished test " + currentTest.get());
         currentTest.set("");
     }
@@ -111,6 +114,17 @@ public class LoaderService {
     @Scheduled(fixedRate = 10000)
     public void register() {
         updateStatusKey();
+        checkAbortNow();
+    }
+
+    private void checkAbortNow() {
+        String abortKey = "ABORT:" + currentTest.get() + "#" + SystemInfo.hostname();
+        String redisAbortKey = template.opsForValue().get(abortKey);
+        if (redisAbortKey != null) {
+            abortNow.set(true);
+            template.expire(abortKey, 10, TimeUnit.MILLISECONDS);
+            LOGGER.warn("TEST ABORTED: " + currentTest.get());
+        }
     }
 
     @PreDestroy
