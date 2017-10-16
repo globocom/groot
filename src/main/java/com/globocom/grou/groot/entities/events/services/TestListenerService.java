@@ -33,6 +33,7 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
@@ -100,6 +101,7 @@ public class TestListenerService {
         LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), status.toString(), CALLBACK_QUEUE));
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private void checkProperties(final Map<String, Object> properties) throws IllegalArgumentException {
         Object durationTimeMillis = properties.get("durationTimeMillis");
         if ((durationTimeMillis != null && durationTimeMillis instanceof Integer && (Integer) durationTimeMillis >= 1000)) {
@@ -114,6 +116,7 @@ public class TestListenerService {
         if (uri == null || ((String)uri).isEmpty()) {
             throw new IllegalArgumentException("uri property undefined");
         }
+        URI.create((String) uri);
         Object numConn = properties.get("numConn");
         if (!(numConn != null && numConn instanceof  Integer && (Integer) numConn > 0)) {
             throw new IllegalArgumentException("numConn property undefined or less than 1 conn");
