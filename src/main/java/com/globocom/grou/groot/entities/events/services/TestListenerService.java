@@ -116,7 +116,11 @@ public class TestListenerService {
         if (uri == null || ((String)uri).isEmpty()) {
             throw new IllegalArgumentException("uri property undefined");
         }
-        URI.create((String) uri);
+        URI uriTested = URI.create((String) uri);
+        String schema = uriTested.getScheme();
+        if (!schema.matches("(http[s]?|ws[s]?)")) {
+            throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", must be equal (ignoring case) to ‘http’, ‘https’, ‘ws’, or ‘wss’");
+        }
         Object numConn = properties.get("numConn");
         if (!(numConn != null && numConn instanceof  Integer && (Integer) numConn > 0)) {
             throw new IllegalArgumentException("numConn property undefined or less than 1 conn");
