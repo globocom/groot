@@ -21,28 +21,19 @@ import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import io.galeb.statsd.StatsDClient;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.EmptyHttpHeaders;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.Response;
 import org.asynchttpclient.exception.TooManyConnectionsException;
 import org.asynchttpclient.exception.TooManyConnectionsPerHostException;
-import org.asynchttpclient.netty.NettyResponse;
-import org.asynchttpclient.netty.NettyResponseStatus;
-import org.asynchttpclient.uri.Uri;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,6 +56,7 @@ public class MonitorService {
     private String prefixResponse = getStatsdPrefixResponse(null);
     private String prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
     private String prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
+    private final Set<String> allStatus = new HashSet<>();
 
     @Autowired
     public MonitorService(final StatsdService statsdService) {
@@ -146,21 +138,17 @@ public class MonitorService {
             this.prefixResponse = getStatsdPrefixResponse(null);
             this.prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
             this.prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
+            this.allStatus.clear();
             delta = 0;
         }
     }
 
     private void completeWithFakeEmptyResponse() {
         try {
-            Thread.sleep(1000);
-            int noContent = 204;
-            DefaultHttpResponse noContentResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.valueOf(noContent));
-            Uri testUri = Uri.create((String) test.get().getProperties().get("uri"));
-            NettyResponseStatus nettyResponseStatus = new NettyResponseStatus(testUri, noContentResponse, null);
-            NettyResponse emptyResponse = new NettyResponse(nettyResponseStatus, EmptyHttpHeaders.INSTANCE, Collections.emptyList());
-            completed(emptyResponse, System.currentTimeMillis());
+            TimeUnit.SECONDS.sleep(1);
+            allStatus.forEach(this::sendResponseToStatsd);
         } catch (InterruptedException ignore) {
-            //
+            // ignored
         }
     }
 
@@ -168,8 +156,8 @@ public class MonitorService {
         try {
             int statusCode = response.getStatusCode();
             int bodySize = response.getResponseBodyAsBytes().length;
-            statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
-            statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
+            sendResponseToStatsd(String.valueOf(statusCode), bodySize, start);
+            allStatus.add(String.valueOf(statusCode));
         } catch (Exception e) {
             fail(e, start);
         }
@@ -185,13 +173,24 @@ public class MonitorService {
                 messageException = "conn_fail";
             } else if (t instanceof java.net.UnknownHostException) {
                 messageException = "unknown_host";
+            } else if (t instanceof java.net.NoRouteToHostException) {
+                messageException = "no_route";
             } else {
                 messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
             }
-            statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + messageException, System.currentTimeMillis() - start);
-            statsdClient.recordExecutionTime(prefixResponse + "size", 0);
+            sendResponseToStatsd(messageException, 0, start);
+            allStatus.add(messageException);
             LOGGER.error(t);
         }
+    }
+
+    private void sendResponseToStatsd(String statusCode) {
+        sendResponseToStatsd(statusCode, 0, System.currentTimeMillis());
+    }
+
+    private void sendResponseToStatsd(String statusCode, int bodySize, long start) {
+        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
+        statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
     }
 
     @Scheduled(fixedRate = 1000)
