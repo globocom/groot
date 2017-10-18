@@ -19,12 +19,10 @@ package com.globocom.grou.groot.httpclient;
 import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
+import io.netty.handler.codec.http.HttpHeaders;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.AsyncCompletionHandler;
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.DefaultAsyncHttpClientConfig;
-import org.asynchttpclient.Response;
+import org.asynchttpclient.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +35,7 @@ import static org.asynchttpclient.Dsl.config;
 public class RequestExecutorService {
 
     private static final Log LOGGER = LogFactory.getLog(RequestExecutorService.class);
+    private static final long MAX_CONTENT_LENGTH = 10 * 1024 * 1024; // 10 mb
 
     private final MonitorService monitorService;
 
@@ -49,6 +48,14 @@ public class RequestExecutorService {
 
         final long start = System.currentTimeMillis();
         asyncHttpClient.executeRequest(request, new AsyncCompletionHandler<Response>() {
+
+            @Override
+            public State onHeadersReceived(HttpHeaders headers) throws Exception {
+                String contentLength;
+                if ((contentLength = headers.get(org.springframework.http.HttpHeaders.CONTENT_LENGTH)) != null &&
+                        Integer.parseInt(contentLength) > MAX_CONTENT_LENGTH) return State.ABORT;
+                return State.CONTINUE;
+            }
 
             @Override
             public Response onCompleted(Response response) throws Exception {
