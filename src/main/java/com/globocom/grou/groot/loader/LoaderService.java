@@ -71,6 +71,8 @@ public class LoaderService {
         int durationTimeMillis = Math.min(maxTestDuration, (int) properties.get("durationTimeMillis"));
         Object connectTimeoutObj = properties.get("connectTimeout");
         int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
+        Object fixedDelayObj = properties.get("fixedDelay");
+        long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
 
         final ParameterizedRequest requestBuilder = new ParameterizedRequest(test);
 
@@ -81,6 +83,7 @@ public class LoaderService {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
                 asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
+                TimeUnit.MILLISECONDS.sleep(fixedDelay);
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
