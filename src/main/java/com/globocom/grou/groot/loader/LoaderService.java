@@ -33,10 +33,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
@@ -52,6 +58,7 @@ public class LoaderService {
     private final AtomicReference<Status> status = new AtomicReference<>(Status.IDLE);
     private final AtomicReference<String> currentTest = new AtomicReference<>("");
     private final AtomicBoolean abortNow = new AtomicBoolean(false);
+    private final ExecutorService executor = Executors.newWorkStealingPool();
 
     @Autowired
     public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService monitorService, StringRedisTemplate template) {
@@ -81,10 +88,24 @@ public class LoaderService {
         final long start = System.currentTimeMillis();
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
-            while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
-                asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
-                TimeUnit.MILLISECONDS.sleep(fixedDelay);
+            final List<Future<?>> futures = new ArrayList<>();
+            IntStream.rangeClosed(1, Integer.parseInt(SystemEnv.FORCE_PARALLEL.getValue())).forEach(t -> {
+                        Future<?> future = executor.submit(() -> {
+                            while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
+                                asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
+                                try {
+                                    TimeUnit.MILLISECONDS.sleep(fixedDelay);
+                                } catch (InterruptedException e) {
+                                    LOGGER.error(e.getMessage());
+                                }
+                            }
+                        });
+                        futures.add(future);
+                    });
+            while (futures.stream().anyMatch(f -> !f.isDone() || !f.isCancelled())) {
+                TimeUnit.SECONDS.sleep(1);
             }
+            futures.clear();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         } finally {
