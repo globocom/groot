@@ -27,6 +27,7 @@ import com.globocom.grou.groot.monit.SystemInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -74,7 +75,7 @@ public class LoaderService {
         Object fixedDelayObj = properties.get("fixedDelay");
         long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
 
-        final ParameterizedRequest requestBuilder = new ParameterizedRequest(test);
+        final Request request = new ParameterizedRequest(test).build();
 
         LOGGER.info("Starting test " + currentTest.get());
 
@@ -82,7 +83,7 @@ public class LoaderService {
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
-                asyncHttpClientService.execute(asyncHttpClient, requestBuilder);
+                asyncHttpClientService.execute(asyncHttpClient, request);
                 TimeUnit.MILLISECONDS.sleep(fixedDelay);
             }
         } catch (Exception e) {
