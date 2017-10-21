@@ -89,7 +89,8 @@ public class MonitorService {
             testTags = sanitize(test.getTags().stream().sorted().collect(Collectors.joining()), "");
             testTags = "".equals(testTags) ? "UNDEF" : testTags;
         }
-        return String.format("%sproject.%s.%salltags.%s.%stest.%s.", prefixTag, testProject, prefixTag, testTags, prefixTag, testName);
+        return String.format("%sproject.%s.%salltags.%s.%stest.%s.%s%s.%s.",
+                prefixTag, testProject, prefixTag, testTags, prefixTag, testName, prefixTag, SystemEnv.STATSD_LOADER_KEY.getValue(), sanitize(hostnameFormated, "_"));
     }
 
     private String getPrefixStatsdTargets(final Test test) {
@@ -97,7 +98,7 @@ public class MonitorService {
     }
 
     private String getPrefixStatsdLoader(final Test test) {
-        return getPrefixBase(test) + "loaders." + prefixTag + SystemEnv.STATSD_LOADER_KEY.getValue() + "." + sanitize(hostnameFormated, "_") + ".";
+        return getPrefixBase(test) + "loaders.";
     }
 
     private String getStatsdPrefixResponse(final Test test) {
