@@ -112,7 +112,12 @@ public enum SystemEnv {
     /**
      * Prefix tag field (Useful to Statsite OpenTSDB sink)
      */
-    PREFIX_TAG ("PREFIX_TAG", "_t_");
+    PREFIX_TAG ("PREFIX_TAG", "_t_"),
+
+    /**
+     *  Force multiples Groots loaders. default = 1 [= single task (no force parallel groots)]
+     */
+    FORCE_PARALLEL("FORCE_PARALLEL", 1);
 
     /**
      * Gets SystemEnv value.

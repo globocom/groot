@@ -17,7 +17,6 @@
 package com.globocom.grou.groot.loader;
 
 import com.globocom.grou.groot.SystemEnv;
-import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
