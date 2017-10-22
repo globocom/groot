@@ -28,13 +28,14 @@ import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.asynchttpclient.HttpResponseBodyPart;
 import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.Request;
+import org.asynchttpclient.Response;
 import org.asynchttpclient.handler.ProgressAsyncHandler;
+import org.asynchttpclient.netty.NettyResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
@@ -76,6 +77,8 @@ public class RequestExecutorService {
                 .setConnectionTtl(durationTimeMillis)
                 .setMaxConnectionsPerHost(numConn)
                 .setMaxConnections(numConn)
+                .setRequestTimeout(durationTimeMillis)
+                .setReadTimeout(durationTimeMillis)
                 .setUseInsecureTrustManager(true)
                 .setUserAgent(Application.GROOT_USERAGENT);
 
@@ -86,16 +89,15 @@ public class RequestExecutorService {
         return asyncHttpClient(config);
     }
 
-    private class NoBodyCopyAsyncHandler implements AsyncHandler<ResponseWithoutRealBody>, ProgressAsyncHandler<ResponseWithoutRealBody> {
+    private class NoBodyCopyAsyncHandler implements AsyncHandler<Response>, ProgressAsyncHandler<Response> {
 
         private final long start = System.currentTimeMillis();
-        private final AtomicInteger bodySize = new AtomicInteger(0);
         private HttpResponseStatus status;
         private HttpHeaders headers;
 
         @Override
         public State onBodyPartReceived(HttpResponseBodyPart content) throws Exception {
-            bodySize.addAndGet(content.length());
+            monitorService.sendSize(content.length());
             return State.CONTINUE;
         }
 
@@ -107,6 +109,7 @@ public class RequestExecutorService {
         @Override
         public State onStatusReceived(HttpResponseStatus status) throws Exception {
             this.status = status;
+            monitorService.sendStatus(String.valueOf(status.getStatusCode()), start);
             return State.CONTINUE;
         }
 
@@ -123,16 +126,12 @@ public class RequestExecutorService {
         }
 
         @Override
-        public ResponseWithoutRealBody onCompleted() throws Exception {
-            return onCompleted(status != null ? new ResponseWithoutRealBody(status, headers, Collections.emptyList(), bodySize.get()) : null);
+        public Response onCompleted() throws Exception {
+            return onCompleted(status != null ? new NettyResponse(status, headers, Collections.emptyList()) : null);
         }
 
-        ResponseWithoutRealBody onCompleted(ResponseWithoutRealBody response) throws Exception {
-            try {
-                if (response != null) monitorService.completed(response, start);
-            } catch (Exception e) {
-                onThrowable(e);
-            }
+        Response onCompleted(Response response) throws Exception {
+            monitorService.sendResponseTime(start);
             return response;
         }
 

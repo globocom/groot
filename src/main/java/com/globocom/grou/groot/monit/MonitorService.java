@@ -18,13 +18,11 @@ package com.globocom.grou.groot.monit;
 
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.httpclient.ResponseWithoutRealBody;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import io.galeb.statsd.StatsDClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.Response;
 import org.asynchttpclient.exception.TooManyConnectionsException;
 import org.asynchttpclient.exception.TooManyConnectionsPerHostException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -148,20 +146,9 @@ public class MonitorService {
     private void completeWithFakeEmptyResponse() {
         try {
             TimeUnit.SECONDS.sleep(1);
-            allStatus.forEach(this::sendResponseToStatsd);
+            allStatus.forEach(this::sendFakeResponseToStatsd);
         } catch (InterruptedException ignore) {
             // ignored
-        }
-    }
-
-    public void completed(final Response response, long start) {
-        try {
-            int statusCode = response.getStatusCode();
-            int bodySize = ((ResponseWithoutRealBody)response).getBodySize();
-            sendResponseToStatsd(String.valueOf(statusCode), bodySize, start);
-            allStatus.add(String.valueOf(statusCode));
-        } catch (Exception e) {
-            fail(e, start);
         }
     }
 
@@ -170,7 +157,9 @@ public class MonitorService {
         if (!isInternalProblem) {
             String messageException = t.getMessage();
             if (messageException.contains("connection timed out")) {
-                messageException = "timed_out";
+                messageException = "connection_timeout";
+            } else if (messageException.contains("request timeout")) {
+                messageException = "request_timeout";
             } else if (t instanceof java.net.ConnectException) {
                 messageException = "conn_fail";
             } else if (t instanceof java.net.UnknownHostException) {
@@ -180,19 +169,33 @@ public class MonitorService {
             } else {
                 messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
             }
-            sendResponseToStatsd(messageException, 0, start);
+            sendFakeResponseToStatsd(messageException, start);
             allStatus.add(messageException);
             LOGGER.error(t);
         }
     }
 
-    private void sendResponseToStatsd(String statusCode) {
-        sendResponseToStatsd(statusCode, 0, System.currentTimeMillis());
+    private void sendFakeResponseToStatsd(String statusCode) {
+        sendFakeResponseToStatsd(statusCode, System.currentTimeMillis());
     }
 
-    private void sendResponseToStatsd(String statusCode, int bodySize, long start) {
+    private void sendFakeResponseToStatsd(String statusCode, long start) {
+        sendStatus(statusCode, start);
+        sendResponseTime(start);
+        sendSize(0);
+    }
+
+    public void sendStatus(String statusCode, long start) {
+        allStatus.add(String.valueOf(statusCode));
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
+    }
+
+    public void sendSize(int bodySize) {
         statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
+    }
+
+    public void sendResponseTime(long start) {
+        statsdClient.recordExecutionTime(prefixResponse + "completed", System.currentTimeMillis() - start);
     }
 
     @Scheduled(fixedRate = 1000)
