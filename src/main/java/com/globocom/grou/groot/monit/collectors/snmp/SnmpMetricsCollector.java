@@ -48,6 +48,16 @@ public class SnmpMetricsCollector extends MetricsCollector {
     }
 
     @Override
+    public double getMemBuffers() {
+        return getSnmpValueInt(OID_MEM_BUFFER);
+    }
+
+    @Override
+    public double getMemCached() {
+        return getSnmpValueInt(OID_MEM_CACHED);
+    }
+
+    @Override
     public int getCpuUsed() {
         return 100 - getSnmpValueInt(OID_CPU_IDLE);
     }

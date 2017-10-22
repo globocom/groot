@@ -40,6 +40,8 @@ public abstract class MetricsCollector {
 
     public abstract int getConns();
     public abstract double getMemFree();
+    public abstract double getMemBuffers();
+    public abstract double getMemCached();
     public abstract int getCpuUsed();
     public abstract float getLoad1m();
     public abstract float getLoad5m();

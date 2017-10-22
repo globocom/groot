@@ -61,6 +61,24 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     }
 
     @Override
+    public double getMemBuffers() {
+        try {
+            return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Buffers")).doubleValue();
+        } catch (Exception e) {
+            return -1.0;
+        }
+    }
+
+    @Override
+    public double getMemCached() {
+        try {
+            return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Cached")).doubleValue();
+        } catch (Exception e) {
+            return -1.0;
+        }
+    }
+
+    @Override
     public int getCpuUsed() {
         try {
             double totalIdle = nodeExporterClient.get(nodeUrl).entrySet().stream()

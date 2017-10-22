@@ -50,6 +50,16 @@ public enum MetricsCollectorByScheme {
         }
 
         @Override
+        public double getMemBuffers() {
+            return 0.0;
+        }
+
+        @Override
+        public double getMemCached() {
+            return 0.0;
+        }
+
+        @Override
         public int getCpuUsed() {
             return 0;
         }

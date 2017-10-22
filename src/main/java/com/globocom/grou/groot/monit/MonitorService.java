@@ -211,6 +211,8 @@ public class MonitorService {
                     String prefixStatsd = prefixStatsdTargetsKey + target.getKey() + ".";
                     int targetConns = target.getConns();
                     double targetMemFree = target.getMemFree();
+                    double targetMemBuffers = target.getMemBuffers();
+                    double targetMemCached = target.getMemCached();
                     int targetCpuUsed = target.getCpuUsed();
                     float targetLoad1m = target.getLoad1m();
                     float targetLoad5m = target.getLoad5m();
@@ -219,6 +221,8 @@ public class MonitorService {
                     statsdClient.recordExecutionTime(prefixStatsd + "conns", targetConns);
                     statsdClient.recordExecutionTime(prefixStatsd + "cpu", targetCpuUsed);
                     statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached);
                     statsdClient.gauge(prefixStatsd + "load1m", targetLoad1m);
                     statsdClient.gauge(prefixStatsd + "load5m", targetLoad5m);
                     statsdClient.gauge(prefixStatsd + "load15m", targetLoad15m);
