@@ -20,6 +20,7 @@ import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
+import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
 import io.galeb.statsd.StatsDClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -123,10 +124,10 @@ public class MonitorService {
                     return MetricsCollectorByScheme.valueOf(uriScheme.toUpperCase()).collect(uri);
                 } catch (Exception e) {
                     LOGGER.warn("Monitoring scheme problem (" + uri.getScheme() + "). Using ZeroCollector because " + e.getMessage());
-                    return new MetricsCollectorByScheme.ZeroCollector().setUri(uri);
+                    return new ZeroCollector().setUri(uri);
                 }
             }
-            return new MetricsCollectorByScheme.ZeroCollector().setUri(uri);
+            return new ZeroCollector().setUri(uri);
         };
     }
 

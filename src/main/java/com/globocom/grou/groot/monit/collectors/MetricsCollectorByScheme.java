@@ -18,6 +18,7 @@ package com.globocom.grou.groot.monit.collectors;
 
 import com.globocom.grou.groot.monit.collectors.prometheus.PrometheusNodeMetricsCollector;
 import com.globocom.grou.groot.monit.collectors.snmp.SnmpMetricsCollector;
+import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
 
 import java.net.URI;
 
@@ -35,54 +36,6 @@ public enum MetricsCollectorByScheme {
 
     public MetricsCollector collect(final URI uri) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).newInstance()).setUri(uri);
-    }
-
-    public static class ZeroCollector extends MetricsCollector {
-
-        @Override
-        public int getConns() {
-            return 0;
-        }
-
-        @Override
-        public double getMemFree() {
-            return 0.0;
-        }
-
-        @Override
-        public double getMemBuffers() {
-            return 0.0;
-        }
-
-        @Override
-        public double getMemCached() {
-            return 0.0;
-        }
-
-        @Override
-        public int getCpuUsed() {
-            return 0;
-        }
-
-        @Override
-        public float getLoad1m() {
-            return 0.0f;
-        }
-
-        @Override
-        public float getLoad5m() {
-            return 0.0f;
-        }
-
-        @Override
-        public float getLoad15m() {
-            return 0.0f;
-        }
-
-        @Override
-        protected int defaultPort() {
-            return 0;
-        }
     }
 
 }
