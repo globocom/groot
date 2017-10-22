@@ -16,6 +16,9 @@
 
 package com.globocom.grou.groot.monit.collectors;
 
+import com.globocom.grou.groot.monit.collectors.prometheus.PrometheusNodeMetricsCollector;
+import com.globocom.grou.groot.monit.collectors.snmp.SnmpMetricsCollector;
+
 import java.net.URI;
 
 @SuppressWarnings("unused")

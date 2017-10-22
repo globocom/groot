@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.monit.collectors;
+package com.globocom.grou.groot.monit.collectors.snmp;
 
-import com.globocom.grou.groot.monit.collectors.snmp.SimpleSnmpClient;
+import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.snmp4j.event.ResponseEvent;
@@ -86,7 +86,7 @@ public class SnmpMetricsCollector extends MetricsCollector {
 
     private int getSnmpValueInt(final OID[] oid) {
         int value;
-        try (final SimpleSnmpClient snmpClient = new SimpleSnmpClient(uriHost, uriPort, queryParams)) {
+        try (final SimpleSnmpClient snmpClient = new SimpleSnmpClient(getUriHost(), getUriPort(), getQueryParams())) {
             ResponseEvent event = snmpClient.get(oid);
             value = SimpleSnmpClient.extractSingleInt(event);
         } catch (IOException e) {
@@ -98,7 +98,7 @@ public class SnmpMetricsCollector extends MetricsCollector {
 
     private String getSnmpValueStr(final OID[] oid) {
         String value;
-        try (final SimpleSnmpClient snmpClient = new SimpleSnmpClient(uriHost, uriPort, queryParams)) {
+        try (final SimpleSnmpClient snmpClient = new SimpleSnmpClient(getUriHost(), getUriPort(), getQueryParams())) {
             ResponseEvent event = snmpClient.get(oid);
             value = SimpleSnmpClient.extractSingleString(event);
         } catch (IOException e) {

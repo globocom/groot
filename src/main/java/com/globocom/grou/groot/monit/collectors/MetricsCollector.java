@@ -25,9 +25,9 @@ public abstract class MetricsCollector {
 
     private String key = null;
 
-    String uriHost = null;
-    int uriPort = -1;
-    Map<String, String> queryParams = Collections.emptyMap();
+    private String uriHost = null;
+    private int uriPort = -1;
+    private Map<String, String> queryParams = Collections.emptyMap();
 
     public MetricsCollector setUri(URI uri) {
         this.uriHost = (uri != null) ? uri.getHost() : "localhost";
@@ -71,4 +71,15 @@ public abstract class MetricsCollector {
         return result;
     }
 
+    public String getUriHost() {
+        return uriHost;
+    }
+
+    public int getUriPort() {
+        return uriPort;
+    }
+
+    public Map<String, String> getQueryParams() {
+        return queryParams;
+    }
 }

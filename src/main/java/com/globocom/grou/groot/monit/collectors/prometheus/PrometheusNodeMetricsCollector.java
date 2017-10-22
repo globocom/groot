@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.monit.collectors;
+package com.globocom.grou.groot.monit.collectors.prometheus;
 
-import com.globocom.grou.groot.monit.collectors.prometheus.NodeExporterClient;
+import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -38,7 +38,7 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     @Override
     public MetricsCollector setUri(final URI uri) {
         super.setUri(uri);
-        nodeUrl = "http://" + uriHost + ":" + uriPort + "/metrics";
+        nodeUrl = "http://" + getUriHost() + ":" + getUriPort() + "/metrics";
         return this;
     }
 
