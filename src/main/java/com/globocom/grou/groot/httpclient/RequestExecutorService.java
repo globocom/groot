@@ -19,16 +19,22 @@ package com.globocom.grou.groot.httpclient;
 import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
+import io.netty.handler.codec.http.HttpHeaders;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.AsyncCompletionHandler;
+import org.asynchttpclient.AsyncHandler;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.DefaultAsyncHttpClientConfig;
-import org.asynchttpclient.Response;
+import org.asynchttpclient.HttpResponseBodyPart;
+import org.asynchttpclient.HttpResponseStatus;
+import org.asynchttpclient.Request;
+import org.asynchttpclient.handler.ProgressAsyncHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
@@ -45,26 +51,8 @@ public class RequestExecutorService {
         this.monitorService = monitorService;
     }
 
-    public void execute(final AsyncHttpClient asyncHttpClient, final ParameterizedRequest request) {
-
-        final long start = System.currentTimeMillis();
-        asyncHttpClient.executeRequest(request, new AsyncCompletionHandler<Response>() {
-
-            @Override
-            public Response onCompleted(Response response) throws Exception {
-                try {
-                    monitorService.completed(response, start);
-                } catch (Exception e) {
-                    onThrowable(e);
-                }
-                return response;
-            }
-
-            @Override
-            public void onThrowable(Throwable t) {
-                monitorService.fail(t, start);
-            }
-        });
+    public void execute(final AsyncHttpClient asyncHttpClient, final Request request) {
+        asyncHttpClient.executeRequest(request, new NoBodyCopyAsyncHandler());
     }
 
     public AsyncHttpClient newClient(final Map<String, Object> testProperties, int durationTimeMillis) throws IllegalArgumentException {
@@ -97,4 +85,72 @@ public class RequestExecutorService {
 
         return asyncHttpClient(config);
     }
+
+    private class NoBodyCopyAsyncHandler implements AsyncHandler<ResponseWithoutRealBody>, ProgressAsyncHandler<ResponseWithoutRealBody> {
+
+        private final long start = System.currentTimeMillis();
+        private final AtomicInteger bodySize = new AtomicInteger(0);
+        private HttpResponseStatus status;
+        private HttpHeaders headers;
+
+        @Override
+        public State onBodyPartReceived(HttpResponseBodyPart content) throws Exception {
+            bodySize.addAndGet(content.length());
+            return State.CONTINUE;
+        }
+
+        @Override
+        public void onThrowable(Throwable t) {
+            monitorService.fail(t, start);
+        }
+
+        @Override
+        public State onStatusReceived(HttpResponseStatus status) throws Exception {
+            this.status = status;
+            return State.CONTINUE;
+        }
+
+        @Override
+        public State onHeadersReceived(HttpHeaders headers) throws Exception {
+            this.headers = this.headers == null ? headers : this.headers.add(headers);
+            return State.CONTINUE;
+        }
+
+        @Override
+        public State onTrailingHeadersReceived(HttpHeaders headers) throws Exception {
+            this.headers = this.headers == null ? headers : this.headers.add(headers);
+            return State.CONTINUE;
+        }
+
+        @Override
+        public ResponseWithoutRealBody onCompleted() throws Exception {
+            return onCompleted(status != null ? new ResponseWithoutRealBody(status, headers, Collections.emptyList(), bodySize.get()) : null);
+        }
+
+        ResponseWithoutRealBody onCompleted(ResponseWithoutRealBody response) throws Exception {
+            try {
+                if (response != null) monitorService.completed(response, start);
+            } catch (Exception e) {
+                onThrowable(e);
+            }
+            return response;
+        }
+
+        @Override
+        public State onHeadersWritten() {
+            return State.CONTINUE;
+        }
+
+        @Override
+        public State onContentWritten() {
+            return State.CONTINUE;
+        }
+
+        @Override
+        public State onContentWriteProgress(long amount, long current, long total) {
+            return State.CONTINUE;
+        }
+
+    }
+
 }

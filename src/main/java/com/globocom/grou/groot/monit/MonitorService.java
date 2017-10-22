@@ -18,6 +18,7 @@ package com.globocom.grou.groot.monit;
 
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
+import com.globocom.grou.groot.httpclient.ResponseWithoutRealBody;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import io.galeb.statsd.StatsDClient;
@@ -156,7 +157,7 @@ public class MonitorService {
     public void completed(final Response response, long start) {
         try {
             int statusCode = response.getStatusCode();
-            int bodySize = response.getResponseBodyAsBytes().length;
+            int bodySize = ((ResponseWithoutRealBody)response).getBodySize();
             sendResponseToStatsd(String.valueOf(statusCode), bodySize, start);
             allStatus.add(String.valueOf(statusCode));
         } catch (Exception e) {
