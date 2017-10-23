@@ -93,6 +93,8 @@ public class LoaderService {
         int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
         Object fixedDelayObj = properties.get("fixedDelay");
         long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
+        Object dynamizeObj = properties.get("dynamize");
+        boolean dynamize = dynamizeObj != null && ((String)dynamizeObj).matches("(true|false)") ? Boolean.valueOf((String)dynamizeObj) : false;
 
         final Request request = new ParameterizedRequest(test).build();
 
@@ -103,7 +105,11 @@ public class LoaderService {
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
-                asyncHttpClientService.execute(asyncHttpClient, request);
+                if (dynamize) {
+                    asyncHttpClientService.execute(asyncHttpClient, new ParameterizedRequest(test).dynamize().build());
+                } else {
+                    asyncHttpClientService.execute(asyncHttpClient, request);
+                }
                 TimeUnit.MILLISECONDS.sleep(fixedDelay);
             }
         } catch (Exception e) {

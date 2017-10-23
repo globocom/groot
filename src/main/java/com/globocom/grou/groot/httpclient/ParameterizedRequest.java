@@ -23,27 +23,28 @@ import org.asynchttpclient.RequestBuilder;
 import org.springframework.http.HttpMethod;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("unchecked")
 public class ParameterizedRequest extends RequestBuilder {
+
+    private final AtomicReference<String> body = new AtomicReference<>("");
+    private final AtomicReference<String> url = new AtomicReference<>("");
 
     public ParameterizedRequest(Test test) {
         super(Optional.ofNullable((String) test.getProperties().get("method")).orElse(HttpMethod.GET.name()));
 
         final Map<String, Object> properties = test.getProperties();
         final URI uri = URI.create(Optional.ofNullable((String) properties.get("uri")).orElseThrow(() -> new IllegalArgumentException("uri property undefined")));
-
-        setUrl(uri.toString());
+        setUrl(url.updateAndGet(u -> uri.toString()));
 
         Optional.ofNullable((Map<String, String>) properties.get("headers")).orElse(Collections.emptyMap()).forEach(this::setHeader);
         setHeader("User-Agent", Application.GROOT_USERAGENT);
         if (method.matches("(POST|PUT|PATCH)")) {
-            String body = Optional.ofNullable((String) properties.get("body")).orElseThrow(() -> new IllegalArgumentException("body property undefined"));
-            if (body.isEmpty()) throw new IllegalArgumentException("body is empty");
-            setBody(body);
+            body.set(Optional.ofNullable((String) properties.get("body")).orElseThrow(() -> new IllegalArgumentException("body property undefined")));
+            if (body.get().isEmpty()) throw new IllegalArgumentException("body is empty");
+            setBody(body.get());
         }
         final String auth = (String) properties.get("auth");
         if (auth != null && auth.contains(":")) {
@@ -54,6 +55,16 @@ public class ParameterizedRequest extends RequestBuilder {
                 setRealm(Dsl.basicAuthRealm(login, password).build());
             }
         }
+    }
+
+    public ParameterizedRequest dynamize() {
+        body.updateAndGet(b -> b.replaceAll("##random##", UUID.randomUUID().toString()));
+        body.updateAndGet(b -> b.replaceAll("##timestamp##", String.valueOf(System.currentTimeMillis())));
+        url.updateAndGet(b -> b.replaceAll("##random##", UUID.randomUUID().toString()));
+        url.updateAndGet(b -> b.replaceAll("##timestamp##", String.valueOf(System.currentTimeMillis())));
+        setBody(body.get());
+        setUrl(url.get());
+        return this;
     }
 
 }
