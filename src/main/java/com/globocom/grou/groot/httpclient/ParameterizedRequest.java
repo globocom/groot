@@ -58,8 +58,10 @@ public class ParameterizedRequest extends RequestBuilder {
     }
 
     public ParameterizedRequest dynamize() {
-        body.updateAndGet(b -> b.replaceAll("##random##", UUID.randomUUID().toString()));
-        body.updateAndGet(b -> b.replaceAll("##timestamp##", String.valueOf(System.currentTimeMillis())));
+        if (!body.get().isEmpty()) {
+            body.updateAndGet(b -> b.replaceAll("##random##", UUID.randomUUID().toString()));
+            body.updateAndGet(b -> b.replaceAll("##timestamp##", String.valueOf(System.currentTimeMillis())));
+        }
         url.updateAndGet(b -> b.replaceAll("##random##", UUID.randomUUID().toString()));
         url.updateAndGet(b -> b.replaceAll("##timestamp##", String.valueOf(System.currentTimeMillis())));
         setBody(body.get());
