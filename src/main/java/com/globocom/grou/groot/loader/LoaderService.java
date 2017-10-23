@@ -78,7 +78,7 @@ public class LoaderService {
         myself.setVersion(buildVersion + " (" + buildTimestamp + ")");
     }
 
-    public void start(final Test test) throws Exception {
+    public Loader start(final Test test) throws Exception {
         final String testName = test.getName();
         final String projectName = test.getProject();
         myself.setStatusDetailed(projectName + "." + testName);
@@ -97,6 +97,7 @@ public class LoaderService {
 
         LOGGER.info("Starting test " + myself.getStatusDetailed());
 
+        Loader myselfClone;
         final long start = System.currentTimeMillis();
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
@@ -110,9 +111,21 @@ public class LoaderService {
             try {
                 Thread.sleep(connectTimeout);
             } finally {
+                myselfClone = cloneMySelf();
                 stop();
             }
         }
+        return myselfClone;
+    }
+
+    private Loader cloneMySelf() {
+        Loader loader = new Loader();
+        loader.setName(myself.getName());
+        loader.setStatus(myself.getStatus());
+        loader.setStatusDetailed(myself.getStatusDetailed());
+        loader.setVersion(myself.getVersion());
+        loader.setLastExecAt(myself.getLastExecAt());
+        return loader;
     }
 
     private void stop() {
@@ -161,6 +174,8 @@ public class LoaderService {
         String redisAbortKey = template.opsForValue().get(abortKey);
         if (redisAbortKey != null) {
             abortNow.set(true);
+            myself.setStatusDetailed(Test.Status.ABORTED.toString());
+            myself.setStatus(Status.ERROR);
             template.expire(abortKey, 10, TimeUnit.MILLISECONDS);
             LOGGER.warn("TEST ABORTED: " + myself.getStatusDetailed());
         }

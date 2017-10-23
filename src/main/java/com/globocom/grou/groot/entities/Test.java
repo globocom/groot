@@ -16,8 +16,6 @@
 
 package com.globocom.grou.groot.entities;
 
-import org.springframework.data.annotation.Transient;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,7 +33,8 @@ public class Test implements Serializable {
         ENQUEUED,
         RUNNING,
         OK,
-        ERROR
+        ERROR,
+        ABORTED
     }
 
     private String id;

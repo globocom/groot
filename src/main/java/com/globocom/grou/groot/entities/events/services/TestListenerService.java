@@ -72,17 +72,19 @@ public class TestListenerService {
 
     private void testStart(String testStr) throws IOException {
         Test test = null;
+        Loader myself = null;
         try {
             test = mapper.readValue(testStr, Test.class);
             synchronized (lock) {
                 checkProperties(test.getProperties());
-                sendToCallback(test, Test.Status.RUNNING, "");
-                loaderService.start(test);
-                sendToCallback(test, Test.Status.OK, "OK");
+                sendToCallback(test);
+                myself = loaderService.start(test);
+                sendToCallback(test, myself);
             }
         } catch (Exception e) {
-            if (test != null) {
-                sendToCallback(test, Test.Status.ERROR, e.getMessage());
+            if (test != null && myself != null) {
+                myself.setStatusDetailed(e.getMessage());
+                sendToCallback(test, myself);
                 LOGGER.error(test.getProject() + "." + test.getName() + ": " + e.getMessage());
             } else {
                 LOGGER.error(testStr + ": " + e.getMessage());
@@ -91,14 +93,18 @@ public class TestListenerService {
 
     }
 
-    private void sendToCallback(Test test, Test.Status status, String statusDetail) throws JsonProcessingException {
+    private void sendToCallback(Test test) throws JsonProcessingException {
         final Loader loader = new Loader();
         loader.setName(SystemInfo.hostname());
-        loader.setStatus(Enum.valueOf(Loader.Status.class, status.toString()));
-        loader.setStatusDetailed(statusDetail);
+        loader.setStatus(Loader.Status.RUNNING);
+        loader.setStatusDetailed("");
+        sendToCallback(test, loader);
+    }
+
+    private void sendToCallback(Test test, Loader loader) throws JsonProcessingException {
         test.setLoaders(Collections.singleton(loader));
         template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
-        LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), status.toString(), CALLBACK_QUEUE));
+        LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), loader.getStatus(), CALLBACK_QUEUE));
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
