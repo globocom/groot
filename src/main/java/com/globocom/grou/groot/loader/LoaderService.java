@@ -16,7 +16,10 @@
 
 package com.globocom.grou.groot.loader;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.SystemEnv;
+import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
@@ -28,15 +31,17 @@ import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Request;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
+import java.sql.Date;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
@@ -49,21 +54,35 @@ public class LoaderService {
     private final RequestExecutorService asyncHttpClientService;
     private final MonitorService monitorService;
     private final StringRedisTemplate template;
-    private final AtomicReference<Status> status = new AtomicReference<>(Status.IDLE);
-    private final AtomicReference<String> currentTest = new AtomicReference<>("");
+    private final Loader myself;
+    private final String buildVersion;
+    private final String buildTimestamp;
+
     private final AtomicBoolean abortNow = new AtomicBoolean(false);
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public LoaderService(final RequestExecutorService asyncHttpClientService, final MonitorService monitorService, StringRedisTemplate template) {
+    public LoaderService(final RequestExecutorService asyncHttpClientService,
+                         final MonitorService monitorService,
+                         StringRedisTemplate template,
+                         @Value("${build.version}") String buildVersion,
+                         @Value("${build.timestamp}") String buildTimestamp) {
         this.asyncHttpClientService = asyncHttpClientService;
         this.monitorService = monitorService;
         this.template = template;
+        this.buildVersion = buildVersion;
+        this.buildTimestamp = buildTimestamp;
+        this.myself = new Loader();
+        myself.setName(SystemInfo.hostname());
+        myself.setStatus(Status.IDLE);
+        myself.setVersion(buildVersion + " (" + buildTimestamp + ")");
     }
 
     public void start(final Test test) throws Exception {
         final String testName = test.getName();
         final String projectName = test.getProject();
-        currentTest.set(projectName + "." + testName);
+        myself.setStatusDetailed(projectName + "." + testName);
+        myself.setLastExecAt(Date.from(Instant.now()));
         final Map<String, Object> properties = test.getProperties();
         updateStatus(Status.RUNNING);
 
@@ -76,7 +95,7 @@ public class LoaderService {
 
         final Request request = new ParameterizedRequest(test).build();
 
-        LOGGER.info("Starting test " + currentTest.get());
+        LOGGER.info("Starting test " + myself.getStatusDetailed());
 
         final long start = System.currentTimeMillis();
         try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
@@ -100,18 +119,35 @@ public class LoaderService {
         monitorService.reset();
         updateStatus(Status.IDLE);
         abortNow.set(false);
-        LOGGER.info("Finished test " + currentTest.get());
-        currentTest.set("");
+        LOGGER.info("Finished test " + myself.getStatusDetailed());
+        myself.setStatusDetailed("");
     }
 
     private void updateStatus(Status loaderStatus) {
-        status.set(loaderStatus);
+        myself.setStatus(loaderStatus);
         updateStatusKey();
     }
 
     private void updateStatusKey() {
-        String doubleDotWithTestName = !"".equals(currentTest.get()) ? ":" + currentTest.get() : "";
-        template.opsForValue().set(GROU_LOADER_REDIS_KEY, status.get() + doubleDotWithTestName, 15000, TimeUnit.MILLISECONDS);
+        String loaderJson = newUndefLoaderStr();
+        try {
+            loaderJson = mapper.writeValueAsString(myself);
+        } catch (JsonProcessingException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        template.opsForValue().set(GROU_LOADER_REDIS_KEY, loaderJson, 15000, TimeUnit.MILLISECONDS);
+    }
+
+    private String newUndefLoaderStr() {
+        Loader undefLoader = new Loader();
+        undefLoader.setStatus(Status.ERROR);
+        undefLoader.setStatusDetailed(JsonProcessingException.class.getName());
+        undefLoader.setVersion(buildVersion + "." + buildTimestamp);
+        try {
+            return mapper.writeValueAsString(undefLoader);
+        } catch (JsonProcessingException e) {
+            return "{}";
+        }
     }
 
     @Scheduled(fixedRate = 10000)
@@ -121,12 +157,12 @@ public class LoaderService {
     }
 
     private void checkAbortNow() {
-        String abortKey = "ABORT:" + currentTest.get() + "#" + SystemInfo.hostname();
+        String abortKey = "ABORT:" + myself.getStatusDetailed() + "#" + SystemInfo.hostname();
         String redisAbortKey = template.opsForValue().get(abortKey);
         if (redisAbortKey != null) {
             abortNow.set(true);
             template.expire(abortKey, 10, TimeUnit.MILLISECONDS);
-            LOGGER.warn("TEST ABORTED: " + currentTest.get());
+            LOGGER.warn("TEST ABORTED: " + myself.getStatusDetailed());
         }
     }
 
