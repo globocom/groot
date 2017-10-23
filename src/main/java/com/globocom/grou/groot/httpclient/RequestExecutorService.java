@@ -30,12 +30,11 @@ import org.asynchttpclient.HttpResponseStatus;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.Response;
 import org.asynchttpclient.handler.ProgressAsyncHandler;
-import org.asynchttpclient.netty.NettyResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.config;
@@ -92,8 +91,6 @@ public class RequestExecutorService {
     private class NoBodyCopyAsyncHandler implements AsyncHandler<Response>, ProgressAsyncHandler<Response> {
 
         private final long start = System.currentTimeMillis();
-        private HttpResponseStatus status;
-        private HttpHeaders headers;
 
         @Override
         public State onBodyPartReceived(HttpResponseBodyPart content) throws Exception {
@@ -108,28 +105,31 @@ public class RequestExecutorService {
 
         @Override
         public State onStatusReceived(HttpResponseStatus status) throws Exception {
-            this.status = status;
             monitorService.sendStatus(String.valueOf(status.getStatusCode()), start);
             return State.CONTINUE;
         }
 
         @Override
         public State onHeadersReceived(HttpHeaders headers) throws Exception {
-            this.headers = this.headers == null ? headers : this.headers.add(headers);
+            final AtomicInteger headersSize = new AtomicInteger(0);
+            // HINT: +2 bytes because has ": " between the key/value
+            headers.iteratorCharSequence().forEachRemaining(e ->
+                    headersSize.addAndGet(e.getKey().length() + e.getValue().length() + 2));
+            monitorService.sendSize(headersSize.get());
             return State.CONTINUE;
         }
 
         @Override
         public State onTrailingHeadersReceived(HttpHeaders headers) throws Exception {
-            this.headers = this.headers == null ? headers : this.headers.add(headers);
             return State.CONTINUE;
         }
 
         @Override
         public Response onCompleted() throws Exception {
-            return onCompleted(status != null ? new NettyResponse(status, headers, Collections.emptyList()) : null);
+            return onCompleted(null);
         }
 
+        @SuppressWarnings("SameParameterValue")
         Response onCompleted(Response response) throws Exception {
             monitorService.sendResponseTime(start);
             return response;
