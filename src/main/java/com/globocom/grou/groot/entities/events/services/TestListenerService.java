@@ -102,6 +102,11 @@ public class TestListenerService {
     }
 
     private void sendToCallback(Test test, Loader loader) throws JsonProcessingException {
+        Loader.Status status = loader.getStatus();
+        if (status == Loader.Status.RUNNING && !"".equals(loader.getStatusDetailed())) {
+            loader.setStatus(Loader.Status.OK);
+            loader.setStatusDetailed("");
+        }
         test.setLoaders(Collections.singleton(loader));
         template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
         LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), loader.getStatus(), CALLBACK_QUEUE));
