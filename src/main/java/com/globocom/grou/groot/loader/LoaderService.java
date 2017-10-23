@@ -81,7 +81,8 @@ public class LoaderService {
     public Loader start(final Test test) throws Exception {
         final String testName = test.getName();
         final String projectName = test.getProject();
-        myself.setStatusDetailed(projectName + "." + testName);
+        String projectDotTest = projectName + "." + testName;
+        myself.setStatusDetailed(projectDotTest);
         myself.setLastExecAt(Date.from(Instant.now()));
         final Map<String, Object> properties = test.getProperties();
         updateStatus(Status.RUNNING);
@@ -112,7 +113,7 @@ public class LoaderService {
                 Thread.sleep(connectTimeout);
             } finally {
                 myselfClone = cloneMySelf();
-                stop();
+                stop(projectDotTest);
             }
         }
         return myselfClone;
@@ -128,11 +129,11 @@ public class LoaderService {
         return loader;
     }
 
-    private void stop() {
+    private void stop(String projectDotTest) {
         monitorService.reset();
         updateStatus(Status.IDLE);
         abortNow.set(false);
-        LOGGER.info("Finished test " + myself.getStatusDetailed());
+        LOGGER.info("Finished test " + projectDotTest);
         myself.setStatusDetailed("");
     }
 
@@ -170,14 +171,15 @@ public class LoaderService {
     }
 
     private void checkAbortNow() {
-        String abortKey = "ABORT:" + myself.getStatusDetailed() + "#" + SystemInfo.hostname();
+        String currentTest = myself.getStatusDetailed();
+        String abortKey = "ABORT:" + currentTest + "#" + SystemInfo.hostname();
         String redisAbortKey = template.opsForValue().get(abortKey);
         if (redisAbortKey != null) {
             abortNow.set(true);
             myself.setStatusDetailed(Test.Status.ABORTED.toString());
             myself.setStatus(Status.ERROR);
             template.expire(abortKey, 10, TimeUnit.MILLISECONDS);
-            LOGGER.warn("TEST ABORTED: " + myself.getStatusDetailed());
+            LOGGER.warn("TEST ABORTED: " + currentTest);
         }
     }
 
