@@ -47,8 +47,9 @@ public class NodeExporterClient {
     private static final AsyncHttpClient CLIENT;
     static {
         AsyncHttpClientConfig config = new AsyncHttpClientConfig.Builder()
+                .setAllowPoolingConnections(true)
                 .setFollowRedirect(false)
-                .setCompressionEnforced(true)
+                .setCompressionEnforced(false)
                 .setConnectTimeout(2000)
                 .setMaxConnectionsPerHost(100)
                 .setMaxConnections(100)
