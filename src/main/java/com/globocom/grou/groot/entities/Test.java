@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,7 +60,7 @@ public class Test implements Serializable {
 
     private Status status = Status.SCHEDULED;
 
-    private Map<String, Object> result = null;
+    private List<Map<String, Object>> result = null;
 
     private String dashboard;
 
@@ -123,11 +124,11 @@ public class Test implements Serializable {
         }
     }
 
-    public Map<String, Object> getResult() {
+    public List<Map<String, Object>> getResult() {
         return result;
     }
 
-    public void setResult(Map<String, Object> result) {
+    public void setResult(List<Map<String, Object>> result) {
         this.result = result;
     }
 
