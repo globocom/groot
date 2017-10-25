@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.entities;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,6 +60,8 @@ public class Test implements Serializable {
     private Set<String> tags = new HashSet<>();
 
     private Status status = Status.SCHEDULED;
+
+    private JsonNode result = null;
 
     private String dashboard;
 
@@ -119,6 +123,14 @@ public class Test implements Serializable {
         if (loaders != null) {
             this.loaders = loaders;
         }
+    }
+
+    public JsonNode getResult() {
+        return result;
+    }
+
+    public void setResult(JsonNode result) {
+        this.result = result;
     }
 
     public String getDashboard() {
