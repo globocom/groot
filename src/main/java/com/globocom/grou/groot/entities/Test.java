@@ -17,7 +17,6 @@
 package com.globocom.grou.groot.entities;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,7 +59,7 @@ public class Test implements Serializable {
 
     private Status status = Status.SCHEDULED;
 
-    private ArrayList<HashMap<String, Object>> result = null;
+    private HashMap<String, Double> result = null;
 
     private String dashboard;
 
@@ -124,11 +123,11 @@ public class Test implements Serializable {
         }
     }
 
-    public ArrayList<HashMap<String, Object>> getResult() {
+    public HashMap<String, Double> getResult() {
         return result;
     }
 
-    public void setResult(ArrayList<HashMap<String, Object>> result) {
+    public void setResult(HashMap<String, Double> result) {
         this.result = result;
     }
 
