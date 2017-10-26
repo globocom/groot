@@ -39,7 +39,11 @@ public class ParameterizedRequest extends RequestBuilder {
         final URI uri = URI.create(Optional.ofNullable((String) properties.get("uri")).orElseThrow(() -> new IllegalArgumentException("uri property undefined")));
         setUrl(url.updateAndGet(u -> uri.toString()));
 
-        Optional.ofNullable((Map<String, String>) properties.get("headers")).orElse(Collections.emptyMap()).forEach(this::setHeader);
+        final Object headersObj = properties.get("headers");
+        if (headersObj instanceof Map) {
+            Map<String, String> headers = (Map<String, String>) headersObj;
+            headers.entrySet().stream().filter(e -> !e.getKey().isEmpty() && !e.getValue().isEmpty()).forEach(e -> setHeader(e.getKey(), e.getValue()));
+        }
         setHeader("User-Agent", Application.GROOT_USERAGENT);
         if (method.matches("(POST|PUT|PATCH)")) {
             body.set(Optional.ofNullable((String) properties.get("body")).orElseThrow(() -> new IllegalArgumentException("body property undefined")));
