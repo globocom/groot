@@ -77,7 +77,7 @@ public class MonitorService {
     }
 
     private String sanitize(String key, String to) {
-        return key.replaceAll("[@.:/\\s\\t/\\\\]", to).toLowerCase();
+        return key.replaceAll("[@.:/\\s\\t\\\\]", to).toLowerCase();
     }
 
     private String getPrefixBase(final Test test) {
