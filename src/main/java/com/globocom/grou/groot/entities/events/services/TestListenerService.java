@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Test;
+import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.loader.LoaderService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import org.slf4j.Logger;
@@ -114,27 +115,27 @@ public class TestListenerService {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void checkProperties(final Map<String, Object> properties) throws IllegalArgumentException {
-        Object durationTimeMillis = properties.get("durationTimeMillis");
+        Object durationTimeMillis = properties.get(GrootProperties.DURATION_TIME_MILLIS);
         if ((durationTimeMillis != null && durationTimeMillis instanceof Integer && (Integer) durationTimeMillis >= 1000)) {
             String maxTestDuration = SystemEnv.MAX_TEST_DURATION.getValue();
             if ((Integer) durationTimeMillis > Integer.parseInt(maxTestDuration)) {
-                throw new IllegalArgumentException("durationTimeMillis property is greater than MAX_TEST_DURATION: " + maxTestDuration);
+                throw new IllegalArgumentException(GrootProperties.DURATION_TIME_MILLIS + " property is greater than MAX_TEST_DURATION: " + maxTestDuration);
             }
         } else {
-            throw new IllegalArgumentException("durationTimeMillis property undefined or less than 1000 ms");
+            throw new IllegalArgumentException(GrootProperties.DURATION_TIME_MILLIS + " property undefined or less than 1000 ms");
         }
-        Object uri = properties.get("uri");
+        Object uri = properties.get(GrootProperties.URI);
         if (uri == null || ((String)uri).isEmpty()) {
-            throw new IllegalArgumentException("uri property undefined");
+            throw new IllegalArgumentException(GrootProperties.URI + " property undefined");
         }
         URI uriTested = URI.create((String) uri);
         String schema = uriTested.getScheme();
         if (!schema.matches("(http[s]?|ws[s]?)")) {
             throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", must be equal (ignoring case) to ‘http’, ‘https’, ‘ws’, or ‘wss’");
         }
-        Object numConn = properties.get("numConn");
+        Object numConn = properties.get(GrootProperties.NUM_CONN);
         if (!(numConn != null && numConn instanceof  Integer && (Integer) numConn > 0)) {
-            throw new IllegalArgumentException("numConn property undefined or less than 1 conn");
+            throw new IllegalArgumentException(GrootProperties.NUM_CONN + " property undefined or less than 1 conn");
         }
     }
 }

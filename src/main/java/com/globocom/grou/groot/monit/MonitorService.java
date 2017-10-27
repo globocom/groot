@@ -18,6 +18,7 @@ package com.globocom.grou.groot.monit;
 
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
+import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
@@ -108,7 +109,7 @@ public class MonitorService {
     private void extractMonitTargets(final Test test) {
         this.prefixResponse = getStatsdPrefixResponse(test);
         final Map<String, Object> properties = test.getProperties();
-        String monitTargets = (String) properties.get("monitTargets");
+        String monitTargets = (String) properties.get(GrootProperties.MONIT_TARGETS);
         if (monitTargets != null) {
             targets = Arrays.stream(monitTargets.split(",")).map(String::trim).map(URI::create).map(mapUriToMetricsCollector()).collect(Collectors.toList());
         } else {

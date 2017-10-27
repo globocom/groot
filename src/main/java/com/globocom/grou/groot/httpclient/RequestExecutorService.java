@@ -17,6 +17,7 @@
 package com.globocom.grou.groot.httpclient;
 
 import com.globocom.grou.groot.Application;
+import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -56,13 +57,13 @@ public class RequestExecutorService {
     }
 
     public AsyncHttpClient newClient(final Map<String, Object> testProperties, int durationTimeMillis) throws IllegalArgumentException {
-        Object parallelLoadersObj = testProperties.get("parallelLoaders");
-        Object connectTimeoutObj = testProperties.get("connectTimeout");
-        Object keepAliveObj = testProperties.get("keepAlive");
-        Object followRedirectObj = testProperties.get("followRedirect");
+        Object parallelLoadersObj = testProperties.get(GrootProperties.PARALLEL_LOADERS);
+        Object connectTimeoutObj = testProperties.get(GrootProperties.CONNECTION_TIMEOUT);
+        Object keepAliveObj = testProperties.get(GrootProperties.KEEP_ALIVE);
+        Object followRedirectObj = testProperties.get(GrootProperties.FOLLOW_REDIRECT);
 
         int parallelLoaders = parallelLoadersObj != null && parallelLoadersObj instanceof Integer ? (int) parallelLoadersObj : 1;
-        int numConn = (Integer) testProperties.get("numConn") / Math.max(1, parallelLoaders);
+        int numConn = (Integer) testProperties.get(GrootProperties.NUM_CONN) / Math.max(1, parallelLoaders);
         int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
         boolean keepAlive = keepAliveObj == null || !(keepAliveObj instanceof Boolean) || (boolean) keepAliveObj;
         boolean followRedirect = (followRedirectObj != null && followRedirectObj instanceof Boolean) && (boolean) followRedirectObj;

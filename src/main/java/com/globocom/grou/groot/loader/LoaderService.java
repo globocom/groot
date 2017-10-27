@@ -22,6 +22,7 @@ import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
+import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.httpclient.ParameterizedRequest;
 import com.globocom.grou.groot.httpclient.RequestExecutorService;
 import com.globocom.grou.groot.monit.MonitorService;
@@ -88,10 +89,10 @@ public class LoaderService {
         updateStatus(Status.RUNNING);
 
         int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
-        int durationTimeMillis = Math.min(maxTestDuration, (int) properties.get("durationTimeMillis"));
-        Object connectTimeoutObj = properties.get("connectTimeout");
+        int durationTimeMillis = Math.min(maxTestDuration, (int) properties.get(GrootProperties.DURATION_TIME_MILLIS));
+        Object connectTimeoutObj = properties.get(GrootProperties.CONNECTION_TIMEOUT);
         int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
-        Object fixedDelayObj = properties.get("fixedDelay");
+        Object fixedDelayObj = properties.get(GrootProperties.FIXED_DELAY);
         long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
 
         final Request request = new ParameterizedRequest(test).build();
