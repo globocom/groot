@@ -50,7 +50,6 @@ public class ParameterizedRequest extends RequestBuilder {
             body.set(Optional.ofNullable((String) properties.get(GrootProperties.BODY)).orElseThrow(() -> new IllegalArgumentException(GrootProperties.BODY + " property undefined")));
             if (body.get().isEmpty()) throw new IllegalArgumentException("body is empty");
             setBody(body.get());
-            System.out.println(body.get());
         }
 
         final Object authObj = properties.get(GrootProperties.AUTH);
