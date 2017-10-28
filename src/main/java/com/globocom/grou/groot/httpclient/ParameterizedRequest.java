@@ -16,47 +16,57 @@
 
 package com.globocom.grou.groot.httpclient;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.Application;
-import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
 import org.asynchttpclient.Dsl;
 import org.asynchttpclient.RequestBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+
+import static com.globocom.grou.groot.entities.properties.GrootProperties.*;
 
 @SuppressWarnings("unchecked")
 public class ParameterizedRequest extends RequestBuilder {
 
-    private final AtomicReference<String> body = new AtomicReference<>("");
-    private final AtomicReference<String> url = new AtomicReference<>("");
+    private static final Logger LOGGER = LoggerFactory.getLogger(ParameterizedRequest.class);
 
-    public ParameterizedRequest(Test test) {
-        super(Optional.ofNullable((String)  test.getProperties().get(GrootProperties.METHOD)).orElse(HttpMethod.GET.name()));
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-        final Map<String, Object> properties = test.getProperties();
-        final URI uri = URI.create(Optional.ofNullable((String) properties.get(GrootProperties.URI)).orElseThrow(() -> new IllegalArgumentException(GrootProperties.URI + " property undefined")));
-        setUrl(url.updateAndGet(u -> uri.toString()));
+    public ParameterizedRequest(final Map<String, Object> properties) {
+        super(Optional.ofNullable((String)  properties.get(METHOD)).orElse(HttpMethod.GET.name()));
 
-        final Object headersObj = properties.get(GrootProperties.HEADERS);
+        try {
+            LOGGER.info("Loading properties " + MAPPER.writeValueAsString(properties));
+        } catch (JsonProcessingException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+
+        /* url */
+        setUrl(URI.create((String) properties.get(URI_REQUEST)).toString());
+
+        /* headers */
+        final Object headersObj = properties.get(HEADERS);
         if (headersObj instanceof Map) {
             Map<String, String> headers = (Map<String, String>) headersObj;
             headers.entrySet().stream().filter(e -> !e.getKey().isEmpty() && !e.getValue().isEmpty()).forEach(e -> setHeader(e.getKey(), e.getValue()));
         }
         setHeader("User-Agent", Application.GROOT_USERAGENT);
-        if (method.matches("(POST|PUT|PATCH)")) {
-            body.set(Optional.ofNullable((String) properties.get(GrootProperties.BODY)).orElseThrow(() -> new IllegalArgumentException(GrootProperties.BODY + " property undefined")));
-            if (body.get().isEmpty()) throw new IllegalArgumentException("body is empty");
-            setBody(body.get());
-        }
 
+        /* body */
+        if (method.matches("(POST|PUT|PATCH)")) setBody((String) properties.get(BODY));
+
+        /* auth */
         final Object authObj = properties.get(GrootProperties.AUTH);
         if (authObj instanceof Map) {
             Map<String, String> authMap = (Map<String, String>) authObj;
-            String credentials = authMap.get(GrootProperties.CREDENTIALS);
-            String preemptive = authMap.get(GrootProperties.PREEMPTIVE);
+            String credentials = authMap.get(CREDENTIALS);
+            String preemptive = authMap.get(PREEMPTIVE);
             int idx;
             if (credentials != null && (idx = credentials.indexOf(":")) > -1) {
                 String login = credentials.substring(0, idx);
