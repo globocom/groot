@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.entities.properties.PropertiesService;
+import com.globocom.grou.groot.entities.properties.PropertiesUtils;
 import com.globocom.grou.groot.loader.LoaderService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import org.slf4j.Logger;
@@ -48,14 +48,12 @@ public class TestListenerService {
 
     private final LoaderService loaderService;
     private final StringRedisTemplate template;
-    private final PropertiesService propertiesService;
     private final Object lock = new Object();
 
     @Autowired
-    public TestListenerService(LoaderService loaderService, StringRedisTemplate template, PropertiesService propertiesService) {
+    public TestListenerService(LoaderService loaderService, StringRedisTemplate template) {
         this.loaderService = loaderService;
         this.template = template;
-        this.propertiesService = propertiesService;
     }
 
     @Bean
@@ -76,7 +74,7 @@ public class TestListenerService {
         try {
             test = mapper.readValue(testStr, Test.class);
             synchronized (lock) {
-                propertiesService.check(test.getProperties());
+                PropertiesUtils.check(test.getProperties());
                 sendRunningToCallback(test);
                 myself = loaderService.start(test);
                 sendToCallback(test, myself);

@@ -3,20 +3,18 @@ package com.globocom.grou.groot.entities.properties;
 import com.globocom.grou.groot.SystemEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.util.*;
 
 import static com.globocom.grou.groot.entities.properties.GrootProperties.*;
 
-@Service
-public class PropertiesService {
+public interface PropertiesUtils {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PropertiesService.class);
+    Logger LOGGER = LoggerFactory.getLogger(PropertiesUtils.class);
 
     @SuppressWarnings("unchecked")
-    public HashMap[] extractAllProperties(final Map<String, Object> properties) throws IllegalArgumentException {
+    static HashMap<String, Object>[] extractAllRequestPropertiesOrdered(final Map<String, Object> properties) throws IllegalArgumentException {
         HashMap[] allproperties;
         try {
             Object requestsObj = properties.get(REQUESTS);
@@ -35,7 +33,7 @@ public class PropertiesService {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public void check(final Map<String, Object> testProperties) throws IllegalArgumentException {
+    static void check(final Map<String, Object> testProperties) throws IllegalArgumentException {
         Object durationTimeMillis = testProperties.get(DURATION_TIME_MILLIS);
         if ((durationTimeMillis != null && durationTimeMillis instanceof Integer && (Integer) durationTimeMillis >= 1000)) {
             String maxTestDuration = SystemEnv.MAX_TEST_DURATION.getValue();
@@ -49,7 +47,7 @@ public class PropertiesService {
         if (!(numConn != null && numConn instanceof Integer && (Integer) numConn > 0)) {
             throw new IllegalArgumentException(NUM_CONN + " property undefined or less than 1 conn");
         }
-        HashMap[] allproperties = extractAllProperties(testProperties);
+        HashMap[] allproperties = extractAllRequestPropertiesOrdered(testProperties);
         if (allproperties.length == 0) throw new IllegalArgumentException("Request properties is empty or invalid");
         for (HashMap properties: allproperties) {
             Object uri = properties.get(URI_REQUEST);
