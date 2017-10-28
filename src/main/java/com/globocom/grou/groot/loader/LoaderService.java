@@ -23,15 +23,12 @@ import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
-import com.globocom.grou.groot.entities.properties.PropertiesService;
-import com.globocom.grou.groot.httpclient.ParameterizedRequest;
 import com.globocom.grou.groot.httpclient.RequestExecutorService;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -53,11 +50,10 @@ public class LoaderService {
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
-    private final RequestExecutorService asyncHttpClientService;
+    private final RequestExecutorService requestExecutorService;
     private final MonitorService monitorService;
     private final StringRedisTemplate template;
     private final Loader myself;
-    private final PropertiesService propertiesService;
     private final String buildVersion;
     private final String buildTimestamp;
 
@@ -65,16 +61,14 @@ public class LoaderService {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public LoaderService(final RequestExecutorService asyncHttpClientService,
+    public LoaderService(final RequestExecutorService requestExecutorService,
                          final MonitorService monitorService,
                          StringRedisTemplate template,
-                         PropertiesService propertiesService,
                          @Value("${build.version}") String buildVersion,
                          @Value("${build.timestamp}") String buildTimestamp) {
-        this.asyncHttpClientService = asyncHttpClientService;
+        this.requestExecutorService = requestExecutorService;
         this.monitorService = monitorService;
         this.template = template;
-        this.propertiesService = propertiesService;
         this.buildVersion = buildVersion;
         this.buildTimestamp = buildTimestamp;
         this.myself = new Loader();
@@ -99,24 +93,14 @@ public class LoaderService {
         Object fixedDelayObj = properties.get(GrootProperties.FIXED_DELAY);
         long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
 
-        HashMap[] allproperties = propertiesService.extractAllProperties(properties);
-        Request[] requests = new Request[allproperties.length];
-        int pos = 0;
-        for (HashMap p: allproperties) {
-            requests[pos++] = new ParameterizedRequest(p).build();
-        }
-
         LOGGER.info("Starting test " + myself.getStatusDetailed());
 
         Loader myselfClone;
         final long start = System.currentTimeMillis();
-        try (final AsyncHttpClient asyncHttpClient = asyncHttpClientService.newClient(properties, durationTimeMillis)) {
+        try (final AsyncHttpClient asyncHttpClient = requestExecutorService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
-                for (Request request: requests) {
-                    asyncHttpClientService.execute(asyncHttpClient, request);
-                    TimeUnit.MILLISECONDS.sleep(fixedDelay);
-                }
+                requestExecutorService.execute(asyncHttpClient, fixedDelay);
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
