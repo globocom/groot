@@ -18,6 +18,11 @@ public interface GrootProperties {
     String DURATION_TIME_MILLIS = "durationTimeMillis";
 
     /**
+     * Enable saving and using cookies
+     */
+    String SAVE_COOKIES         = "saveCookies";
+
+    /**
      * Authentication properties. Contains credentials & preemptive properties
      */
     String AUTH                 = "auth";
