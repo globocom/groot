@@ -191,7 +191,7 @@ public class RequestExecutorService {
             return onCompleted(null);
         }
 
-        @SuppressWarnings("SameParameterValue")
+        @SuppressWarnings({"SameParameterValue", "RedundantThrows"})
         Response onCompleted(Response response) throws Exception {
             monitorService.sendResponseTime(start);
             return response;
