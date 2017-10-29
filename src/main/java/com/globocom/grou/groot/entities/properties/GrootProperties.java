@@ -5,7 +5,7 @@ public interface GrootProperties {
     /**
      * URI request [MANDATORY]
      */
-    String URI_REQUEST = "uri";
+    String URI_REQUEST          = "uri";
 
     /**
      * number of simultaneous connections required [MANDATORY]
