@@ -19,7 +19,7 @@ public interface PropertiesUtils {
         try {
             Object requestsObj = properties.get(REQUESTS);
             if (requestsObj instanceof List) {
-                return  ((List<Map<String, Object>>) requestsObj).stream().filter(r -> r.containsKey("order"))
+                return  ((List<Map<String, Object>>) requestsObj).stream().filter(r -> r.containsKey(ORDER))
                         .sorted(Comparator.comparingInt(r -> (Integer) r.get(ORDER))).toArray(HashMap[]::new);
             } else {
                 allproperties = new HashMap[1];
@@ -48,7 +48,7 @@ public interface PropertiesUtils {
             throw new IllegalArgumentException(NUM_CONN + " property undefined or less than 1 conn");
         }
         HashMap[] allproperties = extractAllRequestPropertiesOrdered(testProperties);
-        if (allproperties.length == 0) throw new IllegalArgumentException("Request properties is empty or invalid");
+        if (allproperties.length == 0) throw new IllegalArgumentException("Request properties is empty or invalid (is \"order\" property missing?)");
         for (HashMap properties: allproperties) {
             Object uri = properties.get(URI_REQUEST);
             if (uri == null || ((String) uri).isEmpty()) {
