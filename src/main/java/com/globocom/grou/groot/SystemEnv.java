@@ -27,97 +27,92 @@ public enum SystemEnv {
     /**
      * Redis hostname.
      */
-    REDIS_HOSTNAME ("REDIS_HOSTNAME", "127.0.0.1"),
+    REDIS_HOSTNAME              ("REDIS_HOSTNAME",              "127.0.0.1"),
 
     /**
      * Redis port.
      */
-    REDIS_PORT ("REDIS_PORT", 6379),
+    REDIS_PORT                  ("REDIS_PORT",                  6379),
 
     /**
      * Redis password.
      */
-    REDIS_PASSWORD ("REDIS_PASSWORD", ""),
+    REDIS_PASSWORD              ("REDIS_PASSWORD",              ""),
 
     /**
      * Redis database.
      */
-    REDIS_DATABASE ("REDIS_DATABASE", ""),
+    REDIS_DATABASE              ("REDIS_DATABASE",              ""),
 
     /**
      * Redis use sentinel.
      */
-    REDIS_USE_SENTINEL ("REDIS_USE_SENTINEL", Boolean.FALSE),
+    REDIS_USE_SENTINEL          ("REDIS_USE_SENTINEL",          Boolean.FALSE),
 
     /**
      * Redis sentinel master name.
      */
-    REDIS_SENTINEL_MASTER_NAME ("REDIS_SENTINEL_MASTER_NAME", "mymaster"),
+    REDIS_SENTINEL_MASTER_NAME  ("REDIS_SENTINEL_MASTER_NAME",  "mymaster"),
 
     /**
      * Redis sentinel nodes.
      */
-    REDIS_SENTINEL_NODES ("REDIS_SENTINEL_NODES", "127.0.0.1:26379"),
+    REDIS_SENTINEL_NODES        ("REDIS_SENTINEL_NODES",        "127.0.0.1:26379"),
 
     /**
      * Redis max idle.
      */
-    REDIS_MAXIDLE  ("REDIS_MAXIDLE", "100"),
+    REDIS_MAXIDLE               ("REDIS_MAXIDLE",               "100"),
 
     /**
      * Redis timeout.
      */
-    REDIS_TIMEOUT  ("REDIS_TIMEOUT", "60000"),
+    REDIS_TIMEOUT               ("REDIS_TIMEOUT",               "60000"),
 
     /**
      * Redis max total.
      */
-    REDIS_MAXTOTAL ("REDIS_MAXTOTAL", "128"),
+    REDIS_MAXTOTAL              ("REDIS_MAXTOTAL",              "128"),
 
     /**
      * Max test duration (ms)
      */
-    MAX_TEST_DURATION ("MAX_TEST_DURATION", 600000),
+    MAX_TEST_DURATION           ("MAX_TEST_DURATION",           600000),
 
     /**
      * Statsd loader prefix key
      */
-    STATSD_LOADER_KEY ("STATSD_LOADER_KEY", "loader"),
+    STATSD_LOADER_KEY           ("STATSD_LOADER_KEY",           "loader"),
 
     /**
      * Statsd target prefix key
      */
-    STATSD_TARGET_KEY ("STATSD_TARGET_KEY", "target"),
+    STATSD_TARGET_KEY           ("STATSD_TARGET_KEY",           "target"),
 
     /**
      * Statsd response prefix key
      */
-    STATSD_RESPONSE_KEY ("STATSD_RESPONSE_KEY", "response"),
+    STATSD_RESPONSE_KEY         ("STATSD_RESPONSE_KEY",         "response"),
 
     /**
      * Statsd prefix
      */
-    STATSD_PREFIX ("STATSD_PREFIX", "grou"),
+    STATSD_PREFIX               ("STATSD_PREFIX",               "grou"),
 
     /**
      * Statsd host
      */
-    STATSD_HOST ("STATSD_HOST", "localhost"),
+    STATSD_HOST                 ("STATSD_HOST",                 "localhost"),
 
     /**
      * Statsd port
      */
-    STATSD_PORT ("STATSD_PORT", 8125),
+    STATSD_PORT                 ("STATSD_PORT",                 8125),
 
     /**
      * Prefix tag field (Useful to Statsite OpenTSDB sink)
      */
-    PREFIX_TAG ("PREFIX_TAG", "_t_"),
-
-    /**
-     *  Force multiples Groots loaders. default = 1 [= single task (no force parallel groots)]
-     */
-    FORCE_PARALLEL("FORCE_PARALLEL", 1);
+    PREFIX_TAG                  ("PREFIX_TAG",                  "_t_");
 
     /**
      * Gets SystemEnv value.
