@@ -61,13 +61,15 @@ public abstract class MetricsCollector {
         if (uri == null) return Collections.emptyMap();
         final Map<String, String> result = new HashMap<>();
         String query = uri.getQuery();
-        String[] attrs = query.split("&");
-        for (String attr : attrs) {
-            int indexOf;
-            if ((indexOf = attr.indexOf("=")) > 0) {
-                String key = attr.substring(0, indexOf);
-                String value = attr.substring(indexOf + 1);
-                result.put(key, value);
+        if (query != null) {
+            String[] attrs = query.split("&");
+            for (String attr : attrs) {
+                int indexOf;
+                if ((indexOf = attr.indexOf("=")) > 0) {
+                    String key = attr.substring(0, indexOf);
+                    String value = attr.substring(indexOf + 1);
+                    result.put(key, value);
+                }
             }
         }
         return result;
