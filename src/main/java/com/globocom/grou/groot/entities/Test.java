@@ -61,6 +61,8 @@ public class Test implements Serializable {
 
     private HashMap<String, Double> result = null;
 
+    private HashSet<String> notify = new HashSet<>();
+
     private String dashboard;
 
     public String getId() {
@@ -129,6 +131,14 @@ public class Test implements Serializable {
 
     public void setResult(HashMap<String, Double> result) {
         this.result = result;
+    }
+
+    public Set<String> getNotify() {
+        return notify;
+    }
+
+    public void setNotify(Set<String> notify) {
+        if (notify != null) this.notify = new HashSet<>(notify);
     }
 
     public String getDashboard() {
