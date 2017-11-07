@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +46,8 @@ public class MonitorService {
     private static final Log LOGGER = LogFactory.getLog(MonitorService.class);
 
     private static final String UNKNOWN = "UNKNOWN";
+
+    private static final Pattern IS_INT = Pattern.compile("\\d+");
 
     private final String prefixTag = SystemEnv.PREFIX_TAG.getValue();
     private final AtomicReference<Test> test = new AtomicReference<>(null);
@@ -188,8 +191,9 @@ public class MonitorService {
     }
 
     public void sendStatus(String statusCode, long start) {
-        allStatus.add(String.valueOf(statusCode));
-        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
+        String realStatus = (IS_INT.matcher(statusCode).matches()) ? "status_" + statusCode : statusCode;
+        allStatus.add(String.valueOf(realStatus));
+        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - start);
     }
 
     public void sendSize(int bodySize) {
