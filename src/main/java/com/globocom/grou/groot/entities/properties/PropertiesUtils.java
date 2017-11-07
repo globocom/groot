@@ -34,15 +34,6 @@ public interface PropertiesUtils {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     static void check(final Map<String, Object> testProperties) throws IllegalArgumentException {
-        Object durationTimeMillis = testProperties.get(DURATION_TIME_MILLIS);
-        if ((durationTimeMillis != null && durationTimeMillis instanceof Integer && (Integer) durationTimeMillis >= 1000)) {
-            String maxTestDuration = SystemEnv.MAX_TEST_DURATION.getValue();
-            if ((Integer) durationTimeMillis > Integer.parseInt(maxTestDuration)) {
-                throw new IllegalArgumentException(DURATION_TIME_MILLIS + " property is greater than MAX_TEST_DURATION: " + maxTestDuration);
-            }
-        } else {
-            throw new IllegalArgumentException(DURATION_TIME_MILLIS + " property undefined or less than 1000 ms");
-        }
         Object numConn = testProperties.get(NUM_CONN);
         if (!(numConn != null && numConn instanceof Integer && (Integer) numConn > 0)) {
             throw new IllegalArgumentException(NUM_CONN + " property undefined or less than 1 conn");

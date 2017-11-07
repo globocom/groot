@@ -18,6 +18,7 @@ package com.globocom.grou.groot.entities.events.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.PropertiesUtils;
@@ -75,6 +76,11 @@ public class TestListenerService {
             test = mapper.readValue(testStr, Test.class);
             synchronized (lock) {
                 PropertiesUtils.check(test.getProperties());
+                String maxTestDuration = SystemEnv.MAX_TEST_DURATION.getValue();
+                int durationTimeMillis = test.getDurationTimeMillis();
+                if (durationTimeMillis > Integer.parseInt(maxTestDuration)) {
+                    throw new IllegalArgumentException(durationTimeMillis + " is greater than MAX_TEST_DURATION: " + maxTestDuration);
+                }
                 sendRunningToCallback(test);
                 myself = loaderService.start(test);
                 sendToCallback(test, myself);

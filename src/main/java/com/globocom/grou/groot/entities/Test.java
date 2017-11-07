@@ -65,6 +65,8 @@ public class Test implements Serializable {
 
     private String dashboard;
 
+    private int durationTimeMillis;
+
     public String getId() {
         return id;
     }
@@ -143,5 +145,13 @@ public class Test implements Serializable {
 
     public String getDashboard() {
         return dashboard;
+    }
+
+    public int getDurationTimeMillis() {
+        return durationTimeMillis;
+    }
+
+    public void setDurationTimeMillis(int durationTimeMillis) {
+        this.durationTimeMillis = durationTimeMillis;
     }
 }

@@ -87,7 +87,7 @@ public class LoaderService {
         updateStatus(Status.RUNNING);
 
         int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
-        int durationTimeMillis = Math.min(maxTestDuration, (int) properties.get(GrootProperties.DURATION_TIME_MILLIS));
+        int durationTimeMillis = Math.min(maxTestDuration, test.getDurationTimeMillis());
         Object connectTimeoutObj = properties.get(GrootProperties.CONNECTION_TIMEOUT);
         int connectTimeout = connectTimeoutObj != null && connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
         Object fixedDelayObj = properties.get(GrootProperties.FIXED_DELAY);

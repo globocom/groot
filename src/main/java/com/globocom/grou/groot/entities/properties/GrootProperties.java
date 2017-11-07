@@ -13,11 +13,6 @@ public interface GrootProperties {
     String NUM_CONN             = "numConn";
 
     /**
-     * Duration (in milliseconds) [MANDATORY]
-     */
-    String DURATION_TIME_MILLIS = "durationTimeMillis";
-
-    /**
      * Enable saving and using cookies
      */
     String SAVE_COOKIES         = "saveCookies";
