@@ -211,7 +211,7 @@ public class MonitorService {
                 int tcpConn = SystemInfo.totalSocketsTcpEstablished();
                 statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn - delta));
                 statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "cpu", (long) (100 * SystemInfo.cpuLoad()));
-                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree());
+                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree() / 1024 / 1024);
 
                 targets.forEach(target -> {
                     String prefixStatsd = prefixStatsdTargetsKey + target.getKey() + ".";
@@ -226,9 +226,9 @@ public class MonitorService {
 
                     statsdClient.recordExecutionTime(prefixStatsd + "conns", targetConns);
                     statsdClient.recordExecutionTime(prefixStatsd + "cpu", targetCpuUsed);
-                    statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree);
-                    statsdClient.recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers);
-                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree / 1024 / 1024);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers / 1024 / 1024);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached / 1024 / 1024 );
                     statsdClient.gauge(prefixStatsd + "load1m", targetLoad1m);
                     statsdClient.gauge(prefixStatsd + "load5m", targetLoad5m);
                     statsdClient.gauge(prefixStatsd + "load15m", targetLoad15m);
