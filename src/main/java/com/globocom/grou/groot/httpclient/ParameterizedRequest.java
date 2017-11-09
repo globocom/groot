@@ -59,7 +59,8 @@ public class ParameterizedRequest extends RequestBuilder {
         setHeader("User-Agent", Application.GROOT_USERAGENT);
 
         /* body */
-        if (method.matches("(POST|PUT|PATCH)")) setBody((String) properties.get(BODY));
+        String body = (String) properties.get(BODY);
+        if (body != null) setBody(body);
 
         /* auth */
         final Object authObj = properties.get(GrootProperties.AUTH);
