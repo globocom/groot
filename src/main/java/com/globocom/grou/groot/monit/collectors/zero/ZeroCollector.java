@@ -46,6 +46,26 @@ public class ZeroCollector extends MetricsCollector {
     }
 
     @Override
+    public int getCpuIoWait() {
+        return 0;
+    }
+
+    @Override
+    public int getCpuSteal() {
+        return 0;
+    }
+
+    @Override
+    public int getCpuIrq() {
+        return 0;
+    }
+
+    @Override
+    public int getCpuSoftIrq() {
+        return 0;
+    }
+
+    @Override
     public float getLoad1m() {
         return 0.0f;
     }
