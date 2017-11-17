@@ -22,6 +22,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,7 +34,33 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     private final NodeExporterClient nodeExporterClient = new NodeExporterClient();
 
     private String nodeUrl = "";
-    private double lastTotalIdle = -1.0;
+
+    private final Map<String, Double> lastCpuTotalMetric = new HashMap<String, Double>(){{
+        put("idle",    -1.0);
+        put("iowait",  -1.0);
+        put("steal",   -1.0);
+        put("irq",     -1.0);
+        put("softirq", -1.0);
+    }};
+
+    private int getCpuMetric(String metric, boolean invert) {
+        try {
+            double total = nodeExporterClient.get(nodeUrl).entrySet().stream()
+                    .filter(e -> e.getKey().startsWith("node_cpu") && e.getKey().endsWith("mode=\"" + metric + "\"}"))
+                    .map(Map.Entry::getValue).collect(Collectors.summarizingDouble(Double::doubleValue)).getAverage();
+
+            int result = 0;
+            double cpuMetric = lastCpuTotalMetric.get(metric);
+            if (cpuMetric >= 0.0D) {
+                double diffTotal = Math.max(0.0, total - cpuMetric);
+                result = (int) (100.0 * (invert ? (1.0 - diffTotal) : diffTotal));
+            }
+            lastCpuTotalMetric.put(metric, total);
+            return result;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
 
     @Override
     public MetricsCollector setUri(final URI uri) {
@@ -80,20 +107,27 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
     @Override
     public int getCpuUsed() {
-        try {
-            double totalIdle = nodeExporterClient.get(nodeUrl).entrySet().stream()
-                    .filter(e -> e.getKey().startsWith("node_cpu") && e.getKey().endsWith("mode=\"idle\"}"))
-                    .map(Map.Entry::getValue).collect(Collectors.summarizingDouble(Double::doubleValue)).getAverage();
+        return getCpuMetric("idle", true);
+    }
 
-            int result = 0;
-            if (lastTotalIdle >= 0.0D) {
-                result = (int) (100.0 * (1.0 - Math.max(0.0, totalIdle - lastTotalIdle)));
-            }
-            lastTotalIdle = totalIdle;
-            return result;
-        } catch (Exception e) {
-            return -1;
-        }
+    @Override
+    public int getCpuIoWait() {
+        return getCpuMetric("iowait", false);
+    }
+
+    @Override
+    public int getCpuSteal() {
+        return getCpuMetric("steal", false);
+    }
+
+    @Override
+    public int getCpuIrq() {
+        return getCpuMetric("irq", false);
+    }
+
+    @Override
+    public int getCpuSoftIrq() {
+        return getCpuMetric("softirq", false);
     }
 
     @Override

@@ -220,12 +220,20 @@ public class MonitorService {
                     double targetMemBuffers = target.getMemBuffers();
                     double targetMemCached = target.getMemCached();
                     int targetCpuUsed = target.getCpuUsed();
+                    int targetCpuIoWait = target.getCpuIoWait();
+                    int targetCpuSteal = target.getCpuSteal();
+                    int targetCpuIrq = target.getCpuIrq();
+                    int targetCpuSoftIrq = target.getCpuSoftIrq();
                     float targetLoad1m = target.getLoad1m();
                     float targetLoad5m = target.getLoad5m();
                     float targetLoad15m = target.getLoad15m();
 
                     statsdClient.recordExecutionTime(prefixStatsd + "conns", targetConns);
                     statsdClient.recordExecutionTime(prefixStatsd + "cpu", targetCpuUsed);
+                    statsdClient.recordExecutionTime(prefixStatsd + "iowait", targetCpuIoWait);
+                    statsdClient.recordExecutionTime(prefixStatsd + "steal", targetCpuSteal);
+                    statsdClient.recordExecutionTime(prefixStatsd + "irq", targetCpuIrq);
+                    statsdClient.recordExecutionTime(prefixStatsd + "softirq", targetCpuSoftIrq);
                     statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree / 1024 / 1024);
                     statsdClient.recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers / 1024 / 1024);
                     statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached / 1024 / 1024 );

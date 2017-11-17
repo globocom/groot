@@ -43,6 +43,10 @@ public abstract class MetricsCollector {
     public abstract double getMemBuffers();
     public abstract double getMemCached();
     public abstract int getCpuUsed();
+    public abstract int getCpuIoWait();
+    public abstract int getCpuSteal();
+    public abstract int getCpuIrq();
+    public abstract int getCpuSoftIrq();
     public abstract float getLoad1m();
     public abstract float getLoad5m();
     public abstract float getLoad15m();

@@ -63,6 +63,30 @@ public class SnmpMetricsCollector extends MetricsCollector {
     }
 
     @Override
+    public int getCpuIoWait() {
+        // TODO: Not implemented
+        return -1;
+    }
+
+    @Override
+    public int getCpuSteal() {
+        // TODO: Not implemented
+        return -1;
+    }
+
+    @Override
+    public int getCpuIrq() {
+        // TODO: Not implemented
+        return -1;
+    }
+
+    @Override
+    public int getCpuSoftIrq() {
+        // TODO: Not implemented
+        return -1;
+    }
+
+    @Override
     public float getLoad1m() {
         try {
             return Float.valueOf(getSnmpValueStr(OID_LOAD1));
