@@ -22,10 +22,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
@@ -45,14 +42,15 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
     private int getCpuMetric(String metric, boolean invert) {
         try {
-            double total = nodeExporterClient.get(nodeUrl).entrySet().stream()
+            List<BigDecimal> metricsPerCpu = new ArrayList<>();
+            nodeExporterClient.get(nodeUrl).entrySet().stream()
                     .filter(e -> e.getKey().startsWith("node_cpu") && e.getKey().endsWith("mode=\"" + metric + "\"}"))
-                    .map(Map.Entry::getValue).collect(Collectors.summarizingDouble(Double::doubleValue)).getAverage();
-
+                    .map(Map.Entry::getValue).filter(v -> v >= 0.0).forEach(v -> metricsPerCpu.add(BigDecimal.valueOf(v)));
+            double total = metricsPerCpu.stream().reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue() / (double) metricsPerCpu.size();
             int result = 0;
             double cpuMetric = lastCpuTotalMetric.get(metric);
             if (cpuMetric >= 0.0D) {
-                double diffTotal = Math.max(0.0, total - cpuMetric);
+                double diffTotal = Math.min(1.0, Math.max(0.0, total - cpuMetric));
                 result = (int) (100.0 * (invert ? (1.0 - diffTotal) : diffTotal));
             }
             lastCpuTotalMetric.put(metric, total);
