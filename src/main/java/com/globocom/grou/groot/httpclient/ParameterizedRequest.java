@@ -54,6 +54,9 @@ public class ParameterizedRequest extends RequestBuilder {
         final Object headersObj = properties.get(HEADERS);
         if (headersObj instanceof Map) {
             Map<String, String> headers = (Map<String, String>) headersObj;
+            if (headers.containsKey("host")) {
+                setVirtualHost(headers.get("host"));
+            }
             headers.entrySet().stream().filter(e -> !e.getKey().isEmpty() && !e.getValue().isEmpty()).forEach(e -> setHeader(e.getKey(), e.getValue()));
         }
         setHeader("User-Agent", Application.GROOT_USERAGENT);
