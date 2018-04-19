@@ -1,5 +1,5 @@
 # Groot Makefile
-GROOT_VERSION ?= 1.0.4
+GROOT_VERSION ?= 1.0.5
 VERSION=${GROOT_VERSION}
 RPM_VER=${GROOT_VERSION}
 RELEASE=1
@@ -33,6 +33,7 @@ dist: groot
     cp -v groot.jar lib/ && \
     cp -av ../dist/initscript lib/wrapper/bin/ && \
     fpm -s dir \
+        --rpm-rpmbuild-define '_binaries_in_noarch_packages_terminate_build 0' \
         -t rpm \
         -n "groot" \
         -v ${RPM_VER} \
