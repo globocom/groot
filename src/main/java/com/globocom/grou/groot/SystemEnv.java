@@ -112,7 +112,12 @@ public enum SystemEnv {
     /**
      * Prefix tag field (Useful to Statsite OpenTSDB sink)
      */
-    PREFIX_TAG                  ("PREFIX_TAG",                  "_t_");
+    PREFIX_TAG                  ("PREFIX_TAG",                  "_t_"),
+
+    /**
+     *  Groot group name
+     */
+    GROUP_NAME                  ("GROUP_NAME",                   "default");
 
     /**
      * Gets SystemEnv value.

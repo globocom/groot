@@ -42,11 +42,13 @@ import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.globocom.grou.groot.SystemEnv.GROUP_NAME;
+
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
 public class LoaderService {
 
-    private static final String GROU_LOADER_REDIS_KEY = "grou:loader:" + SystemInfo.hostname();
+    private static final String GROU_LOADER_REDIS_KEY = "grou:loader:" + GROUP_NAME.getValue() + ":" + SystemInfo.hostname();
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
@@ -74,6 +76,7 @@ public class LoaderService {
         this.myself = new Loader();
         myself.setName(SystemInfo.hostname());
         myself.setStatus(Status.IDLE);
+        myself.setGroupName(GROUP_NAME.getValue());
         myself.setVersion(buildVersion + " (" + buildTimestamp + ")");
     }
 
