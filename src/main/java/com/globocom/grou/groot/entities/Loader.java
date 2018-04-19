@@ -35,6 +35,7 @@ public class Loader implements Serializable {
     private String name = "UNDEF";
     private Status status = Status.IDLE;
     private String statusDetailed = "";
+    private String groupName = "";
     private String version = "";
     private Date lastExecAt = Date.from(Instant.now());
 
@@ -61,6 +62,10 @@ public class Loader implements Serializable {
     public void setStatusDetailed(String statusDetailed) {
         this.statusDetailed = statusDetailed;
     }
+
+    public String getGroupName() { return groupName; }
+
+    public void setGroupName(String groupName) { this.groupName = groupName; }
 
     public String getVersion() {
         return version;
