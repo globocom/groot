@@ -18,17 +18,13 @@ package com.globocom.grou.groot.loader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.entities.properties.GrootProperties;
-import com.globocom.grou.groot.httpclient.RequestExecutorService;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.AsyncHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,7 +34,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PreDestroy;
 import java.sql.Date;
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -52,23 +49,24 @@ public class LoaderService {
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
-    private final RequestExecutorService requestExecutorService;
+    private final AbortService abortService;
     private final MonitorService monitorService;
     private final StringRedisTemplate template;
     private final Loader myself;
     private final String buildVersion;
     private final String buildTimestamp;
+//    private final QueuedThreadPool executorLoader = new QueuedThreadPool();
 
     private final AtomicBoolean abortNow = new AtomicBoolean(false);
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public LoaderService(final RequestExecutorService requestExecutorService,
+    public LoaderService(final AbortService abortService,
                          final MonitorService monitorService,
                          StringRedisTemplate template,
                          @Value("${build.version}") String buildVersion,
                          @Value("${build.timestamp}") String buildTimestamp) {
-        this.requestExecutorService = requestExecutorService;
+        this.abortService = abortService;
         this.monitorService = monitorService;
         this.template = template;
         this.buildVersion = buildVersion;
@@ -80,42 +78,30 @@ public class LoaderService {
         myself.setVersion(buildVersion + " (" + buildTimestamp + ")");
     }
 
-    public Loader start(final Test test) throws Exception {
+    public Loader start(final Test test) {
         final String testName = test.getName();
         final String projectName = test.getProject();
         String projectDotTest = projectName + "." + testName;
         myself.setStatusDetailed(projectDotTest);
         myself.setLastExecAt(Date.from(Instant.now()));
-        final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
-        updateStatus(Status.RUNNING);
 
-        int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
-        int durationTimeMillis = Math.min(maxTestDuration, test.getDurationTimeMillis());
-        Object connectTimeoutObj = properties.get(GrootProperties.CONNECTION_TIMEOUT);
-        int connectTimeout = connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
-        Object fixedDelayObj = properties.get(GrootProperties.FIXED_DELAY);
-        long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
-
-        LOGGER.info("Starting test " + myself.getStatusDetailed());
-
-        Loader myselfClone;
-        final long start = System.currentTimeMillis();
-        try (final AsyncHttpClient asyncHttpClient = requestExecutorService.newClient(properties, durationTimeMillis)) {
-            monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
-            while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
-                requestExecutorService.execute(asyncHttpClient, fixedDelay);
-            }
+        startMonitor(test);
+        final TestExecutor loaderExecutorService = new TestExecutor(test);
+        try {
+//            abortService.start(abortNow, executorLoader);
+            final Future<?> future = Executors.newSingleThreadExecutor().submit(loaderExecutorService);
+            future.get();
+//            abortService.stop();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
-        } finally {
-            try {
-                Thread.sleep(connectTimeout);
-            } finally {
-                myselfClone = cloneMySelf();
-                stop(projectDotTest);
-            }
         }
-        return myselfClone;
+        return stopMonitorAndReset(projectDotTest);
+    }
+
+    private void startMonitor(Test test) {
+        updateStatus(Status.RUNNING);
+        LOGGER.info("Starting test " + myself.getStatusDetailed());
+        monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
     }
 
     private Loader cloneMySelf() {
@@ -128,12 +114,16 @@ public class LoaderService {
         return loader;
     }
 
-    private void stop(String projectDotTest) {
+    private Loader stopMonitorAndReset(String projectDotTest) {
+        Loader myselfBeforeStop = cloneMySelf();
+
         monitorService.reset();
         updateStatus(Status.IDLE);
         abortNow.set(false);
         LOGGER.info("Finished test " + projectDotTest);
         myself.setStatusDetailed("");
+
+        return myselfBeforeStop;
     }
 
     private void updateStatus(Status loaderStatus) {

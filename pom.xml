@@ -14,6 +14,8 @@
         <java.version>1.8</java.version>
         <timestamp>${maven.build.timestamp}</timestamp>
         <disruptor.version>3.3.6</disruptor.version>
+        <loader-jetty.version>1.0.0-SNAPSHOT</loader-jetty.version>
+        <jetty.version>9.4.10.v20180503</jetty.version>
     </properties>
 
     <profiles>
@@ -51,6 +53,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jetty</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -90,6 +102,50 @@
             <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
             <version>${disruptor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.globo.grou.groot</groupId>
+            <artifactId>loader-jetty-collector</artifactId>
+            <version>${loader-jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.globo.grou.groot</groupId>
+            <artifactId>loader-jetty-client</artifactId>
+            <version>${loader-jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.globo.grou.groot</groupId>
+            <artifactId>loader-jetty-listeners</artifactId>
+            <version>${loader-jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.globo.grou.groot</groupId>
+            <artifactId>loader-jetty-store</artifactId>
+            <version>${loader-jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hdrhistogram</groupId>
+            <artifactId>HdrHistogram</artifactId>
+            <version>2.1.9</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-client</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>${jetty.version}</version>
         </dependency>
 
         <dependency>
