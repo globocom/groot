@@ -26,6 +26,7 @@ import com.globo.grou.groot.generator.listeners.report.GlobalSummaryListener;
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
+import com.globocom.grou.groot.monit.MonitorService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -33,6 +34,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -40,35 +42,57 @@ public class TestExecutor implements Runnable {
 
     private static final Log LOGGER = LogFactory.getLog(TestExecutor.class);
 
-    private int threads = Runtime.getRuntime().availableProcessors();
-    private int warmupIterationsPerThread = 0;
-    private int iterationsPerThread = 100000;
-    private long runFor = 0;
-    private int usersPerThread = 1;
-    private int channelsPerUser = 1;
-    private int resourceRate = 0;
-    private long rateRampUpPeriod = 0;
-    private int numberOfNIOselectors = 1;
-    private int maxRequestsQueued = 128 * 1024;
-    private boolean connectBlocking = true;
-    private long connectTimeout = 5000;
-    private long idleTimeout = 5000;
+    private static final int MAX_TEST_DURATION = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
+
+    private final int threads;
+    private final int warmupIterationsPerThread;
+    private final int iterationsPerThread;
+    private final long durationTimeMillis;
+    private final int usersPerThread;
+    private final int channelsPerUser;
+    private final int resourceRate;
+    private final long rateRampUpPeriod;
+    private final int numberOfNIOselectors;
+    private final int maxRequestsQueued;
+    private final boolean connectionBlocking;
+    private final long connectionTimeout;
+    private final long idleTimeout;
     private final HTTPClientTransportBuilder httpClientTransportBuilder;
     private final URI uri;
     private final SslContextFactory sslContextFactory;
+    private final Resource resource;
+    private final long start;
+    private final MonitorService monitorService;
 
-    public TestExecutor(Test test) {
-        int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
-        runFor = Math.min(maxTestDuration, test.getDurationTimeMillis());
-        LOGGER.warn("runFor: " + runFor);
+    public TestExecutor(final Test test, final MonitorService monitorService) {
+        this.monitorService = monitorService;
+        start = System.currentTimeMillis();
+        durationTimeMillis = Math.min(MAX_TEST_DURATION, test.getDurationTimeMillis());
         final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
-        Object connectTimeoutObj = properties.get(GrootProperties.CONNECTION_TIMEOUT);
-        connectTimeout = connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
+
+        threads = (int) Optional.ofNullable(properties.get(GrootProperties.THREADS)).orElse(Runtime.getRuntime().availableProcessors());
+        warmupIterationsPerThread = (int) Optional.ofNullable(properties.get(GrootProperties.WARMUP_ITERATIONS)).orElse(0) / threads;
+        iterationsPerThread = Math.max(1, (int) Optional.ofNullable(properties.get(GrootProperties.ITERATIONS)).orElse(1000) / threads);
+        if (properties.containsKey(GrootProperties.NUM_CONN)) {
+            int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN)).orElse(1);
+            usersPerThread = Math.max(1, numConns / threads);
+            channelsPerUser = 1;
+        } else {
+            usersPerThread = Math.max(1, (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(1) / threads);
+            channelsPerUser = (int) Optional.ofNullable(properties.get(GrootProperties.CONNS_PER_USER)).orElse(1);
+        }
+        resourceRate = (int) Optional.ofNullable(properties.get(GrootProperties.RESOURCE_RATE)).orElse(0);
+        rateRampUpPeriod = (long) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD)).orElse(0L);
+        numberOfNIOselectors = (int) Optional.ofNullable(properties.get(GrootProperties.NIO_SELECTORS)).orElse(1);
+        maxRequestsQueued = (int) Optional.ofNullable(properties.get(GrootProperties.MAX_REQUESTS_QUEUED)).orElse(128 * 1024);
+        connectionBlocking = (boolean) Optional.ofNullable(properties.get(GrootProperties.BLOCKING)).orElse(true);
+        connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT)).orElse(2000L);
+        idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT)).orElse(5000L);
+        resource = resourceBuild();
+
         final Object uriStrObj = properties.get(GrootProperties.URI_REQUEST);
         uri = URI.create(uriStrObj != null ? uriStrObj.toString() : "https://127.0.0.1:8443");
-        LOGGER.warn("uri: " + uri.toString());
         httpClientTransportBuilder = getHttpClientTransportBuilder(uri.getScheme());
-        LOGGER.warn("schema: " + uri.getScheme());
         sslContextFactory = new SslContextFactory(true);
         try {
             sslContextFactory.start();
@@ -80,17 +104,18 @@ public class TestExecutor implements Runnable {
     @Override
     public void run() {
         try {
-            GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
+            final TestListener testListener = new TestListener(monitorService, start);
+            final GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
 
             LoadGenerator.Builder builder = new LoadGenerator.Builder();
             final LoadGenerator loadGenerator = builder
                     .threads(threads)
                     .warmupIterationsPerThread(warmupIterationsPerThread)
                     .iterationsPerThread(iterationsPerThread)
-                    .runFor(0, TimeUnit.MILLISECONDS)
+                    .runFor(durationTimeMillis, TimeUnit.MILLISECONDS)
                     .usersPerThread(usersPerThread)
                     .channelsPerUser(channelsPerUser)
-                    .resource(resource(builder))
+                    .resource(resource)
                     .resourceRate(resourceRate)
                     .rateRampUpPeriod(rateRampUpPeriod)
                     .httpClientTransportBuilder(httpClientTransportBuilder)
@@ -99,11 +124,13 @@ public class TestExecutor implements Runnable {
                     .host(uri.getHost())
                     .port(uri.getPort())
                     .maxRequestsQueued(maxRequestsQueued)
-                    .connectBlocking(connectBlocking)
-                    .connectTimeout(connectTimeout)
+                    .connectBlocking(connectionBlocking)
+                    .connectTimeout(connectionTimeout)
                     .idleTimeout(idleTimeout)
+                    .resourceListener(testListener)
                     .resourceListener(globalSummaryListener)
-                    .requestListener(globalSummaryListener)
+                    .requestListener(testListener)
+                    .resourceListener(globalSummaryListener)
                     .build();
 
             LOGGER.info("load generator config: " + loadGenerator.getConfig().toString());
@@ -123,8 +150,10 @@ public class TestExecutor implements Runnable {
         }
     }
 
-    private Resource resource(LoadGenerator.Builder builder) {
-        return new Resource("/");
+    private Resource resourceBuild() {
+        Resource resource = new Resource();
+        // TODO: convert properties to resource
+        return resource.path("/");
     }
 
     private HTTPClientTransportBuilder getHttpClientTransportBuilder(String schema) {

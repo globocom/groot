@@ -86,7 +86,7 @@ public class LoaderService {
         myself.setLastExecAt(Date.from(Instant.now()));
 
         startMonitor(test);
-        final TestExecutor loaderExecutorService = new TestExecutor(test);
+        final TestExecutor loaderExecutorService = new TestExecutor(test, monitorService);
         try {
 //            abortService.start(abortNow, executorLoader);
             final Future<?> future = Executors.newSingleThreadExecutor().submit(loaderExecutorService);
