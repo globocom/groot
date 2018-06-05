@@ -16,8 +16,10 @@ public class TestListener extends Request.Listener.Adapter implements Resource.N
 
     @Override
     public void onResourceNode(Resource.Info info) {
-        monitorService.sendStatus(String.valueOf(info.getStatus()), start);
-        monitorService.sendResponseTime(start);
+        if (info != null) {
+            monitorService.sendStatus(String.valueOf(info.getStatus()), start);
+            monitorService.sendResponseTime(start);
+        }
     }
 
     @Override
@@ -27,6 +29,6 @@ public class TestListener extends Request.Listener.Adapter implements Resource.N
 
     @Override
     public void onFailure(Request request, Throwable failure) {
-        monitorService.fail(failure, start);
+        if (failure != null) monitorService.fail(failure, start);
     }
 }

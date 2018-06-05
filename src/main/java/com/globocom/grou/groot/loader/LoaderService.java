@@ -18,6 +18,7 @@ package com.globocom.grou.groot.loader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
@@ -34,8 +35,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PreDestroy;
 import java.sql.Date;
 import java.time.Instant;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -46,8 +47,11 @@ import static com.globocom.grou.groot.SystemEnv.GROUP_NAME;
 public class LoaderService {
 
     private static final String GROU_LOADER_REDIS_KEY = "grou:loader:" + GROUP_NAME.getValue() + ":" + SystemInfo.hostname();
+    private static final int    MAX_TEST_DURATION     = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private final AbortService abortService;
     private final MonitorService monitorService;
@@ -55,7 +59,6 @@ public class LoaderService {
     private final Loader myself;
     private final String buildVersion;
     private final String buildTimestamp;
-//    private final QueuedThreadPool executorLoader = new QueuedThreadPool();
 
     private final AtomicBoolean abortNow = new AtomicBoolean(false);
     private final ObjectMapper mapper = new ObjectMapper();
@@ -81,19 +84,21 @@ public class LoaderService {
     public Loader start(final Test test) {
         final String testName = test.getName();
         final String projectName = test.getProject();
+        final long durationTimeMillis = Math.min(MAX_TEST_DURATION, test.getDurationTimeMillis());
         String projectDotTest = projectName + "." + testName;
         myself.setStatusDetailed(projectDotTest);
         myself.setLastExecAt(Date.from(Instant.now()));
 
         startMonitor(test);
-        final TestExecutor loaderExecutorService = new TestExecutor(test, monitorService);
+        final TestExecutor testExecutor = new TestExecutor(test, durationTimeMillis, monitorService);
+        abortService.start(abortNow, testExecutor);
         try {
-//            abortService.start(abortNow, executorLoader);
-            final Future<?> future = Executors.newSingleThreadExecutor().submit(loaderExecutorService);
-            future.get();
-//            abortService.stop();
+            executorService.submit(testExecutor).get(durationTimeMillis + 10000L, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
+        } finally {
+            testExecutor.interrupt();
+            if (!(executorService.isShutdown() || executorService.isTerminated())) abortService.stop();
         }
         return stopMonitorAndReset(projectDotTest);
     }

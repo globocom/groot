@@ -18,7 +18,6 @@ package com.globocom.grou.groot.loader;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -29,10 +28,10 @@ public class AbortService {
     private static final Log LOGGER = LogFactory.getLog(AbortService.class);
 
     private AtomicBoolean abort;
-    private QueuedThreadPool executor;
+    private TestExecutor executor;
     private AtomicBoolean started = new AtomicBoolean(false);
 
-    public synchronized void start(final AtomicBoolean abort, final QueuedThreadPool executor) {
+    public synchronized void start(final AtomicBoolean abort, final TestExecutor executor) {
         this.abort = abort;
         this.executor = executor;
         started.set(true);
@@ -41,14 +40,14 @@ public class AbortService {
     public synchronized void stop() {
         try {
             started.set(false);
-            executor.stop();
-            executor = new QueuedThreadPool();
+            abort.set(false);
+            executor.interrupt();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
     }
 
-//    @Scheduled(fixedDelay = 5000L)
+    @Scheduled(fixedDelay = 5000L)
     public void check() {
         if (started.get() && abort.get()) stop();
     }
