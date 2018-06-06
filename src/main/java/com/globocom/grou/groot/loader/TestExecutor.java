@@ -23,17 +23,18 @@ import com.globo.grou.groot.generator.LoadGenerator;
 import com.globo.grou.groot.generator.Resource;
 import com.globo.grou.groot.generator.listeners.CollectorInformations;
 import com.globo.grou.groot.generator.listeners.report.GlobalSummaryListener;
-import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.monit.MonitorService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -46,28 +47,26 @@ public class TestExecutor implements Runnable {
 
     private final GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
     private final LoadGenerator.Builder builder;
-    private final String name;
 
     private LoadGenerator loadGenerator = null;
 
     public TestExecutor(final Test test, long durationTimeMillis, final MonitorService monitorService) {
-        name = test.getProject() + "@" + test.getName();
         long start = System.currentTimeMillis();
         final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
 
-        int threads = (int) Optional.ofNullable(properties.get(GrootProperties.THREADS)).orElse(Runtime.getRuntime().availableProcessors());
-        int warmupIterationsPerThread = (int) Optional.ofNullable(properties.get(GrootProperties.WARMUP_ITERATIONS)).orElse(0) / threads;
-        int iterationsPerThread = Math.max(1, (int) Optional.ofNullable(properties.get(GrootProperties.ITERATIONS)).orElse(1000) / threads);
-        int usersPerThread;
-        int channelsPerUser;
-        if (properties.containsKey(GrootProperties.NUM_CONN)) {
-            int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN)).orElse(1);
-            usersPerThread = Math.max(1, numConns / threads);
-            channelsPerUser = 1;
-        } else {
-            usersPerThread = Math.max(1, (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(1) / threads);
-            channelsPerUser = (int) Optional.ofNullable(properties.get(GrootProperties.CONNS_PER_USER)).orElse(1);
-        }
+        int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(1);
+        int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN)).orElse(0);
+        int channelsPerUser = numConns > 0 ? 1 : (int) Optional.ofNullable(properties.get(GrootProperties.CONNS_PER_USER)).orElse(1);
+        int iterations = (int) Optional.ofNullable(properties.get(GrootProperties.ITERATIONS)).orElse(0);
+        int warmupIterations = (int) Optional.ofNullable(properties.get(GrootProperties.WARMUP_ITERATIONS)).orElse(0);
+
+        int threadsFromProperties = (int) Optional.ofNullable(properties.get(GrootProperties.THREADS)).orElse(Runtime.getRuntime().availableProcessors());
+        int threads = recalNumThreadsIfNecessary(threadsFromProperties, users, numConns, iterations);
+
+        int usersPerThread = numConns > 0 ? Math.max(1, numConns / threads) : Math.max(1, users / threads);
+        int iterationsPerThread = Math.max(1, iterations / threads);
+        int warmupIterationsPerThread = warmupIterations / threads;
+
         int resourceRate = (int) Optional.ofNullable(properties.get(GrootProperties.RESOURCE_RATE)).orElse(0);
         long rateRampUpPeriod = (long) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD)).orElse(0L);
         int numberOfNIOselectors = (int) Optional.ofNullable(properties.get(GrootProperties.NIO_SELECTORS)).orElse(1);
@@ -75,25 +74,25 @@ public class TestExecutor implements Runnable {
         boolean connectionBlocking = (boolean) Optional.ofNullable(properties.get(GrootProperties.BLOCKING)).orElse(true);
         long connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT)).orElse(2000L);
         long idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT)).orElse(5000L);
-        final Object uriStrObj = properties.get(GrootProperties.URI_REQUEST);
-        final URI uri = URI.create(uriStrObj != null ? uriStrObj.toString() : "https://127.0.0.1:8443");
-        String method = (String) Optional.ofNullable(properties.get(GrootProperties.METHOD)).orElse("GET");
-        Map<String, String> mapOfHeaders = new HashMap<>();
-        Object mapOfHeadersObj = properties.get(GrootProperties.HEADERS);
-        if (mapOfHeadersObj instanceof Map) {
-            //noinspection unchecked
-            mapOfHeaders = (Map<String, String>) mapOfHeadersObj;
-        }
-        HttpFields headers = new HttpFields(mapOfHeaders.size());
-        mapOfHeaders.forEach(headers::put);
-        final Resource resource = resourceBuild(method, uri.getPath(), headers);
-        final HTTPClientTransportBuilder httpClientTransportBuilder = getHttpClientTransportBuilder(uri.getScheme(), numberOfNIOselectors);
+
+        final URI uri = URI.create(String.valueOf(Optional.ofNullable(properties.get(GrootProperties.URI_REQUEST)).orElse("https://127.0.0.1:8443")));
+        final String method = (String) Optional.ofNullable(properties.get(GrootProperties.METHOD)).orElse("GET");
+        final HttpFields headers = getHttpFields(properties);
+
         final SslContextFactory sslContextFactory = new SslContextFactory(true);
         try {
             sslContextFactory.start();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
+
+        final Resource resource = resourceBuild(method, uri.getPath(), headers);
+        String scheme = uri.getScheme();
+        final HTTPClientTransportBuilder httpClientTransportBuilder = getHttpClientTransportBuilder(scheme, numberOfNIOselectors);
+        if ("h2c".equals(scheme)) scheme = HttpScheme.HTTPS.asString();
+        if ("h2".equals(scheme)) scheme = HttpScheme.HTTP.asString();
+        int port = uri.getPort() > 0 ? uri.getPort() : (scheme.endsWith("s") ? 443 : 80);
+
         final TestListener testListener = new TestListener(monitorService, start);
 
         builder = new LoadGenerator.Builder()
@@ -108,9 +107,9 @@ public class TestExecutor implements Runnable {
                 .rateRampUpPeriod(rateRampUpPeriod)
                 .httpClientTransportBuilder(httpClientTransportBuilder)
                 .sslContextFactory(sslContextFactory)
-                .scheme(uri.getScheme())
+                .scheme(scheme)
                 .host(uri.getHost())
-                .port(uri.getPort())
+                .port(port)
                 .maxRequestsQueued(maxRequestsQueued)
                 .connectBlocking(connectionBlocking)
                 .connectTimeout(connectionTimeout)
@@ -118,7 +117,15 @@ public class TestExecutor implements Runnable {
                 .resourceListener(testListener)
                 .resourceListener(globalSummaryListener)
                 .requestListener(testListener)
-                .resourceListener(globalSummaryListener);
+                .requestListener(globalSummaryListener);
+    }
+
+    private int recalNumThreadsIfNecessary(int threadsFromProperties, int users, int numConns, int iterations) {
+        int threads = threadsFromProperties;
+        if (users < threadsFromProperties) threads = users;
+        if (numConns > 0 && numConns < threadsFromProperties) threads = numConns;
+        if (iterations > 0 && iterations < threadsFromProperties) threads = iterations;
+        return threads;
     }
 
     @Override
@@ -142,8 +149,15 @@ public class TestExecutor implements Runnable {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private HttpFields getHttpFields(final HashMap<String, Object> properties) {
+        final Map<String, String> mapOfHeaders = (Map<String, String>) Optional.ofNullable(properties.get(GrootProperties.HEADERS)).orElse(Collections.emptyMap());
+        final HttpFields httpFields = new HttpFields(mapOfHeaders.size());
+        mapOfHeaders.forEach(httpFields::put);
+        return httpFields;
+    }
+
     public void interrupt() {
-        LOGGER.warn("Test " + name + " INTERRUPTED");
         if (loadGenerator != null) loadGenerator.interrupt();
     }
 

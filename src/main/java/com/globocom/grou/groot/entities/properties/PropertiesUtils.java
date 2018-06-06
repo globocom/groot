@@ -1,6 +1,5 @@
 package com.globocom.grou.groot.entities.properties;
 
-import com.globocom.grou.groot.SystemEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,10 +33,6 @@ public interface PropertiesUtils {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     static void check(final Map<String, Object> testProperties) throws IllegalArgumentException {
-        Object numConn = testProperties.get(NUM_CONN);
-        if (!(numConn != null && numConn instanceof Integer && (Integer) numConn > 0)) {
-            throw new IllegalArgumentException(NUM_CONN + " property undefined or less than 1 conn");
-        }
         HashMap[] allproperties = extractAllRequestPropertiesOrdered(testProperties);
         if (allproperties.length == 0) throw new IllegalArgumentException("Request properties is empty or invalid (is \"order\" property missing?)");
         for (HashMap properties: allproperties) {
@@ -47,8 +42,8 @@ public interface PropertiesUtils {
             }
             URI uriTested = URI.create((String) uri);
             String schema = uriTested.getScheme();
-            if (!schema.matches("(http[s]?|ws[s]?)")) {
-                throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", must be equal (ignoring case) to ‘http’, ‘https’, ‘ws’, or ‘wss’");
+            if (!schema.matches("(http[s]?|ws[s]?|h2[c]?)")) {
+                throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", must be equal (ignoring case) to ‘http’, ‘https’, ’h2’, ’h2c’, ‘ws’, or ‘wss’");
             }
             String method = (String) properties.get(METHOD);
             if (method != null && method.matches("(POST|PUT|PATCH)")) {

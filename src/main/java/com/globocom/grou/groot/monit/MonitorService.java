@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
@@ -158,7 +159,10 @@ public class MonitorService {
     }
 
     public void fail(final Throwable t, long start) {
-        boolean isInternalProblem = (t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task");
+        boolean isInternalProblem = t instanceof EOFException ||
+                                    t instanceof TooManyConnectionsException ||
+                                    t instanceof TooManyConnectionsPerHostException ||
+                                    t.getMessage().contains("executor not accepting a task");
         if (!isInternalProblem) {
             String messageException = t.getMessage();
             if (messageException.contains("connection timed out")) {

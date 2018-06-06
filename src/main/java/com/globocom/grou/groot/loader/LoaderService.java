@@ -93,7 +93,11 @@ public class LoaderService {
         final TestExecutor testExecutor = new TestExecutor(test, durationTimeMillis, monitorService);
         abortService.start(abortNow, testExecutor);
         try {
-            executorService.submit(testExecutor).get(durationTimeMillis + 10000L, TimeUnit.MILLISECONDS);
+//            Executors.newSingleThreadExecutor().submit(() -> {
+//                try { TimeUnit.MILLISECONDS.sleep(durationTimeMillis); } catch (InterruptedException ignore) { }
+//                testExecutor.interrupt();
+//            });
+            executorService.submit(testExecutor).get();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         } finally {

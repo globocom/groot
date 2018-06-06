@@ -2,9 +2,14 @@ package com.globocom.grou.groot.loader;
 
 import com.globo.grou.groot.generator.Resource;
 import com.globocom.grou.groot.monit.MonitorService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.http.HttpVersion;
 
 public class TestListener extends Request.Listener.Adapter implements Resource.NodeListener, Resource.OnContentListener {
+
+    private static final Log LOGGER = LogFactory.getLog(TestListener.class);
 
     private final MonitorService monitorService;
     private final long start;
@@ -19,6 +24,8 @@ public class TestListener extends Request.Listener.Adapter implements Resource.N
         if (info != null) {
             monitorService.sendStatus(String.valueOf(info.getStatus()), start);
             monitorService.sendResponseTime(start);
+            HttpVersion version = info.getVersion();
+            if (version != null) LOGGER.info("version" + version.asString());
         }
     }
 
@@ -29,6 +36,12 @@ public class TestListener extends Request.Listener.Adapter implements Resource.N
 
     @Override
     public void onFailure(Request request, Throwable failure) {
-        if (failure != null) monitorService.fail(failure, start);
+        try {
+            if (failure != null) monitorService.fail(failure, start);
+        } catch (NullPointerException ignore) {
+            // ignored
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+        }
     }
 }
