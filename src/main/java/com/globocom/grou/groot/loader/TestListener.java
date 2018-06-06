@@ -24,8 +24,6 @@ public class TestListener extends Request.Listener.Adapter implements Resource.N
         if (info != null) {
             monitorService.sendStatus(String.valueOf(info.getStatus()), start);
             monitorService.sendResponseTime(start);
-            HttpVersion version = info.getVersion();
-            if (version != null) LOGGER.info("version" + version.asString());
         }
     }
 
