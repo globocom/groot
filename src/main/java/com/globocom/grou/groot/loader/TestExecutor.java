@@ -33,13 +33,13 @@ import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class TestExecutor implements Runnable {
 
@@ -86,7 +86,11 @@ public class TestExecutor implements Runnable {
             LOGGER.error(e.getMessage(), e);
         }
 
-        final Resource resource = resourceBuild(method, uri.getPath(), headers);
+        String body = "";
+        if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
+            body = String.valueOf(properties.get(GrootProperties.BODY));
+        }
+        final Resource resource = resourceBuild(method, uri.getPath(), headers, body);
         String scheme = uri.getScheme();
         final HTTPClientTransportBuilder httpClientTransportBuilder = getHttpClientTransportBuilder(scheme, numberOfNIOselectors);
         if ("h2c".equals(scheme)) scheme = HttpScheme.HTTPS.asString();
@@ -151,19 +155,40 @@ public class TestExecutor implements Runnable {
 
     @SuppressWarnings("unchecked")
     private HttpFields getHttpFields(final HashMap<String, Object> properties) {
-        final Map<String, String> mapOfHeaders = (Map<String, String>) Optional.ofNullable(properties.get(GrootProperties.HEADERS)).orElse(Collections.emptyMap());
-        final HttpFields httpFields = new HttpFields(mapOfHeaders.size());
-        mapOfHeaders.forEach(httpFields::put);
-        return httpFields;
+        try {
+            Object headersObj = properties.get(GrootProperties.HEADERS);
+            if (headersObj instanceof Map) {
+                final Map<String, String> mapOfHeaders = (Map<String, String>) headersObj;
+                final HttpFields httpFields = new HttpFields(mapOfHeaders.size());
+                mapOfHeaders.forEach(httpFields::put);
+                return httpFields;
+            }
+            if (headersObj instanceof List) {
+                final List<?> listOfHeaders = (List<?>) headersObj;
+                final HttpFields httpFields = new HttpFields(listOfHeaders.size());
+                listOfHeaders.stream()
+                        .filter(map -> map instanceof Map)
+                        .map(map -> (Map<String, String>) map)
+                        .forEach(map -> map.forEach(httpFields::put));
+                return httpFields;
+            }
+            return new HttpFields(0);
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+            return new HttpFields(0);
+        }
     }
 
     public void interrupt() {
         if (loadGenerator != null) loadGenerator.interrupt();
     }
 
-    private Resource resourceBuild(String method, String path, final HttpFields headers) {
-        Resource resource = new Resource();
-        return resource.method(method).path(path == null || path.isEmpty() ? "/" : path).requestHeaders(headers);
+    private Resource resourceBuild(String method, String path, final HttpFields headers, final String body) {
+        Resource resource = new Resource().method(method).path(path == null || path.isEmpty() ? "/" : path).requestHeaders(headers);
+        if (!(body == null || body.isEmpty())) {
+            resource.setContent(body.getBytes(StandardCharsets.UTF_8));
+        }
+        return resource;
     }
 
     private HTTPClientTransportBuilder getHttpClientTransportBuilder(String schema, int numberOfNIOselectors) {
@@ -217,7 +242,7 @@ public class TestExecutor implements Runnable {
                     " , end: " + simpleDateFormat.format(latencyTimeSummary.getEndTimeStamp()) +
                     " [total: " + timeInSeconds + " secs]");
         LOGGER.info("----------------------------------------------------");
-        LOGGER.info("-----------     Estimated QPS     ------------------");
+        LOGGER.info("-----------     Estimated RPS     ------------------");
         LOGGER.info("----------------------------------------------------");
         LOGGER.info("estimated RPS : " + rqs);
         LOGGER.info("----------------------------------------------------");
