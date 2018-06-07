@@ -16,11 +16,7 @@
 
 package com.globocom.grou.groot.loader;
 
-import com.globo.grou.groot.generator.HTTP1ClientTransportBuilder;
-import com.globo.grou.groot.generator.HTTP2ClientTransportBuilder;
-import com.globo.grou.groot.generator.HTTPClientTransportBuilder;
-import com.globo.grou.groot.generator.LoadGenerator;
-import com.globo.grou.groot.generator.Resource;
+import com.globo.grou.groot.generator.*;
 import com.globo.grou.groot.generator.listeners.CollectorInformations;
 import com.globo.grou.groot.generator.listeners.report.GlobalSummaryListener;
 import com.globocom.grou.groot.entities.Test;
@@ -35,11 +31,12 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
 public class TestExecutor implements Runnable {
 
