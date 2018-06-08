@@ -37,10 +37,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 public class TestExecutor implements Runnable {
 
     private static final Log LOGGER = LogFactory.getLog(TestExecutor.class);
+    private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
 
     private final GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
     private final LoadGenerator.Builder builder;
@@ -51,7 +53,7 @@ public class TestExecutor implements Runnable {
         long start = System.currentTimeMillis();
         final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
 
-        int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(1);
+        int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(0);
         int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN)).orElse(0);
         int channelsPerUser = numConns > 0 ? 1 : (int) Optional.ofNullable(properties.get(GrootProperties.CONNS_PER_USER)).orElse(1);
         int iterations = (int) Optional.ofNullable(properties.get(GrootProperties.ITERATIONS)).orElse(0);
@@ -67,7 +69,7 @@ public class TestExecutor implements Runnable {
         int resourceRate = (int) Optional.ofNullable(properties.get(GrootProperties.RESOURCE_RATE)).orElse(0);
         long rateRampUpPeriod = (long) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD)).orElse(0L);
         int numberOfNIOselectors = (int) Optional.ofNullable(properties.get(GrootProperties.NIO_SELECTORS)).orElse(1);
-        int maxRequestsQueued = (int) Optional.ofNullable(properties.get(GrootProperties.MAX_REQUESTS_QUEUED)).orElse(128 * 1024);
+        int maxRequestsQueued = (int) Optional.ofNullable(properties.get(GrootProperties.MAX_REQUESTS_QUEUED)).orElse(128 * threads * 1024);
         boolean connectionBlocking = (boolean) Optional.ofNullable(properties.get(GrootProperties.BLOCKING)).orElse(true);
         long connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT)).orElse(2000L);
         long idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT)).orElse(5000L);
@@ -121,12 +123,8 @@ public class TestExecutor implements Runnable {
                 .requestListener(globalSummaryListener);
     }
 
-    private int recalNumThreadsIfNecessary(int threadsFromProperties, int users, int numConns, int iterations) {
-        int threads = threadsFromProperties;
-        if (users < threadsFromProperties) threads = users;
-        if (numConns > 0 && numConns < threadsFromProperties) threads = numConns;
-        if (iterations > 0 && iterations < threadsFromProperties) threads = iterations;
-        return threads;
+    private int recalNumThreadsIfNecessary(int threads, int users, int numConns, int iterations) {
+        return IntStream.of(threads, users, numConns, iterations, DEFAULT_NUM_THREADS).filter(x -> x > 0).sorted().findFirst().orElse(1);
     }
 
     @Override
