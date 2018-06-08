@@ -105,29 +105,34 @@
             <version>${disruptor.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.globo.grou.groot</groupId>
-            <artifactId>loader-jetty-collector</artifactId>
-            <version>${loader-jetty.version}</version>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>4.0</version>
         </dependency>
         <dependency>
-            <groupId>com.globo.grou.groot</groupId>
-            <artifactId>loader-jetty-client</artifactId>
-            <version>${loader-jetty.version}</version>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>2.5.0</version>
         </dependency>
         <dependency>
-            <groupId>com.globo.grou.groot</groupId>
-            <artifactId>loader-jetty-listeners</artifactId>
-            <version>${loader-jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.globo.grou.groot</groupId>
-            <artifactId>loader-jetty-store</artifactId>
-            <version>${loader-jetty.version}</version>
+            <groupId>org.eclipse.jetty.toolchain</groupId>
+            <artifactId>jetty-perf-helper</artifactId>
+            <version>1.0.5</version>
         </dependency>
         <dependency>
             <groupId>org.hdrhistogram</groupId>
             <artifactId>HdrHistogram</artifactId>
             <version>2.1.9</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -151,6 +156,21 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.http2</groupId>
+            <artifactId>http2-http-client-transport</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.http2</groupId>
+            <artifactId>http2-server</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-jmx</artifactId>
             <version>${jetty.version}</version>
         </dependency>
         <dependency>

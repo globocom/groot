@@ -1,11 +1,10 @@
 package com.globocom.grou.groot.loader;
 
-import com.globo.grou.groot.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.Resource;
 import com.globocom.grou.groot.monit.MonitorService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.http.HttpVersion;
 
 public class TestListener extends Request.Listener.Adapter implements Resource.NodeListener, Resource.OnContentListener {
 

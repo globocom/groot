@@ -16,9 +16,9 @@
 
 package com.globocom.grou.groot.loader;
 
-import com.globo.grou.groot.generator.*;
-import com.globo.grou.groot.generator.listeners.CollectorInformations;
-import com.globo.grou.groot.generator.listeners.report.GlobalSummaryListener;
+import com.globocom.grou.groot.jetty.generator.*;
+import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
+import com.globocom.grou.groot.jetty.listeners.report.GlobalSummaryListener;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.monit.MonitorService;
