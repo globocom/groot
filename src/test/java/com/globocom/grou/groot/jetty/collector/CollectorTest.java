@@ -91,32 +91,24 @@ public class CollectorTest
     public void collect_informations()
         throws Exception
     {
-        Resource resource = new Resource( "/index.html" );
-
-        runProfile( resource );
-    }
-
-    protected void runProfile( Resource profile )
-        throws Exception
-    {
-
         List<LoadGenerator> loadGenerators = new ArrayList<>( serverNumbers );
         List<CollectorClient> collectorClients = new CopyOnWriteArrayList<>();
         List<TestRequestListener> testRequestListeners = new ArrayList<>( serverNumbers );
-
         List<CollectorResultHandler> collectorResultHandlers = Arrays.asList( new LoggerCollectorResultHandler() );
 
         for ( Server server : servers )
         {
             CollectorServer collectorServer = new CollectorServer( 0 ).start();
+            String host = "localhost";
             int port = ( (ServerConnector) server.getConnectors()[0] ).getLocalPort();
+            Resource resource = new Resource("http://" + host + ":" + port + "/index.html");
 
             TestRequestListener testRequestListener = new TestRequestListener();
 
             testRequestListeners.add( testRequestListener );
 
             LoadGenerator loadGenerator = new LoadGenerator.Builder() //
-                .host( "localhost" ) //
+                .host(host) //
                 .port( port ) //
                 .usersPerThread( 2 ) //
                 .iterationsPerThread( 10 ) //
@@ -124,7 +116,7 @@ public class CollectorTest
 //                .transport( LoadGenerator.Transport.HTTP ) //
                 .httpClientTransportBuilder( new HTTP1ClientTransportBuilder() ) //
                 //.scheduler( scheduler ) //
-                .resource( profile ) //
+                .resource( resource ) //
                 // FIXME here
                 //.responseTimeListeners( collectorServer ) //
                 .requestListener( testRequestListener ) //

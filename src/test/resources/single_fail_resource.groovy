@@ -1,3 +1,3 @@
 import com.globocom.grou.groot.jetty.generator.Resource
 
-return new Resource("/index.html?fail=5")
+return new Resource("http://localhost/index.html?fail=5")

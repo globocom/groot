@@ -452,7 +452,7 @@ public class LoadGenerator extends ContainerLifeCycle {
         private void sendChildren(Resource resource) {
             List<Resource> children = resource.getResources();
             if (!children.isEmpty()) {
-                offer(children.stream().map(Resource::newInfo).collect(Collectors.toList()));
+                offer(children.stream().sorted(Comparator.comparingInt(Resource::getOrder)).map(Resource::newInfo).collect(Collectors.toList()));
                 send();
             }
         }
@@ -523,7 +523,7 @@ public class LoadGenerator extends ContainerLifeCycle {
         protected Scheduler scheduler;
         protected Executor executor;
         protected SocketAddressResolver socketAddressResolver = new SocketAddressResolver.Sync();
-        protected Resource resource = new Resource("/");
+        protected Resource resource = new Resource("http://localhost/");
         protected final List<Listener> listeners = new ArrayList<>();
         protected final List<Request.Listener> requestListeners = new ArrayList<>();
         protected final List<Resource.Listener> resourceListeners = new ArrayList<>();

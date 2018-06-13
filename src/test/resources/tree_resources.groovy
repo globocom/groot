@@ -1,22 +1,22 @@
 import com.globocom.grou.groot.jetty.generator.Resource
 
-return new Resource("/index.html",
-        new Resource("/css/bootstrap.css",
-                new Resource("/css/bootstrap-theme.css"),
-                new Resource("/js/jquery-3.1.1.min.js"),
-                new Resource("/js/jquery-3.1.1.min.js"),
-                new Resource("/js/jquery-3.1.1.min.js"),
-                new Resource("/js/jquery-3.1.1.min.js")
+return new Resource("http://localhost/index.html",
+        new Resource("http://localhost/css/bootstrap.css",
+                new Resource("http://localhost/css/bootstrap-theme.css"),
+                new Resource("http://localhost/js/jquery-3.1.1.min.js"),
+                new Resource("http://localhost/js/jquery-3.1.1.min.js"),
+                new Resource("http://localhost/js/jquery-3.1.1.min.js"),
+                new Resource("http://localhost/js/jquery-3.1.1.min.js")
         ),
-        new Resource("/js/bootstrap.js",
-                new Resource("/js/bootstrap.js"),
-                new Resource("/js/bootstrap.js"),
-                new Resource("/js/bootstrap.js")
+        new Resource("http://localhost/js/bootstrap.js",
+                new Resource("http://localhost/js/bootstrap.js"),
+                new Resource("http://localhost/js/bootstrap.js"),
+                new Resource("http://localhost/js/bootstrap.js")
         ),
-        new Resource("/hello"),
-        new Resource("/dump.jsp?wine=foo&foo=bar"),
-        new Resource("/not_here.html"),
-        new Resource("/hello?name=foo"),
-        new Resource("/hello?name=foo"),
-        new Resource("/upload").method("PUT").requestLength(8192)
+        new Resource("http://localhost/hello"),
+        new Resource("http://localhost/dump.jsp?wine=foo&foo=bar"),
+        new Resource("http://localhost/not_here.html"),
+        new Resource("http://localhost/hello?name=foo"),
+        new Resource("http://localhost/hello?name=foo"),
+        new Resource("http://localhost/upload").method("PUT").requestLength(8192)
 )

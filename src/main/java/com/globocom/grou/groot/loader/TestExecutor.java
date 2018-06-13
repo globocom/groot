@@ -16,6 +16,9 @@
 
 package com.globocom.grou.groot.loader;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.globocom.grou.groot.jetty.generator.*;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.report.GlobalSummaryListener;
@@ -31,12 +34,11 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class TestExecutor implements Runnable {
@@ -44,14 +46,30 @@ public class TestExecutor implements Runnable {
     private static final Log LOGGER = LogFactory.getLog(TestExecutor.class);
     private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
 
+    private final ObjectMapper mapper = new ObjectMapper()
+                                            .configure(SerializationFeature.INDENT_OUTPUT, true)
+                                            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     private final GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
     private final LoadGenerator.Builder builder;
 
     private LoadGenerator loadGenerator = null;
 
+    @SuppressWarnings("unchecked")
     public TestExecutor(final Test test, long durationTimeMillis, final MonitorService monitorService) {
         long start = System.currentTimeMillis();
         final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
+        final List<Map<String, Object>> requestsProp = (List<Map<String, Object>>) Optional.ofNullable(properties.get(GrootProperties.REQUESTS)).orElse(
+                Collections.singletonList(new HashMap<>(){{
+                    put(GrootProperties.ORDER, 0);
+                    put(GrootProperties.URI_REQUEST, properties.get(GrootProperties.URI_REQUEST));
+                    put(GrootProperties.HEADERS, properties.get(GrootProperties.HEADERS));
+                    put(GrootProperties.METHOD, properties.get(GrootProperties.METHOD));
+                    put(GrootProperties.BODY, properties.get(GrootProperties.BODY));
+                    put(GrootProperties.AUTH, properties.get(GrootProperties.AUTH));
+                    put(GrootProperties.SAVE_COOKIES, properties.get(GrootProperties.SAVE_COOKIES));
+                    put(GrootProperties.CREDENTIALS, properties.get(GrootProperties.CREDENTIALS));
+                    put(GrootProperties.PREEMPTIVE, properties.get(GrootProperties.PREEMPTIVE));
+                }}));
 
         int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(0);
         int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN)).orElse(0);
@@ -74,10 +92,10 @@ public class TestExecutor implements Runnable {
         long connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT)).orElse(2000L);
         long idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT)).orElse(5000L);
 
-        final URI uri = URI.create(String.valueOf(Optional.ofNullable(properties.get(GrootProperties.URI_REQUEST)).orElse("https://127.0.0.1:8443")));
-        final String method = (String) Optional.ofNullable(properties.get(GrootProperties.METHOD)).orElse("GET");
-        final HttpFields headers = getHttpFields(properties);
-
+        final AtomicReference<HTTPClientTransportBuilder> httpClientTransportBuilder = new AtomicReference<>(null);
+        final AtomicReference<String> scheme = new AtomicReference<>(null);
+        final AtomicReference<String> host = new AtomicReference<>(null);
+        final AtomicInteger port = new AtomicInteger(0);
         final SslContextFactory sslContextFactory = new SslContextFactory(true);
         try {
             sslContextFactory.start();
@@ -85,16 +103,15 @@ public class TestExecutor implements Runnable {
             LOGGER.error(e.getMessage(), e);
         }
 
-        String body = "";
-        if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
-            body = String.valueOf(properties.get(GrootProperties.BODY));
+        final Resource resource = new Resource();
+        requestsProp.forEach(requestProp ->
+            resource.addResource(resourceBuild(requestProp, httpClientTransportBuilder, scheme, host, port, numberOfNIOselectors))
+        );
+        try {
+            LOGGER.info(mapper.writeValueAsString(resource));
+        } catch (JsonProcessingException e) {
+            LOGGER.error(e.getMessage(), e);
         }
-        final Resource resource = resourceBuild(method, uri.getPath(), headers, body);
-        String scheme = uri.getScheme();
-        final HTTPClientTransportBuilder httpClientTransportBuilder = getHttpClientTransportBuilder(scheme, numberOfNIOselectors);
-        if ("h2c".equals(scheme)) scheme = HttpScheme.HTTPS.asString();
-        if ("h2".equals(scheme)) scheme = HttpScheme.HTTP.asString();
-        int port = uri.getPort() > 0 ? uri.getPort() : (scheme.endsWith("s") ? 443 : 80);
 
         final TestListener testListener = new TestListener(monitorService, start);
 
@@ -108,11 +125,11 @@ public class TestExecutor implements Runnable {
                 .resource(resource)
                 .resourceRate(resourceRate)
                 .rateRampUpPeriod(rateRampUpPeriod)
-                .httpClientTransportBuilder(httpClientTransportBuilder)
+                .httpClientTransportBuilder(httpClientTransportBuilder.get())
                 .sslContextFactory(sslContextFactory)
-                .scheme(scheme)
-                .host(uri.getHost())
-                .port(port)
+                .scheme(scheme.get()) // TODO: get from resource
+                .host(host.get()) // TODO: get from resource
+                .port(port.get()) // TODO: get from resource
                 .maxRequestsQueued(maxRequestsQueued)
                 .connectBlocking(connectionBlocking)
                 .connectTimeout(connectionTimeout)
@@ -121,6 +138,39 @@ public class TestExecutor implements Runnable {
                 .resourceListener(globalSummaryListener)
                 .requestListener(testListener)
                 .requestListener(globalSummaryListener);
+    }
+
+    private Resource resourceBuild(
+            final Map<String, Object> requestProp,
+            final AtomicReference<HTTPClientTransportBuilder> httpClientTransportBuilder,
+            final AtomicReference<String> scheme,
+            final AtomicReference<String> host,
+            final AtomicInteger port,
+            int numberOfNIOselectors) {
+        final URI uri = URI.create(String.valueOf(Optional.ofNullable(requestProp.get(GrootProperties.URI_REQUEST)).orElse("https://127.0.0.1:8443")));
+        String localScheme = uri.getScheme();
+        httpClientTransportBuilder.compareAndExchange(null, getHttpClientTransportBuilder(localScheme, numberOfNIOselectors));
+
+        if ("h2c".equals(localScheme)) localScheme = HttpScheme.HTTPS.asString();
+        if ("h2".equals(localScheme)) localScheme = HttpScheme.HTTP.asString();
+
+        scheme.compareAndSet(null, localScheme);
+        port.compareAndSet(0, uri.getPort() > 0 ? uri.getPort() : (localScheme.endsWith("s") ? 443 : 80));
+        host.compareAndSet(null, uri.getHost());
+
+        final String method = (String) Optional.ofNullable(requestProp.get(GrootProperties.METHOD)).orElse("GET");
+        final HttpFields headers = getHttpFields(requestProp);
+        final int order = (int) Optional.ofNullable(requestProp.get(GrootProperties.ORDER)).orElse(Math.abs(new Random().nextInt()));
+
+        String body = "";
+        if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
+            body = String.valueOf(requestProp.get(GrootProperties.BODY));
+        }
+        Resource resource = new Resource().method(method).setUri(uri).requestHeaders(headers).setOrder(order);
+        if (!(body == null || body.isEmpty())) {
+            resource.setContent(body.getBytes(StandardCharsets.UTF_8));
+        }
+        return resource;
     }
 
     private int recalNumThreadsIfNecessary(int threads, int users, int numConns, int iterations) {
@@ -149,7 +199,7 @@ public class TestExecutor implements Runnable {
     }
 
     @SuppressWarnings("unchecked")
-    private HttpFields getHttpFields(final HashMap<String, Object> properties) {
+    private HttpFields getHttpFields(final Map<String, Object> properties) {
         try {
             Object headersObj = properties.get(GrootProperties.HEADERS);
             if (headersObj instanceof Map) {
@@ -176,14 +226,6 @@ public class TestExecutor implements Runnable {
 
     public void interrupt() {
         if (loadGenerator != null) loadGenerator.interrupt();
-    }
-
-    private Resource resourceBuild(String method, String path, final HttpFields headers, final String body) {
-        Resource resource = new Resource().method(method).path(path == null || path.isEmpty() ? "/" : path).requestHeaders(headers);
-        if (!(body == null || body.isEmpty())) {
-            resource.setContent(body.getBytes(StandardCharsets.UTF_8));
-        }
-        return resource;
     }
 
     private HTTPClientTransportBuilder getHttpClientTransportBuilder(String schema, int numberOfNIOselectors) {

@@ -1,18 +1,18 @@
 import com.globocom.grou.groot.jetty.generator.Resource
 
 return new Resource(
-        new Resource("index.html",
-        new Resource("/style.css",
-                new Resource("/logo.gif"),
-                new Resource("/spacer.png")
+        new Resource("http://localhostindex.html",
+        new Resource("http://localhost/style.css",
+                new Resource("http://localhost/logo.gif"),
+                new Resource("http://localhost/spacer.png")
         ),
-        new Resource("/fancy.css"),
-        new Resource("/script.js",
-                new Resource("/library.js"),
-                new Resource("/morestuff.js")
+        new Resource("http://localhost/fancy.css"),
+        new Resource("http://localhost/script.js",
+                new Resource("http://localhost/library.js"),
+                new Resource("http://localhost/morestuff.js")
         ),
-        new Resource("/anotherScript.js"),
-        new Resource("/iframeContents.html"),
-        new Resource("/moreIframeContents.html"),
-        new Resource("/favicon.ico"))
+        new Resource("http://localhost/anotherScript.js"),
+        new Resource("http://localhost/iframeContents.html"),
+        new Resource("http://localhost/moreIframeContents.html"),
+        new Resource("http://localhost/favicon.ico"))
 )

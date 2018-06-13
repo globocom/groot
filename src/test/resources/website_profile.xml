@@ -3,22 +3,22 @@
     <Array type="com.globocom.grou.groot.jetty.generator.Resource">
     <Item>
         <New class="com.globocom.grou.groot.jetty.generator.Resource">
-          <Arg>index.html</Arg>
+          <Arg>http://localhost/index.html</Arg>
           <Arg>
             <Array type="com.globocom.grou.groot.jetty.generator.Resource">
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>/style.css</Arg>
+                  <Arg>http://localhost/style.css</Arg>
                   <Arg>
                     <Array type="com.globocom.grou.groot.jetty.generator.Resource">
                       <Item>
                         <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                          <Arg>/logo.gif</Arg>
+                          <Arg>http://localhost/logo.gif</Arg>
                         </New>
                       </Item>
                       <Item>
                         <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                          <Arg>/spacer.png</Arg>
+                          <Arg>http://localhost/spacer.png</Arg>
                         </New>
                       </Item>
                     </Array>
@@ -27,22 +27,22 @@
               </Item>
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>fancy.css</Arg>
+                  <Arg>http://localhost/fancy.css</Arg>
                 </New>
               </Item>
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>script.js</Arg>
+                  <Arg>http://localhost/script.js</Arg>
                   <Arg>
                     <Array type="com.globocom.grou.groot.jetty.generator.Resource">
                       <Item>
                         <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                          <Arg>/library.js</Arg>
+                          <Arg>http://localhost/library.js</Arg>
                         </New>
                       </Item>
                       <Item>
                         <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                          <Arg>/morestuff.js</Arg>
+                          <Arg>http://localhost/morestuff.js</Arg>
                         </New>
                       </Item>
                     </Array>
@@ -51,22 +51,22 @@
               </Item>
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>/anotherScript.js</Arg>
+                  <Arg>http://localhost/anotherScript.js</Arg>
                 </New>
               </Item>
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>iframeContents.html</Arg>
+                  <Arg>http://localhost/iframeContents.html</Arg>
                 </New>
               </Item>
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>/moreIframeContents.html</Arg>
+                  <Arg>http://localhost/moreIframeContents.html</Arg>
                 </New>
               </Item>
               <Item>
                 <New class="com.globocom.grou.groot.jetty.generator.Resource">
-                  <Arg>/favicon.ico</Arg>
+                  <Arg>http://localhost/favicon.ico</Arg>
                 </New>
               </Item>
             </Array>

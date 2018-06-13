@@ -74,10 +74,13 @@ public class HTTP2LoadGeneratorTest {
         AtomicLong requests = new AtomicLong();
         AtomicLong sent = new AtomicLong();
         AtomicLong pushed = new AtomicLong();
+        int localPort = connector.getLocalPort();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
                 .httpClientTransportBuilder(new HTTP2ClientTransportBuilder())
-                .port(connector.getLocalPort())
-                .resource(new Resource("/", new Resource("/1"), new Resource("/2")).responseLength(128 * 1024))
+                .port(localPort)
+                .resource(new Resource("http://localhost:" + localPort + "/",
+                        new Resource("http://localhost:" + localPort + "/1"),
+                        new Resource("http://localhost:" + localPort + "/2")).responseLength(128 * 1024))
                 .requestListener(new Request.Listener.Adapter() {
                     @Override
                     public void onBegin(Request request) {

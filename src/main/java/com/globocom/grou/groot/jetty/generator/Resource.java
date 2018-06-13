@@ -21,10 +21,7 @@ import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpVersion;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EventListener;
-import java.util.List;
+import java.util.*;
 
 /**
  * <p>A resource node to be fetched by the load generator.</p>
@@ -41,28 +38,37 @@ public class Resource {
     private final List<Resource> resources = new ArrayList<>();
     private final HttpFields requestHeaders = new HttpFields();
     private String method = HttpMethod.GET.asString();
-    private String path = "/";
+    private URI uri = null;
     private int requestLength = 0;
     private int responseLength = 0;
     private byte[] content = new byte[0];
+    private int order = Math.abs(new Random().nextInt());
 
     public Resource() {
-        this((String)null);
+        this((URI) null);
     }
 
     public Resource(Resource... resources) {
-        this(null, resources);
+        this((URI) null, resources);
     }
 
-    public Resource(String path) {
-        this(path, new Resource[0]);
+    public Resource(URI uri) {
+        this(uri, new Resource[0]);
     }
 
-    public Resource(String path, Resource... resources) {
-        this.path = path;
+    public Resource(URI uri, Resource... resources) {
+        this.uri = uri;
         if (resources != null) {
             Collections.addAll(this.resources, resources);
         }
+    }
+
+    public Resource(String uriStr, Resource... resources) {
+        this(URI.create(uriStr), resources);
+    }
+
+    public Resource(String uriStr) {
+        this.uri = URI.create(uriStr);
     }
 
     /**
@@ -78,17 +84,19 @@ public class Resource {
         return method;
     }
 
-    /**
-     * @param path the resource path
-     * @return this Resource
-     */
-    public Resource path(String path) {
-        this.path = path.startsWith("/") ? path : "/" + path;
-        return this;
+    public String getPath() {
+        if (uri == null) return null;
+        final String path = uri.getPath();
+        return path == null || path.isEmpty() ? "/" : path;
     }
 
-    public String getPath() {
-        return path;
+    public URI getUri() {
+        return uri;
+    }
+
+    public Resource setUri(URI uri) {
+        this.uri = uri;
+        return this;
     }
 
     /**
@@ -158,6 +166,15 @@ public class Resource {
         return this;
     }
 
+    public int getOrder() {
+        return order;
+    }
+
+    public Resource setOrder(int order) {
+        this.order = order;
+        return this;
+    }
+
     public boolean hasBody() {
         return content.length > 0;
     }
@@ -167,6 +184,11 @@ public class Resource {
      */
     public List<Resource> getResources() {
         return resources;
+    }
+
+    public Resource addResource(Resource resource) {
+        resources.add(resource);
+        return this;
     }
 
     /**

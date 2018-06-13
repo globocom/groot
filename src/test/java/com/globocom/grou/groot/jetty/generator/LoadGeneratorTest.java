@@ -160,9 +160,9 @@ public class LoadGeneratorTest {
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
                 .port(connector.getLocalPort())
                 .httpClientTransportBuilder(clientTransportBuilder)
-                .resource(new Resource("/",
-                        new Resource("/1",
-                                new Resource("/11").responseLength(1024))
+                .resource(new Resource("http://localhost/",
+                            new Resource("http://localhost/1",
+                                new Resource("http://localhost/11").responseLength(1024))
                                 .responseLength(10 * 1024))
                         .responseLength(16 * 1024))
                 .resourceListener((Resource.NodeListener)info -> {
@@ -185,7 +185,7 @@ public class LoadGeneratorTest {
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
                 .port(connector.getLocalPort())
                 .httpClientTransportBuilder(clientTransportBuilder)
-                .resource(new Resource(new Resource("/1").responseLength(10 * 1024)))
+                .resource(new Resource(new Resource("http://localhost/1").responseLength(10 * 1024)))
                 .resourceListener((Resource.NodeListener)info -> resources.offer(info.getResource().getPath()))
                 .resourceListener((Resource.TreeListener)info -> {
                     if (info.getResource().getPath() == null) {
@@ -212,7 +212,7 @@ public class LoadGeneratorTest {
                 .warmupIterationsPerThread(2)
                 .iterationsPerThread(3)
                 .resourceRate(5)
-                .resource(new Resource("/").method("POST").responseLength(1024))
+                .resource(new Resource("http://localhost/").method("POST").responseLength(1024))
                 .requestListener(new Request.Listener.Adapter() {
                     @Override
                     public void onBegin(Request request) {
@@ -239,7 +239,7 @@ public class LoadGeneratorTest {
                 .httpClientTransportBuilder(clientTransportBuilder)
                 .iterationsPerThread(3)
                 .resourceRate(5)
-                .resource(new Resource("/").responseLength(1024))
+                .resource(new Resource("http://localhost/").responseLength(1024))
                 .requestListener(new Request.Listener.Adapter() {
                     @Override
                     public void onBegin(Request request) {

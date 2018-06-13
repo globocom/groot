@@ -84,11 +84,12 @@ public class FailFastTest
         throws Exception
     {
         AtomicInteger onFailure = new AtomicInteger( 0 ), onCommit = new AtomicInteger( 0 );
+        int localPort = connector.getLocalPort();
         LoadGenerator.Builder builder = //
             new LoadGenerator.Builder() //
                 .host( "localhost" ) //
-                .port( connector.getLocalPort() ) //
-                .resource( new Resource( "/index.html?fail=5" ) ) //
+                .port(localPort) //
+                .resource( new Resource("http://localhost:" + localPort + "/index.html?fail=5" )) //
                 .warmupIterationsPerThread( 1 ) //
                 .usersPerThread( 1 ) //
                 .threads( 1 ) //
