@@ -39,8 +39,6 @@ public class Resource {
     private final HttpFields requestHeaders = new HttpFields();
     private String method = HttpMethod.GET.asString();
     private URI uri = null;
-    private int requestLength = 0;
-    private int responseLength = 0;
     private byte[] content = new byte[0];
     private int order = Math.abs(new Random().nextInt());
 
@@ -100,19 +98,6 @@ public class Resource {
     }
 
     /**
-     * @param requestLength the request content length
-     * @return this Resource
-     */
-    public Resource requestLength(int requestLength) {
-        this.requestLength = requestLength;
-        return this;
-    }
-
-    public int getRequestLength() {
-        return requestLength;
-    }
-
-    /**
      * Adds a request header.
      *
      * @param name the header name
@@ -137,24 +122,6 @@ public class Resource {
 
     public HttpFields getRequestHeaders() {
         return requestHeaders;
-    }
-
-    /**
-     * <p>Sets the response content length.</p>
-     * <p>The response content length is conveyed as the request header
-     * specified by {@link #RESPONSE_LENGTH}. Servers may ignore it
-     * or honor it, responding with the desired response content length.</p>
-     *
-     * @param responseLength the response content length
-     * @return this Resource
-     */
-    public Resource responseLength(int responseLength) {
-        this.responseLength = responseLength;
-        return this;
-    }
-
-    public int getResponseLength() {
-        return responseLength;
     }
 
     public byte[] content() {
@@ -240,13 +207,11 @@ public class Resource {
 
     @Override
     public String toString() {
-        return String.format("%s@%h{%s %s - %d/%d}",
+        return String.format("%s@%h{%s %s}",
                 getClass().getSimpleName(),
                 hashCode(),
                 getMethod(),
-                getPath(),
-                getRequestLength(),
-                getResponseLength());
+                getPath());
     }
 
     /**

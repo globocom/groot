@@ -93,10 +93,10 @@ public class LoaderService {
         final TestExecutor testExecutor = new TestExecutor(test, durationTimeMillis, monitorService);
         abortService.start(abortNow, testExecutor);
         try {
-//            Executors.newSingleThreadExecutor().submit(() -> {
-//                try { TimeUnit.MILLISECONDS.sleep(durationTimeMillis); } catch (InterruptedException ignore) { }
-//                testExecutor.interrupt();
-//            });
+            Executors.newSingleThreadExecutor().submit(() -> {
+                sleep(durationTimeMillis);
+                testExecutor.interrupt();
+            });
             executorService.submit(testExecutor).get();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
@@ -105,6 +105,10 @@ public class LoaderService {
             if (!(executorService.isShutdown() || executorService.isTerminated())) abortService.stop();
         }
         return stopMonitorAndReset(projectDotTest);
+    }
+
+    private void sleep(long durationTimeMillis) {
+        try { TimeUnit.MILLISECONDS.sleep(durationTimeMillis); } catch (InterruptedException ignore) { }
     }
 
     private void startMonitor(Test test) {

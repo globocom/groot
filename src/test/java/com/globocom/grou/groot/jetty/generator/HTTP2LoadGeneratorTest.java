@@ -60,11 +60,9 @@ public class HTTP2LoadGeneratorTest {
                 if ("/".equals(target)) {
                     jettyRequest.getPushBuilder()
                             .path("/1")
-                            .setHeader(Resource.RESPONSE_LENGTH, String.valueOf(10 * 1024))
                             .push();
                     jettyRequest.getPushBuilder()
                             .path("/2")
-                            .setHeader(Resource.RESPONSE_LENGTH, String.valueOf(32 * 1024))
                             .push();
                 }
                 super.handle(target, jettyRequest, request, response);
@@ -80,7 +78,7 @@ public class HTTP2LoadGeneratorTest {
                 .port(localPort)
                 .resource(new Resource("http://localhost:" + localPort + "/",
                         new Resource("http://localhost:" + localPort + "/1"),
-                        new Resource("http://localhost:" + localPort + "/2")).responseLength(128 * 1024))
+                        new Resource("http://localhost:" + localPort + "/2")))
                 .requestListener(new Request.Listener.Adapter() {
                     @Override
                     public void onBegin(Request request) {

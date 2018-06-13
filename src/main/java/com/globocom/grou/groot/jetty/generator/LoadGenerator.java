@@ -219,13 +219,13 @@ public class LoadGenerator extends ContainerLifeCycle {
                     sendResourceTree(client, config.getResource(), warmup, c);
                     --batch;
 
-                    if (lastIteration || ranEnough || process.isCompletedExceptionally()) {
+                    if (interrupt || lastIteration || ranEnough || process.isCompletedExceptionally()) {
                         break send;
                     }
-                    if (interrupt) {
-                        callback.failed(new InterruptedException());
-                        break send;
-                    }
+//                    if (interrupt) {
+//                        callback.failed(new InterruptedException());
+//                        break send;
+//                    }
 
                     if (++clientIndex == clients.length) {
                         clientIndex = 0;
@@ -276,10 +276,6 @@ public class LoadGenerator extends ContainerLifeCycle {
                 .method(method)
                 .path(resource.getPath());
         request.getHeaders().addAll(requestHeaders);
-
-        if (resource.getResponseLength() > 0) {
-            request.header(Resource.RESPONSE_LENGTH, Integer.toString(resource.getResponseLength()));
-        }
 
         if (resource.hasBody()) {
             if (contentType == null || contentType.isEmpty()) {

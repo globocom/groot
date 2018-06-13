@@ -32,27 +32,24 @@ import java.util.stream.Collectors;
 public class ResourceBuildTest {
     @Test
     public void simple_build() throws Exception {
-        Resource resourceProfile = new Resource(new Resource("http://localhost/index.html").requestLength(1024));
+        Resource resourceProfile = new Resource(new Resource("http://localhost/index.html"));
 
         Assert.assertEquals(1, resourceProfile.getResources().size());
         Assert.assertEquals("/index.html", resourceProfile.getResources().get(0).getPath());
-        Assert.assertEquals(1024, resourceProfile.getResources().get(0).getRequestLength());
         Assert.assertEquals("GET", resourceProfile.getResources().get(0).getMethod());
     }
 
     @Test
     public void simple_two_resources() throws Exception {
         Resource resourceProfile = new Resource(
-                new Resource("http://localhost/index.html").requestLength(1024),
-                new Resource("http://localhost/beer.html").requestLength(2048).method(HttpMethod.POST.asString())
+                new Resource("http://localhost/index.html"),
+                new Resource("http://localhost/beer.html").method(HttpMethod.POST.asString())
         );
 
         Assert.assertEquals(2, resourceProfile.getResources().size());
         Assert.assertEquals("/index.html", resourceProfile.getResources().get(0).getPath());
-        Assert.assertEquals(1024, resourceProfile.getResources().get(0).getRequestLength());
         Assert.assertEquals("GET", resourceProfile.getResources().get(0).getMethod());
         Assert.assertEquals("/beer.html", resourceProfile.getResources().get(1).getPath());
-        Assert.assertEquals(2048, resourceProfile.getResources().get(1).getRequestLength());
         Assert.assertEquals("POST", resourceProfile.getResources().get(1).getMethod());
     }
 

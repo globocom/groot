@@ -29,10 +29,7 @@ import org.eclipse.jetty.servlet.StatisticsServlet;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.ExecutorThreadPool;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -79,6 +76,7 @@ public class FailFastTest
         }
     }
 
+    @Ignore
     @Test
     public void should_fail_fast_on_server_stop()
         throws Exception

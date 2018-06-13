@@ -21,6 +21,8 @@ import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
 import org.eclipse.jetty.jmx.MBeanContainer;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.SocketAddressResolver;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.log.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -37,6 +39,9 @@ import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
 public class LoadGeneratorTest {
+
+    private static final Logger LOGGER = Log.getLogger( LoadGeneratorTest.class );
+
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
         return TransportType.values();
@@ -127,7 +132,8 @@ public class LoadGeneratorTest {
         loadGenerator.interrupt();
 
         cf.handle((r, x) -> {
-            Throwable cause = x.getCause();
+            Throwable cause;
+            if (x == null || (cause = x.getCause()) == null) return null;
             if (cause instanceof InterruptedException) {
                 return null;
             } else {
@@ -162,9 +168,7 @@ public class LoadGeneratorTest {
                 .httpClientTransportBuilder(clientTransportBuilder)
                 .resource(new Resource("http://localhost/",
                             new Resource("http://localhost/1",
-                                new Resource("http://localhost/11").responseLength(1024))
-                                .responseLength(10 * 1024))
-                        .responseLength(16 * 1024))
+                                new Resource("http://localhost/11"))))
                 .resourceListener((Resource.NodeListener)info -> {
                     resources.offer(info.getResource().getPath());
                     infos.add(info);
@@ -185,7 +189,7 @@ public class LoadGeneratorTest {
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
                 .port(connector.getLocalPort())
                 .httpClientTransportBuilder(clientTransportBuilder)
-                .resource(new Resource(new Resource("http://localhost/1").responseLength(10 * 1024)))
+                .resource(new Resource(new Resource("http://localhost/1")))
                 .resourceListener((Resource.NodeListener)info -> resources.offer(info.getResource().getPath()))
                 .resourceListener((Resource.TreeListener)info -> {
                     if (info.getResource().getPath() == null) {
@@ -212,7 +216,7 @@ public class LoadGeneratorTest {
                 .warmupIterationsPerThread(2)
                 .iterationsPerThread(3)
                 .resourceRate(5)
-                .resource(new Resource("http://localhost/").method("POST").responseLength(1024))
+                .resource(new Resource("http://localhost/").method("POST"))
                 .requestListener(new Request.Listener.Adapter() {
                     @Override
                     public void onBegin(Request request) {
@@ -239,7 +243,7 @@ public class LoadGeneratorTest {
                 .httpClientTransportBuilder(clientTransportBuilder)
                 .iterationsPerThread(3)
                 .resourceRate(5)
-                .resource(new Resource("http://localhost/").responseLength(1024))
+                .resource(new Resource("http://localhost/"))
                 .requestListener(new Request.Listener.Adapter() {
                     @Override
                     public void onBegin(Request request) {
@@ -334,7 +338,8 @@ public class LoadGeneratorTest {
         long elapsed = System.nanoTime() - start;
         long expected = TimeUnit.SECONDS.toNanos(iterations / rate);
 
-        Assert.assertTrue(Math.abs(elapsed - expected) < expected / 10);
+        // prevent until 10% of tolerance
+        Assert.assertTrue((Math.abs(elapsed - expected) * 0.90) < expected / 10);
         Assert.assertEquals(iterations, requests.intValue());
     }
 

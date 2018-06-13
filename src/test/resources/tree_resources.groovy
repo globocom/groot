@@ -18,5 +18,5 @@ return new Resource("http://localhost/index.html",
         new Resource("http://localhost/not_here.html"),
         new Resource("http://localhost/hello?name=foo"),
         new Resource("http://localhost/hello?name=foo"),
-        new Resource("http://localhost/upload").method("PUT").requestLength(8192)
+        new Resource("http://localhost/upload").method("PUT")
 )
