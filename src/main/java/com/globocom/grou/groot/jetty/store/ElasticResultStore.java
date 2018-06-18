@@ -46,10 +46,7 @@ import java.util.*;
 
 import static com.globocom.grou.groot.LogUtils.format;
 
-public class ElasticResultStore
-    extends AbstractResultStore
-    implements ResultStore
-{
+public class ElasticResultStore extends AbstractResultStore implements ResultStore {
 
     private final static Log LOGGER = LogFactory.getLog(ElasticResultStore.class);
 
@@ -71,11 +68,8 @@ public class ElasticResultStore
 
     private int port;
 
-    static
-    {
-
-        Configuration.setDefaults( new Configuration.Defaults()
-        {
+    static {
+        Configuration.setDefaults( new Configuration.Defaults() {
 
             private final JsonProvider jsonProvider = new JacksonJsonProvider(
                 new ObjectMapper().configure( DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false ) );
@@ -105,8 +99,7 @@ public class ElasticResultStore
 
 
     @Override
-    public void initialize( Map<String, String> setupData )
-    {
+    public void initialize( Map<String, String> setupData ) {
         host = getSetupValue( setupData, HOST_KEY, "localhost" );
         port = getSetupValue( setupData, PORT_KEY, 9200 );
         scheme = getSetupValue( setupData, SCHEME_KEY, "http" );
@@ -114,8 +107,7 @@ public class ElasticResultStore
         password = getSetupValue( setupData, PWD_KEY, null );
 
         this.httpClient = new HttpClient( new SslContextFactory( true ) );
-        try
-        {
+        try {
             if ( StringUtils.isNotEmpty( username ) )
             {
                 URI uri = new URI( scheme + "://" + host + ":" + port );
@@ -124,19 +116,16 @@ public class ElasticResultStore
             }
             this.httpClient.start();
             LOGGER.debug(format("elastic http client initialize to {}:{}", host, port));
-        }
-        catch ( Exception e )
-        {
+
+        } catch ( Exception e ) {
             LOGGER.warn( e );
             throw new RuntimeException( "Cannot start http client: " + e.getMessage(), e );
         }
     }
 
     @Override
-    public void save( LoadResult loadResult )
-    {
-        try
-        {
+    public void save( LoadResult loadResult ) {
+        try {
             StringWriter stringWriter = new StringWriter();
             new ObjectMapper().writeValue( stringWriter, loadResult );
             LOGGER.debug(format("save loadResult with UUID {}", loadResult.getUuid()));
@@ -148,60 +137,45 @@ public class ElasticResultStore
                 .header( "Content-Type", "application/json" ) //
                 .send();
 
-            if ( contentResponse.getStatus() != HttpStatus.CREATED_201 )
-            {
+            if ( contentResponse.getStatus() != HttpStatus.CREATED_201 ) {
                 LOGGER.info(format("Cannot record load result: {}", contentResponse.getContentAsString()));
-            }
-            else
-            {
+            } else {
                 LOGGER.info( "Load result recorded" );
             }
-        }
-        catch ( Exception e )
-        {
+        } catch ( Exception e ) {
             LOGGER.warn( "Cannot save result:" + e.getMessage(), e );
             //throw new RuntimeException( e.getMessage(), e );
         }
     }
 
     @Override
-    public void remove( LoadResult loadResult )
-    {
-        try
-        {
+    public void remove( LoadResult loadResult ) {
+        try {
             ContentResponse contentResponse = httpClient.newRequest( host, port ) //
                 .scheme( scheme ) //
                 .path( "/loadresult/result/" + loadResult.getUuid() ) //
                 .method( HttpMethod.DELETE ) //
                 .send();
-            if ( contentResponse.getStatus() != HttpStatus.OK_200 )
-            {
+            if ( contentResponse.getStatus() != HttpStatus.OK_200 ) {
                 LOGGER.info(format("Cannot delete load result: {}", contentResponse.getContentAsString()));
-            }
-            else
-            {
+            } else {
                 LOGGER.info( "Load result deleted" );
             }
-        }
-        catch ( Exception e )
-        {
+        } catch ( Exception e ) {
             LOGGER.warn( e.getMessage(), e );
             throw new RuntimeException( e.getMessage(), e );
         }
     }
 
     @Override
-    public LoadResult get( String loadResultId )
-    {
-        try
-        {
+    public LoadResult get( String loadResultId ) {
+        try {
             ContentResponse contentResponse = httpClient.newRequest( host, port ) //
                 .scheme( scheme ) //
                 .path( "/loadresult/result/_search/" + loadResultId ) //
                 .method( HttpMethod.GET ) //
                 .send();
-            if ( contentResponse.getStatus() != HttpStatus.OK_200 )
-            {
+            if ( contentResponse.getStatus() != HttpStatus.OK_200 ) {
                 LOGGER.info(format("Cannot get load result: {}", contentResponse.getContentAsString()));
                 return null;
             }
@@ -211,18 +185,14 @@ public class ElasticResultStore
             LOGGER.debug(format("result {}", loadResults));
             return loadResults == null || loadResults.isEmpty() ? null : loadResults.get( 0 );
 
-
-        }
-        catch ( Exception e )
-        {
+        } catch ( Exception e ) {
             LOGGER.warn( e.getMessage(), e );
             throw new RuntimeException( e.getMessage(), e );
         }
     }
 
     public List<LoadResult> searchResultsByExternalId(String anExternalId) {
-        try
-        {
+        try {
 
 
             Map<String, Object> json = new HashMap<>();
@@ -260,21 +230,17 @@ public class ElasticResultStore
                 .path( "/loadresult/result/_search?sort=timestamp" ) //
                 .content( new StringContentProvider( stringWriter.toString() ) ) //
                 .send();
-            List<LoadResult> loadResults = map( contentResponse );
-            return loadResults;
+            return map( contentResponse );
         }
-        catch ( Exception e )
-        {
+        catch ( Exception e ) {
             LOGGER.warn( e.getMessage(), e );
             throw new RuntimeException( e.getMessage(), e );
         }
     }
 
     @Override
-    public List<LoadResult> get( List<String> loadResultIds )
-    {
-        try
-        {
+    public List<LoadResult> get( List<String> loadResultIds ) {
+        try {
             //     we need this type of Json
             //        {
             //            "query": {
@@ -301,20 +267,16 @@ public class ElasticResultStore
                 .path( "/loadresult/result/_search?sort=timestamp" ) //
                 .content( new StringContentProvider( stringWriter.toString() ) ) //
                 .send();
-            List<LoadResult> loadResults = map( contentResponse );
-            return loadResults;
-        }
-        catch ( Exception e )
-        {
+            return map( contentResponse );
+
+        } catch ( Exception e ) {
             LOGGER.warn( e.getMessage(), e );
             throw new RuntimeException( e.getMessage(), e );
         }
     }
 
-    public String search( String searchPost )
-    {
-        try
-        {
+    public String search( String searchPost ) {
+        try {
             ContentResponse contentResponse = getHttpClient() //
                 .newRequest( host, port ) //
                 .scheme( scheme ) //
@@ -324,9 +286,7 @@ public class ElasticResultStore
                 .content( new StringContentProvider( searchPost ) ) //
                 .send();
             return contentResponse.getContentAsString();
-        }
-        catch ( Exception e )
-        {
+        } catch ( Exception e ) {
             LOGGER.warn( e.getMessage(), e );
             throw new RuntimeException( e.getMessage(), e );
         }
@@ -339,17 +299,14 @@ public class ElasticResultStore
     }
 
     @Override
-    public List<LoadResult> findAll()
-    {
-        try
-        {
+    public List<LoadResult> findAll() {
+        try {
             ContentResponse contentResponse = httpClient.newRequest( host, port ) //
                 .scheme( scheme ) //
                 .path( "/loadresult/result/_search?pretty" ) //
                 .method( HttpMethod.GET ) //
                 .send();
-            if ( contentResponse.getStatus() != HttpStatus.OK_200 )
-            {
+            if ( contentResponse.getStatus() != HttpStatus.OK_200 ) {
                 LOGGER.info(format("Cannot get load result: {}", contentResponse.getContentAsString()));
                 return Collections.emptyList();
             }
@@ -359,42 +316,31 @@ public class ElasticResultStore
             LOGGER.debug(format("result {}", loadResults));
             return loadResults;
 
-
-        }
-        catch ( Exception e )
-        {
+        } catch ( Exception e ) {
             LOGGER.warn( e.getMessage(), e );
             throw new RuntimeException( e.getMessage(), e );
         }
     }
 
     @Override
-    public void close()
-        throws IOException
-    {
-        try
-        {
+    public void close() throws IOException {
+        try {
             this.httpClient.stop();
-        }
-        catch ( Exception e )
-        {
+        } catch ( Exception e ) {
             throw new IOException( e.getMessage(), e );
         }
     }
 
-    public static List<LoadResult> map( ContentResponse contentResponse )
-    {
+    public static List<LoadResult> map( ContentResponse contentResponse ) {
         return map( Collections.singletonList( contentResponse ) );
     }
 
-    public static List<LoadResult> map( List<ContentResponse> contentResponses )
-    {
+    public static List<LoadResult> map( List<ContentResponse> contentResponses ) {
         List<LoadResult> results = new ArrayList<>();
-        contentResponses.stream().forEach(
-            contentResponse -> results.addAll( JsonPath.parse( contentResponse.getContentAsString() ) //
-                                                   .read( "$.hits.hits[*]._source", new TypeRef<List<LoadResult>>()
-                                                   {
-                                                   } ) ) );
+        contentResponses.forEach(
+            contentResponse -> results.addAll(
+                    JsonPath.parse(contentResponse.getContentAsString())
+                            .read( "$.hits.hits[*]._source", new TypeRef<List<LoadResult>>(){})));
         return results;
     }
 

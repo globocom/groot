@@ -228,7 +228,6 @@ public class CsvResultStore
         {
 
             Stream<String[]> stream = Stream.generate( reader.iterator()::next );
-
             if ( predicates != null )
             {
                 for ( Predicate predicate : predicates )
@@ -236,7 +235,7 @@ public class CsvResultStore
                     stream = stream.filter( predicate );
                 }
             }
-            return stream.map( strings -> fromCsv( strings ) ) //
+            return stream.map(this::fromCsv) //
                 .collect( Collectors.toList() );
 
         }

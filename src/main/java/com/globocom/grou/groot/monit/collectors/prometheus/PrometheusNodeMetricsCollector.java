@@ -32,11 +32,11 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
     private String nodeUrl = "";
 
-    private final Map<String, Double> lastCpuTotalMetric = new HashMap<String, Double>(){{
-        put("idle",    -1.0);
-        put("iowait",  -1.0);
-        put("steal",   -1.0);
-        put("irq",     -1.0);
+    private final Map<String, Double> lastCpuTotalMetric = new HashMap<>() {{
+        put("idle", -1.0);
+        put("iowait", -1.0);
+        put("steal", -1.0);
+        put("irq", -1.0);
         put("softirq", -1.0);
     }};
 

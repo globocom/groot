@@ -48,7 +48,8 @@ public class LoadConfig
 
 
     public enum Type {
-        LOADER,PROBE;
+        LOADER,
+        PROBE
     }
 
     public LoadConfig()

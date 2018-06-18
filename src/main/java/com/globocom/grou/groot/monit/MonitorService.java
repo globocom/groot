@@ -25,8 +25,6 @@ import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
 import io.galeb.statsd.StatsDClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.exception.TooManyConnectionsException;
-import org.asynchttpclient.exception.TooManyConnectionsPerHostException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -160,8 +158,6 @@ public class MonitorService {
 
     public void fail(final Throwable t, long start) {
         boolean isInternalProblem = t instanceof EOFException ||
-                                    t instanceof TooManyConnectionsException ||
-                                    t instanceof TooManyConnectionsPerHostException ||
                                     t.getMessage().contains("executor not accepting a task");
         if (!isInternalProblem) {
             String messageException = t.getMessage();
@@ -209,7 +205,7 @@ public class MonitorService {
     }
 
     @Scheduled(fixedRate = 1000)
-    public void sendMetrics() throws IOException {
+    public void sendMetrics() {
         synchronized (lock) {
             if (test.get() != null) {
                 int tcpConn = SystemInfo.totalSocketsTcpEstablished();

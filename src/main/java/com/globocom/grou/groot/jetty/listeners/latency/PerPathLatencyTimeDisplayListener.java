@@ -25,10 +25,7 @@ import org.HdrHistogram.Recorder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,7 +62,7 @@ public class PerPathLatencyTimeDisplayListener
               initial, //
               delay,  //
               timeUnit, //
-              Arrays.asList(new PrintValueListener()) );
+                Collections.singletonList(new PrintValueListener()));
     }
 
     public PerPathLatencyTimeDisplayListener( long lowestDiscernibleValue, long highestTrackableValue,

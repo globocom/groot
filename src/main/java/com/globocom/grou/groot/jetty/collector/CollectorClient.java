@@ -35,8 +35,7 @@ import static com.globocom.grou.groot.LogUtils.format;
 /**
  *
  */
-public class CollectorClient
-{
+public class CollectorClient {
 
     private static final Log LOGGER = LogFactory.getLog(CollectorClient.class);
 
@@ -56,9 +55,8 @@ public class CollectorClient
 
     private List<CollectorResultHandler> collectorResultHandlers;
 
-    public CollectorClient( List<String> addresses, long scheduleDelayInMillis,
-                            List<CollectorResultHandler> collectorResultHandlers )
-    {
+    public CollectorClient(List<String> addresses, long scheduleDelayInMillis,
+                           List<CollectorResultHandler> collectorResultHandlers) {
         this.addresses = addresses;
         this.scheduleDelayInMillis = scheduleDelayInMillis;
         this.httpClients = new CopyOnWriteArrayList<>( );
@@ -66,14 +64,12 @@ public class CollectorClient
     }
 
 
-    public CollectorClient start()
-        throws Exception
-    {
+    public CollectorClient start() {
 
         // at least a default one
         if (this.collectorResultHandlers.isEmpty())
         {
-            this.collectorResultHandlers = Arrays.asList( new LoggerCollectorResultHandler() );
+            this.collectorResultHandlers = Collections.singletonList(new LoggerCollectorResultHandler());
         }
 
         this.scheduledExecutorService = Executors.newScheduledThreadPool( addresses.size() );
@@ -124,9 +120,7 @@ public class CollectorClient
         return this;
     }
 
-    public CollectorClient stop()
-        throws Exception
-    {
+    public CollectorClient stop() throws Exception {
         for ( HttpClient httpClient : httpClients )
         {
             httpClient.stop();
@@ -139,53 +133,41 @@ public class CollectorClient
     //  Builder
     //--------------------------------------------------------------
 
-    public static class Builder
-    {
+    public static class Builder {
         private List<String> addresses = new ArrayList<>();
 
         private long scheduleDelayInMillis = 5000;
 
         private List<CollectorResultHandler> collectorResultHandlers;
 
-        public Builder()
-        {
-            // no op
-        }
-
-        public Builder addAddress( String address )
-        {
+        public Builder addAddress( String address ) {
             this.addresses.add( address );
             return this;
         }
 
-        public Builder addAddresses( String... addresses )
-        {
+        public Builder addAddresses( String... addresses ) {
             this.addresses.addAll( Arrays.asList( addresses ) );
             return this;
         }
 
-        public Builder addAddresses( List<String> addresses )
-        {
+        public Builder addAddresses( List<String> addresses ) {
             this.addresses.addAll( addresses );
             return this;
         }
 
 
-        public Builder scheduleDelayInMillis( long scheduleDelayInMillis )
-        {
+        public Builder scheduleDelayInMillis( long scheduleDelayInMillis ) {
             this.scheduleDelayInMillis = scheduleDelayInMillis;
             return this;
         }
 
-        public Builder collectorResultHandlers( List<CollectorResultHandler> collectorResultHandlers )
-        {
+        public Builder collectorResultHandlers( List<CollectorResultHandler> collectorResultHandlers ) {
             this.collectorResultHandlers = collectorResultHandlers;
             return this;
         }
 
 
-        public CollectorClient build()
-        {
+        public CollectorClient build() {
             if ( this.addresses.isEmpty() )
             {
                 throw new IllegalArgumentException( "addresses are mandatory" );

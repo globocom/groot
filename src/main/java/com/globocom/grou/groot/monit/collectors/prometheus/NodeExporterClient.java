@@ -67,7 +67,7 @@ public class NodeExporterClient {
             final InputStream body = new InputStream() {
 
                 @Override
-                public int read() throws IOException {
+                public int read() {
                     if (!buf.hasRemaining()) {
                         return -1;
                     }
@@ -75,7 +75,7 @@ public class NodeExporterClient {
                 }
 
                 @Override
-                public int read(byte[] bytes, int off, int len) throws IOException {
+                public int read(byte[] bytes, int off, int len) {
                     if (!buf.hasRemaining()) {
                         return -1;
                     }

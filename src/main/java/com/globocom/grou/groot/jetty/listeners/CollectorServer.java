@@ -43,9 +43,7 @@ import static com.globocom.grou.groot.LogUtils.format;
 /**
  *
  */
-public class CollectorServer
-    implements Resource.NodeListener
-{
+public class CollectorServer implements Resource.NodeListener {
 
     private static final Log LOGGER = LogFactory.getLog(CollectorServer.class);
 
@@ -67,9 +65,7 @@ public class CollectorServer
         return port;
     }
 
-    public CollectorServer start()
-        throws Exception
-    {
+    public CollectorServer start() throws Exception {
 
         QueuedThreadPool serverThreads = new QueuedThreadPool();
         serverThreads.setName( "server" );
@@ -97,23 +93,18 @@ public class CollectorServer
 
     }
 
-    protected ServerConnector newServerConnector( Server server )
-    {
+    protected ServerConnector newServerConnector( Server server ) {
         // FIXME support more protcols!!
         ConnectionFactory connectionFactory = new HttpConnectionFactory( new HttpConfiguration() );
         return new ServerConnector( server, connectionFactory );
     }
 
-    public void stop()
-        throws Exception
-    {
+    public void stop() throws Exception {
         server.stop();
     }
 
 
-    public static class CollectorServlet
-        extends HttpServlet
-    {
+    public static class CollectorServlet extends HttpServlet {
 
         private static final Log LOGGER = LogFactory.getLog(CollectorServlet.class);
 
@@ -125,9 +116,7 @@ public class CollectorServer
         }
 
         @Override
-        protected void doGet( HttpServletRequest req, HttpServletResponse resp )
-            throws ServletException, IOException
-        {
+        protected void doGet( HttpServletRequest req, HttpServletResponse resp ) throws IOException {
             String pathInfo = req.getPathInfo();
             LOGGER.debug(format("doGet: {}", pathInfo));
 
@@ -141,15 +130,13 @@ public class CollectorServer
                     infos.put( entry.getKey(), new CollectorInformations( entry.getValue().getIntervalHistogram()) );
                 }
                 mapper.writeValue( resp.getOutputStream(), infos );
-                return;
             }
 
         }
     }
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
+    public void onResourceNode( Resource.Info info ) {
         String path = info.getResource().getPath();
 
         Recorder recorder = recorderPerPath.get( path );

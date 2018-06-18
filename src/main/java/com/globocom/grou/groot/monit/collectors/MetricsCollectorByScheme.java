@@ -20,6 +20,7 @@ import com.globocom.grou.groot.monit.collectors.prometheus.PrometheusNodeMetrics
 import com.globocom.grou.groot.monit.collectors.snmp.SnmpMetricsCollector;
 import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 
 @SuppressWarnings("unused")
@@ -34,8 +35,8 @@ public enum MetricsCollectorByScheme {
         this.targetCollectorClass = clazz;
     }
 
-    public MetricsCollector collect(final URI uri) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
-        return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).newInstance()).setUri(uri);
+    public MetricsCollector collect(final URI uri) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+        return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).getDeclaredConstructor().newInstance()).setUri(uri);
     }
 
 }
