@@ -19,16 +19,17 @@ package com.globocom.grou.groot.jetty.listeners;
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
-
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.globocom.grou.groot.LogUtils.format;
 
 /**
  * This listener will record time between start of send and onCommit event
@@ -39,7 +40,7 @@ public class QpsListenerDisplay
     implements Request.Listener, LoadGenerator.EndListener
 {
 
-    private static final Logger LOGGER = Log.getLogger( QpsListenerDisplay.class );
+    private static final Log LOGGER = LogFactory.getLog(QpsListenerDisplay.class);
 
     private ScheduledExecutorService scheduledExecutorService;
 
@@ -90,7 +91,7 @@ public class QpsListenerDisplay
     public void onFailure( Request request, Throwable failure )
     {
         // gcloud log doesn't show stack trace to turn it to a String
-        LOGGER.debug( "fail to send request {}", Utils.toString( failure ) );
+        LOGGER.debug(format("fail to send request {}", Utils.toString( failure )));
     }
 
     private static class ValueDisplayRunnable

@@ -24,8 +24,8 @@ import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.PropertiesUtils;
 import com.globocom.grou.groot.loader.LoaderService;
 import com.globocom.grou.groot.monit.SystemInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.MessageListener;
@@ -40,7 +40,7 @@ import java.util.Collections;
 @Service
 public class TestListenerService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestListenerService.class);
+    private static final Log LOGGER = LogFactory.getLog(TestListenerService.class);
 
     private static final String CALLBACK_QUEUE = "grou:test_callback";
     public static final String TEST_QUEUE = "grou:test_queue";

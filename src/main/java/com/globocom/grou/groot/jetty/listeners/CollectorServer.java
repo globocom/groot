@@ -20,12 +20,12 @@ package com.globocom.grou.groot.jetty.listeners;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.jetty.generator.Resource;
 import org.HdrHistogram.Recorder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.StringUtil;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.servlet.ServletException;
@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 /**
  *
  */
@@ -45,7 +47,7 @@ public class CollectorServer
     implements Resource.NodeListener
 {
 
-    private static final Logger LOGGER = Log.getLogger( CollectorServer.class );
+    private static final Log LOGGER = LogFactory.getLog(CollectorServer.class);
 
     private int port;
 
@@ -89,7 +91,7 @@ public class CollectorServer
 
         this.port = connector.getLocalPort();
 
-        LOGGER.info( "CollectorServer started on port {}", this.port );
+        LOGGER.info(format("CollectorServer started on port {}", this.port));
 
         return this;
 
@@ -113,7 +115,7 @@ public class CollectorServer
         extends HttpServlet
     {
 
-        private static final Logger LOGGER = Log.getLogger( CollectorServlet.class );
+        private static final Log LOGGER = LogFactory.getLog(CollectorServlet.class);
 
         private Map<String, Recorder> recorderPerPath;
 
@@ -127,7 +129,7 @@ public class CollectorServer
             throws ServletException, IOException
         {
             String pathInfo = req.getPathInfo();
-            LOGGER.debug( "doGet: {}", pathInfo );
+            LOGGER.debug(format("doGet: {}", pathInfo));
 
             ObjectMapper mapper = new ObjectMapper();
 
@@ -167,7 +169,7 @@ public class CollectorServer
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "skip error recording time {}, {}", time, e.getMessage() );
+            LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
 
 

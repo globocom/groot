@@ -19,14 +19,16 @@ package com.globocom.grou.groot.jetty.listeners.report;
 import com.globocom.grou.groot.jetty.generator.Resource;
 import com.globocom.grou.groot.jetty.listeners.HistogramConstants;
 import org.HdrHistogram.Recorder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
+
+import static com.globocom.grou.groot.LogUtils.format;
 
 /**
  * This will collect a global histogram for all response and latency times
@@ -36,7 +38,7 @@ public class GlobalSummaryListener
     implements Resource.NodeListener
 {
 
-    private static final Logger LOGGER = Log.getLogger( GlobalSummaryListener.class );
+    private static final Log LOGGER = LogFactory.getLog(GlobalSummaryListener.class);
 
     private Recorder responseHistogram, latencyHistogram;
 
@@ -115,7 +117,7 @@ public class GlobalSummaryListener
         {
             if ( LOGGER.isDebugEnabled() )
             {
-                LOGGER.debug( "exclude http status: {}", info.getStatus() );
+                LOGGER.debug(format("exclude http status: {}", info.getStatus()));
             }
             return;
         }
@@ -124,29 +126,29 @@ public class GlobalSummaryListener
             long latencyTime = info.getLatencyTime() - info.getRequestTime();
             if ( LOGGER.isDebugEnabled() )
             {
-                LOGGER.debug( "latencyTime: {} resource: {}, status: {}", //
+                LOGGER.debug(format("latencyTime: {} resource: {}, status: {}", //
                               TimeUnit.MILLISECONDS.convert( latencyTime, TimeUnit.NANOSECONDS ), //
                               info.getResource().getPath(), //
-                              info.getStatus() );
+                              info.getStatus()));
             }
             latencyHistogram.recordValue( latencyTime );
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "fail to record latency value: {}", info.getLatencyTime() );
+            LOGGER.warn(format("fail to record latency value: {}", info.getLatencyTime()));
         }
         try
         {
             long responseTime = info.getResponseTime() - info.getRequestTime();
-            LOGGER.debug( "responseTime: {} resource: {}, status: {}", //
+            LOGGER.debug(format("responseTime: {} resource: {}, status: {}", //
                           TimeUnit.MILLISECONDS.convert( responseTime, TimeUnit.NANOSECONDS ), //
                           info.getResource().getPath(), //
-                          info.getStatus() );
+                          info.getStatus()));
             responseHistogram.recordValue( responseTime );
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "fail to record response time value: {}", info.getLatencyTime() );
+            LOGGER.warn(format("fail to record response time value: {}", info.getLatencyTime()));
         }
     }
 

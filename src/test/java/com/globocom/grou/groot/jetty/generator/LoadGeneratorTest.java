@@ -16,13 +16,13 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
 import org.eclipse.jetty.jmx.MBeanContainer;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.SocketAddressResolver;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 @RunWith(Parameterized.class)
 public class LoadGeneratorTest {
 
-    private static final Logger LOGGER = Log.getLogger( LoadGeneratorTest.class );
+    private static final Log LOGGER = LogFactory.getLog(LoadGeneratorTest.class);
 
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {

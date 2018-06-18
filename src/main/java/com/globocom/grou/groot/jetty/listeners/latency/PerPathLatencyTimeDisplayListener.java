@@ -22,8 +22,8 @@ import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.HistogramConstants;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 /**
  *
  */
@@ -41,7 +43,7 @@ public class PerPathLatencyTimeDisplayListener
     implements Resource.NodeListener, LoadGenerator.BeginListener, LoadGenerator.EndListener
 {
 
-    private static final Logger LOGGER = Log.getLogger( PerPathLatencyTimeDisplayListener.class );
+    private static final Log LOGGER = LogFactory.getLog(PerPathLatencyTimeDisplayListener.class);
 
     private volatile Map<String, Recorder> recorderPerPath;
 
@@ -157,7 +159,7 @@ public class PerPathLatencyTimeDisplayListener
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "skip error recording time {}, {}", time, e.getMessage() );
+            LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
     }
 

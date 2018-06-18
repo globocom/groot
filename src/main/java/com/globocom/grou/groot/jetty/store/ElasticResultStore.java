@@ -28,6 +28,8 @@ import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.AuthenticationStore;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -35,8 +37,6 @@ import org.eclipse.jetty.client.util.BasicAuthentication;
 import org.eclipse.jetty.client.util.StringContentProvider;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import java.io.IOException;
@@ -44,12 +44,14 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.util.*;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 public class ElasticResultStore
     extends AbstractResultStore
     implements ResultStore
 {
 
-    private final static Logger LOGGER = Log.getLogger( ElasticResultStore.class );
+    private final static Log LOGGER = LogFactory.getLog(ElasticResultStore.class);
 
     public static final String ID = "elastic";
 
@@ -121,7 +123,7 @@ public class ElasticResultStore
                 auth.addAuthenticationResult( new BasicAuthentication.BasicResult( uri, username, password ) );
             }
             this.httpClient.start();
-            LOGGER.debug( "elastic http client initialize to {}:{}", host, port );
+            LOGGER.debug(format("elastic http client initialize to {}:{}", host, port));
         }
         catch ( Exception e )
         {
@@ -137,7 +139,7 @@ public class ElasticResultStore
         {
             StringWriter stringWriter = new StringWriter();
             new ObjectMapper().writeValue( stringWriter, loadResult );
-            LOGGER.debug( "save loadResult with UUID {}", loadResult.getUuid() );
+            LOGGER.debug(format("save loadResult with UUID {}", loadResult.getUuid()));
 
             ContentResponse contentResponse = httpClient.newRequest( host, port ).scheme( scheme ) //
                 .path( "/loadresult/result/" + loadResult.getUuid() ) //
@@ -148,7 +150,7 @@ public class ElasticResultStore
 
             if ( contentResponse.getStatus() != HttpStatus.CREATED_201 )
             {
-                LOGGER.info( "Cannot record load result: {}", contentResponse.getContentAsString() );
+                LOGGER.info(format("Cannot record load result: {}", contentResponse.getContentAsString()));
             }
             else
             {
@@ -174,7 +176,7 @@ public class ElasticResultStore
                 .send();
             if ( contentResponse.getStatus() != HttpStatus.OK_200 )
             {
-                LOGGER.info( "Cannot delete load result: {}", contentResponse.getContentAsString() );
+                LOGGER.info(format("Cannot delete load result: {}", contentResponse.getContentAsString()));
             }
             else
             {
@@ -200,13 +202,13 @@ public class ElasticResultStore
                 .send();
             if ( contentResponse.getStatus() != HttpStatus.OK_200 )
             {
-                LOGGER.info( "Cannot get load result: {}", contentResponse.getContentAsString() );
+                LOGGER.info(format("Cannot get load result: {}", contentResponse.getContentAsString()));
                 return null;
             }
 
             List<LoadResult> loadResults = map( contentResponse );
 
-            LOGGER.debug( "result {}", loadResults );
+            LOGGER.debug(format("result {}", loadResults));
             return loadResults == null || loadResults.isEmpty() ? null : loadResults.get( 0 );
 
 
@@ -348,13 +350,13 @@ public class ElasticResultStore
                 .send();
             if ( contentResponse.getStatus() != HttpStatus.OK_200 )
             {
-                LOGGER.info( "Cannot get load result: {}", contentResponse.getContentAsString() );
+                LOGGER.info(format("Cannot get load result: {}", contentResponse.getContentAsString()));
                 return Collections.emptyList();
             }
 
             List<LoadResult> loadResults = map( contentResponse );
 
-            LOGGER.debug( "result {}", loadResults );
+            LOGGER.debug(format("result {}", loadResults));
             return loadResults;
 
 

@@ -19,10 +19,10 @@ package com.globocom.grou.groot.jetty.collector;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -30,13 +30,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 /**
  *
  */
 public class CollectorClient
 {
 
-    private static final Logger LOGGER = Log.getLogger( CollectorClient.class );
+    private static final Log LOGGER = LogFactory.getLog(CollectorClient.class);
 
     /**
      * addresses to collect informations must in the form of 127.0.0.1:8080 (ip:port)
@@ -95,9 +97,9 @@ public class CollectorClient
                             .newRequest( "http://" + address + "/collector/response-times" ) //
                             .send();
 
-                        LOGGER.debug( "response time per path status: {}, response: {}", //
+                        LOGGER.debug(format("response time per path status: {}, response: {}", //
                                       contentResponse.getStatus(), //
-                                      contentResponse.getContentAsString() );
+                                      contentResponse.getContentAsString()));
 
                         TypeReference<Map<String, CollectorInformations>> typeRef = new TypeReference<>() {};
 

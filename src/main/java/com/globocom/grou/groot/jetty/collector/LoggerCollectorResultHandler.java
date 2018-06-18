@@ -18,10 +18,12 @@ package com.globocom.grou.groot.jetty.collector;
 
 
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.Map;
+
+import static com.globocom.grou.groot.LogUtils.format;
 
 /**
  *
@@ -29,7 +31,7 @@ import java.util.Map;
 public class LoggerCollectorResultHandler
     implements com.globocom.grou.groot.jetty.collector.CollectorResultHandler
 {
-    private static final Logger LOGGER = Log.getLogger( LoggerCollectorResultHandler.class );
+    private static final Log LOGGER = LogFactory.getLog(LoggerCollectorResultHandler.class );
 
 
     @Override
@@ -37,7 +39,7 @@ public class LoggerCollectorResultHandler
     {
         for ( Map.Entry<String, CollectorInformations> entry : responseTimePerPath.entrySet() )
         {
-            LOGGER.info( "path: {}, responseTime: {}", entry.getKey(), entry.getValue() );
+            LOGGER.info(format("path: {}, responseTime: {}", entry.getKey(), entry.getValue()));
         }
     }
 }

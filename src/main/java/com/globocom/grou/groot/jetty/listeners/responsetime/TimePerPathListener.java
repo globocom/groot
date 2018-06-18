@@ -21,13 +21,15 @@ import com.globocom.grou.groot.jetty.generator.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.HistogramConstants;
 import org.HdrHistogram.AtomicHistogram;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.globocom.grou.groot.LogUtils.format;
 
 /**
  * <p>Use {@link AtomicHistogram} to tracker response/latency time per path</p>
@@ -40,7 +42,7 @@ public class TimePerPathListener
     implements Resource.NodeListener, LoadGenerator.EndListener, LoadGenerator.BeginListener, Serializable
 {
 
-    private static final Logger LOGGER = Log.getLogger( TimePerPathListener.class );
+    private static final Log LOGGER = LogFactory.getLog(TimePerPathListener.class);
 
     private Map<String, AtomicHistogram> responseTimePerPath = new ConcurrentHashMap<>();
 
@@ -128,7 +130,7 @@ public class TimePerPathListener
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "skip error recording time {}, {}", responseTime, e.getMessage() );
+            LOGGER.warn(format("skip error recording time {}, {}", responseTime, e.getMessage()));
         }
 
         long time = info.getLatencyTime() - info.getRequestTime();
@@ -146,7 +148,7 @@ public class TimePerPathListener
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "skip error recording time {}, {}", time, e.getMessage() );
+            LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
     }
 

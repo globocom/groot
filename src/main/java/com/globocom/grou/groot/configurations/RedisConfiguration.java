@@ -17,8 +17,8 @@
 package com.globocom.grou.groot.configurations;
 
 import com.globocom.grou.groot.monit.SystemInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -41,7 +41,7 @@ import static com.globocom.grou.groot.entities.events.services.TestListenerServi
 @Configuration
 public class RedisConfiguration {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RedisConfiguration.class);
+    private static final Log LOGGER = LogFactory.getLog(RedisConfiguration.class);
 
     @Bean
     public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory,

@@ -20,10 +20,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.Dsl;
 import org.asynchttpclient.RequestBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 
 import java.net.URI;
@@ -34,7 +34,7 @@ import static com.globocom.grou.groot.entities.properties.GrootProperties.*;
 @SuppressWarnings("unchecked")
 public class ParameterizedRequest extends RequestBuilder {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ParameterizedRequest.class);
+    private static final Log LOGGER = LogFactory.getLog(ParameterizedRequest.class);
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

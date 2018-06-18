@@ -20,13 +20,13 @@ import com.globocom.grou.groot.jetty.generator.HTTP1ClientTransportBuilder;
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
 import com.globocom.grou.groot.jetty.generator.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorServer;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.junit.After;
 import org.junit.Assert;
@@ -44,11 +44,13 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 @RunWith( Parameterized.class )
 public class CollectorTest
 {
 
-    Logger logger = Log.getLogger( getClass() );
+    private static final Log LOGGER = LogFactory.getLog(CollectorTest.class);
 
     private int serverNumbers;
 
@@ -155,7 +157,7 @@ public class CollectorTest
             Assert.assertTrue( "successReponsesReceived :" + testRequestListener.success.get(), //
                                testRequestListener.success.get() > 1 );
 
-            logger.info( "successReponsesReceived: {}", testRequestListener.success.get() );
+            LOGGER.info(format("successReponsesReceived: {}", testRequestListener.success.get()));
 
             Assert.assertTrue( "failedReponsesReceived: " + testRequestListener.failed.get(), //
                                testRequestListener.failed.get() < 1 );
@@ -191,7 +193,7 @@ public class CollectorTest
         extends HttpServlet
     {
 
-        private final Logger LOGGER = Log.getLogger( getClass() );
+        private final Log LOGGER = LogFactory.getLog(getClass());
 
         @Override
         protected void service( HttpServletRequest request, HttpServletResponse response )
@@ -204,8 +206,8 @@ public class CollectorTest
 
             int contentLength = request.getIntHeader( "X-Download" );
 
-            LOGGER.debug( "method: {}, contentLength: {}, id: {}, pathInfo: {}", //
-                          method, contentLength, httpSession.getId(), request.getPathInfo() );
+            LOGGER.debug(format("method: {}, contentLength: {}, id: {}, pathInfo: {}", //
+                          method, contentLength, httpSession.getId(), request.getPathInfo()));
 
 
         }

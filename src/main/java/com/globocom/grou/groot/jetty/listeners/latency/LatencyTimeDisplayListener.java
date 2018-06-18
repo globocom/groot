@@ -22,9 +22,9 @@ import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.HistogramConstants;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.globocom.grou.groot.LogUtils.format;
 
 /**
  *
@@ -41,7 +43,7 @@ public class LatencyTimeDisplayListener
     implements Resource.NodeListener, LoadGenerator.EndListener
 {
 
-    private static final Logger LOGGER = Log.getLogger( LatencyTimeDisplayListener.class );
+    private static final Log LOGGER = LogFactory.getLog(LatencyTimeDisplayListener.class);
 
     private ScheduledExecutorService scheduledExecutorService;
 
@@ -146,7 +148,7 @@ public class LatencyTimeDisplayListener
         {
             if ( LOGGER.isDebugEnabled() )
             {
-                LOGGER.debug( "exclude http status: {}", info.getStatus() );
+                LOGGER.debug(format("exclude http status: {}", info.getStatus()));
             }
             return;
         }
@@ -157,7 +159,7 @@ public class LatencyTimeDisplayListener
         }
         catch ( ArrayIndexOutOfBoundsException e )
         {
-            LOGGER.warn( "skip error recording time {}, {}", time, e.getMessage() );
+            LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
     }
 

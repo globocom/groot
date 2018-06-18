@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -26,8 +28,6 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.StatisticsServlet;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.junit.*;
 
@@ -38,10 +38,13 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 public class FailFastTest
 {
 
-    private static final Logger LOGGER = Log.getLogger( FailFastTest.class );
+    private static final Log LOGGER = LogFactory.getLog(FailFastTest.class);
+
     protected Resource resource;
     protected Server server;
     protected ServerConnector connector;
@@ -98,13 +101,13 @@ public class FailFastTest
                     @Override
                     public void onFailure( Request request, Throwable failure )
                     {
-                        LOGGER.info( "fail: {}", onFailure.incrementAndGet() );
+                        LOGGER.info(format("fail: {}", onFailure.incrementAndGet()));
                     }
 
                     @Override
                     public void onCommit( Request request )
                     {
-                        LOGGER.info( "onCommit: {}", onCommit.incrementAndGet() );
+                        LOGGER.info(format("onCommit: {}", onCommit.incrementAndGet()));
                     }
                 } );
         boolean exception = false;
@@ -117,7 +120,7 @@ public class FailFastTest
             exception = true;
         }
         Assert.assertTrue( exception );
-        LOGGER.info( "onFailure: {}, onCommit: {}", onFailure, onCommit);
+        LOGGER.info(format("onFailure: {}, onCommit: {}", onFailure, onCommit));
         int onFailureCall = onFailure.get();
         // the value is really dependant on machine...
         Assert.assertTrue("onFailureCall is " + onFailureCall, onFailureCall < 10);

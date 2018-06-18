@@ -1,7 +1,7 @@
 package com.globocom.grou.groot.entities.properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.net.URI;
 import java.util.*;
@@ -10,7 +10,7 @@ import static com.globocom.grou.groot.entities.properties.GrootProperties.*;
 
 public interface PropertiesUtils {
 
-    Logger LOGGER = LoggerFactory.getLogger(PropertiesUtils.class);
+    Log LOGGER = LogFactory.getLog(PropertiesUtils.class);
 
     @SuppressWarnings("unchecked")
     static HashMap<String, Object>[] extractAllRequestPropertiesOrdered(final Map<String, Object> properties) throws IllegalArgumentException {

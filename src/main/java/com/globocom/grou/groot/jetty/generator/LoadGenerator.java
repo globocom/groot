@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpRequest;
 import org.eclipse.jetty.client.api.ContentProvider;
@@ -32,8 +34,6 @@ import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
 import org.eclipse.jetty.util.annotation.ManagedOperation;
 import org.eclipse.jetty.util.component.ContainerLifeCycle;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.Scheduler;
 
@@ -44,9 +44,12 @@ import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
 @ManagedObject("LoadGenerator")
 public class LoadGenerator extends ContainerLifeCycle {
-    private static final Logger logger = Log.getLogger(LoadGenerator.class);
+
+    private static final Log LOGGER = LogFactory.getLog(LoadGenerator.class);
 
     private final Config config;
     private final CyclicBarrier barrier;
@@ -102,8 +105,8 @@ public class LoadGenerator extends ContainerLifeCycle {
     }
 
     public CompletableFuture<Void> begin() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("generating load, {}", config);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(format("generating load, {}", config));
         }
         return proceed().thenCompose(x -> {
             CompletableFuture[] futures = new CompletableFuture[config.getThreads()];
@@ -126,15 +129,15 @@ public class LoadGenerator extends ContainerLifeCycle {
             barrier.await();
 
             String threadName = Thread.currentThread().getName();
-            if (logger.isDebugEnabled()) {
-                logger.debug("sender thread {} running", threadName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(format("sender thread {} running", threadName));
             }
 
             HttpClient[] clients = new HttpClient[config.getUsersPerThread()];
             // HttpClient cannot be stopped from one of its own threads.
             result = process.whenCompleteAsync((r, x) -> {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("stopping http clients");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("stopping http clients");
                 }
                 Arrays.stream(clients).forEach(this::stopHttpClient);
             }, executorService);
@@ -147,16 +150,16 @@ public class LoadGenerator extends ContainerLifeCycle {
             Callback processCallback = new Callback() {
                 @Override
                 public void succeeded() {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("sender thread {} completed", threadName);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(format("sender thread {} completed", threadName));
                     }
                     process.complete(null);
                 }
 
                 @Override
                 public void failed(Throwable x) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("sender thread " + threadName + " failed", x);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(format("sender thread {} failed", threadName), x);
                     }
                     process.completeExceptionally(x);
                 }
@@ -233,8 +236,8 @@ public class LoadGenerator extends ContainerLifeCycle {
                 }
             }
         } catch (Throwable x) {
-            if (logger.isDebugEnabled()) {
-                logger.debug(x);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(x);
             }
             process.completeExceptionally(x);
         }
@@ -260,9 +263,7 @@ public class LoadGenerator extends ContainerLifeCycle {
                 client.stop();
                 removeBean(client);
             }
-        } catch (Throwable x) {
-            logger.ignore(x);
-        }
+        } catch (Throwable ignore) { }
     }
 
     protected Request newRequest(HttpClient client, Config config, final Resource resource) {
@@ -298,8 +299,8 @@ public class LoadGenerator extends ContainerLifeCycle {
         CountingCallback treeCallback = new CountingCallback(new Callback() {
             @Override
             public void succeeded() {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("completed tree for {}", resource);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(format("completed tree for {}", resource));
                 }
                 info.setTreeTime(System.nanoTime());
                 if (!warmup) {
@@ -310,8 +311,8 @@ public class LoadGenerator extends ContainerLifeCycle {
 
             @Override
             public void failed(Throwable x) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("failed tree for {}", resource);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(format("failed tree for {}", resource));
                 }
                 callback.failed(x);
             }
@@ -408,19 +409,19 @@ public class LoadGenerator extends ContainerLifeCycle {
                     HttpRequest httpRequest = (HttpRequest)newRequest(client, config, resource);
 
                     if (pushCache.contains(httpRequest.getURI())) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("skip sending pushed {}", resource);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(format("skip sending pushed {}", resource));
                         }
                     } else {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("sending {}{}", warmup ? "warmup " : "", resource);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(format("sending {}{}", warmup ? "warmup " : "", resource));
                         }
 
                         httpRequest.pushListener((request, pushed) -> {
                             URI pushedURI = pushed.getURI();
                             Resource child = resource.findDescendant(pushedURI);
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("pushed {}", child);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(format("pushed {}", child));
                             }
                             if (child != null && pushCache.add(pushedURI)) {
                                 Resource.Info pushedInfo = child.newInfo();
@@ -480,8 +481,8 @@ public class LoadGenerator extends ContainerLifeCycle {
             @Override
             public void onComplete(Result result) {
                 Resource resource = info.getResource();
-                if (logger.isDebugEnabled()) {
-                    logger.debug("completed {}: {}", resource, result);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(format("completed {}: {}", resource, result));
                 }
                 if (result.isSucceeded()) {
                     info.setResponseTime(System.nanoTime());
