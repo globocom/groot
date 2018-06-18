@@ -35,12 +35,6 @@ public class LoadConfig
 
     private int resourceRate;
 
-    private String scheme;
-
-    private String host;
-
-    private int port;
-
     private int maxRequestsQueued;
 
     /**
@@ -71,9 +65,6 @@ public class LoadConfig
         this.usersPerThread = config.getUsersPerThread();
         this.channelsPerUser = config.getChannelsPerUser();
         this.resourceRate = config.getResourceRate();
-        this.scheme = config.getScheme();
-        this.host = config.getHost();
-        this.port = config.getPort();
         this.maxRequestsQueued = config.getMaxRequestsQueued();
     }
 
@@ -88,9 +79,6 @@ public class LoadConfig
         this.usersPerThread = usersPerThread;
         this.channelsPerUser = channelsPerUser;
         this.resourceRate = resourceRate;
-        this.scheme = scheme;
-        this.host = host;
-        this.port = port;
         this.maxRequestsQueued = maxRequestsQueued;
     }
 
@@ -164,36 +152,6 @@ public class LoadConfig
         this.resourceRate = resourceRate;
     }
 
-    public String getScheme()
-    {
-        return scheme;
-    }
-
-    public void setScheme( String scheme )
-    {
-        this.scheme = scheme;
-    }
-
-    public String getHost()
-    {
-        return host;
-    }
-
-    public void setHost( String host )
-    {
-        this.host = host;
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort( int port )
-    {
-        this.port = port;
-    }
-
     public int getMaxRequestsQueued()
     {
         return maxRequestsQueued;
@@ -257,8 +215,8 @@ public class LoadConfig
     {
         return "LoadConfig{" + "threads=" + threads + ", warmupIterationsPerThread=" + warmupIterationsPerThread
             + ", iterationsPerThread=" + iterationsPerThread + ", runFor=" + runFor + ", usersPerThread="
-            + usersPerThread + ", channelsPerUser=" + channelsPerUser + ", resourceRate=" + resourceRate + ", scheme='"
-            + scheme + '\'' + ", host='" + host + '\'' + ", port=" + port + ", maxRequestsQueued=" + maxRequestsQueued
-            + ", type=" + type + ", resourceNumber=" + resourceNumber + ", instanceNumber=" + instanceNumber + '}';
+            + usersPerThread + ", channelsPerUser=" + channelsPerUser + ", resourceRate=" + resourceRate
+            + ", maxRequestsQueued=" + maxRequestsQueued + ", type=" + type + ", resourceNumber=" + resourceNumber
+            + ", instanceNumber=" + instanceNumber + '}';
     }
 }

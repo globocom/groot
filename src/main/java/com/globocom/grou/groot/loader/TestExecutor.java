@@ -19,6 +19,7 @@ package com.globocom.grou.groot.loader;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.jetty.generator.*;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.report.GlobalSummaryListener;
@@ -103,6 +104,21 @@ public class TestExecutor implements Runnable {
             LOGGER.error(e.getMessage(), e);
         }
 
+        final boolean saveCookies = (boolean) Optional.ofNullable(properties.get(GrootProperties.SAVE_COOKIES)).orElse(false);
+        final Map<String, String> auth = (Map<String, String>) Optional.ofNullable(properties.get(GrootProperties.AUTH)).orElse(Collections.emptyMap());
+        boolean authPreemptive = false;
+        String username = null;
+        String password = null;
+        if (!auth.isEmpty()) {
+            String credentials = auth.get(GrootProperties.CREDENTIALS);
+            authPreemptive = Boolean.parseBoolean(Optional.ofNullable(auth.get(GrootProperties.PREEMPTIVE)).orElse("false"));
+            int idx;
+            if (credentials != null && (idx = credentials.indexOf(":")) > -1) {
+                username = credentials.substring(0, idx);
+                password = credentials.substring(idx + 1);
+            }
+        }
+
         final Resource resource = new Resource();
         requestsProp.forEach(requestProp ->
             resource.addResource(resourceBuild(requestProp, httpClientTransportBuilder, scheme, host, port, numberOfNIOselectors))
@@ -127,9 +143,11 @@ public class TestExecutor implements Runnable {
                 .rateRampUpPeriod(rateRampUpPeriod)
                 .httpClientTransportBuilder(httpClientTransportBuilder.get())
                 .sslContextFactory(sslContextFactory)
-                .scheme(scheme.get()) // TODO: get from resource
-                .host(host.get()) // TODO: get from resource
-                .port(port.get()) // TODO: get from resource
+                .username(username)
+                .password(password)
+                .saveCookies(saveCookies)
+                .authPreemptive(authPreemptive)
+                .userAgent(Application.GROOT_USERAGENT)
                 .maxRequestsQueued(maxRequestsQueued)
                 .connectBlocking(connectionBlocking)
                 .connectTimeout(connectionTimeout)

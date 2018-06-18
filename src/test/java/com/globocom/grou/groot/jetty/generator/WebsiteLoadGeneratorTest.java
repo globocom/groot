@@ -33,47 +33,6 @@ public abstract class WebsiteLoadGeneratorTest {
     protected Scheduler scheduler;
     protected StatisticsHandler serverStats;
 
-    public WebsiteLoadGeneratorTest() {
-        // A dump of the resources needed by the webtide.com website.
-        HttpFields headers = new HttpFields();
-        headers.put("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0");
-        headers.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        headers.put("Accept-Language", "en-US,en;q=0.5");
-        headers.put("Cookie", "__utma=124097164.2025215041.1465995519.1483973120.1485461487.58; __utmz=124097164.1480932641.29.9.utmcsr=localhost:8080|utmccn=(referral)|utmcmd=referral|utmcct=/; wp-settings-3=editor%3Dhtml%26wplink%3D1%26post_dfw%3Doff%26posts_list_mode%3Dlist; wp-settings-time-3=1483536385; wp-settings-time-4=1485794804; wp-settings-4=editor%3Dhtml; _ga=GA1.2.2025215041.1465995519; wordpress_google_apps_login=30a7b62f9ae5db1653367cafa3accacd; PHPSESSID=r8rr7hnl7kttpq40q7bkbcn5c2; ckon1703=sject1703_bfc34a0618c85; JCS_INENREF=; JCS_INENTIM=1489507850637; _gat=1");
-        resource = new Resource("http://localhost/",
-                new Resource("http://localhost/styles.css").requestHeaders(headers),
-                new Resource("http://localhost/pagenavi-css.css").requestHeaders(headers),
-                new Resource("http://localhost/style.css").requestHeaders(headers),
-                new Resource("http://localhost/genericicons.css").requestHeaders(headers),
-                new Resource("http://localhost/font-awesome.min.css").requestHeaders(headers),
-                new Resource("http://localhost/jquery.js").requestHeaders(headers),
-                new Resource("http://localhost/jquery-migrate.min.js").requestHeaders(headers),
-                new Resource("http://localhost/picturefill.min.js").requestHeaders(headers),
-                new Resource("http://localhost/jscripts.php").requestHeaders(headers),
-                new Resource("http://localhost/cropped-WTLogo-2.png").requestHeaders(headers),
-                new Resource("http://localhost/pexels-photo-40120-1.jpeg").requestHeaders(headers),
-                new Resource("http://localhost/Keyboard.jpg").requestHeaders(headers),
-                new Resource("http://localhost/Jetty-Code-2x.jpg").requestHeaders(headers),
-                new Resource("http://localhost/rocket.png").requestHeaders(headers),
-                new Resource("http://localhost/aperture2.png").requestHeaders(headers),
-                new Resource("http://localhost/dev.png").requestHeaders(headers),
-                new Resource("http://localhost/jetty-avatar.png").requestHeaders(headers),
-                new Resource("http://localhost/megaphone.png").requestHeaders(headers),
-                new Resource("http://localhost/jquery.form.min.js").requestHeaders(headers),
-                new Resource("http://localhost/scripts.js").requestHeaders(headers),
-                new Resource("http://localhost/jquery.circle2.min.js").requestHeaders(headers),
-                new Resource("http://localhost/jquery.circle2.swipe.min.js").requestHeaders(headers),
-                new Resource("http://localhost/waypoints.min.js").requestHeaders(headers),
-                new Resource("http://localhost/jquery.counterup.min.js").requestHeaders(headers),
-                new Resource("http://localhost/navigation.min.js").requestHeaders(headers),
-                new Resource("http://localhost/spacious-custom.min.js").requestHeaders(headers),
-                new Resource("http://localhost/jscripts-ftr-min.js").requestHeaders(headers),
-                new Resource("http://localhost/wp-embed.min.js").requestHeaders(headers),
-                new Resource("http://localhost/wp-emoji-release.min.js").requestHeaders(headers),
-                new Resource("http://localhost/fontawesome-webfont.woff2").requestHeaders(headers)
-        ).requestHeaders(headers);
-    }
-
     protected void prepareServer(ConnectionFactory connectionFactory, Handler handler) throws Exception {
         server = new Server();
         connector = new ServerConnector(server, connectionFactory);
@@ -106,9 +65,48 @@ public abstract class WebsiteLoadGeneratorTest {
     }
 
     protected LoadGenerator.Builder prepareLoadGenerator(HTTPClientTransportBuilder clientTransportBuilder) {
+        // A dump of the resources needed by the webtide.com website.
+        HttpFields headers = new HttpFields();
+        headers.put("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0");
+        headers.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        headers.put("Accept-Language", "en-US,en;q=0.5");
+        headers.put("Cookie", "__utma=124097164.2025215041.1465995519.1483973120.1485461487.58; __utmz=124097164.1480932641.29.9.utmcsr=localhost:8080|utmccn=(referral)|utmcmd=referral|utmcct=/; wp-settings-3=editor%3Dhtml%26wplink%3D1%26post_dfw%3Doff%26posts_list_mode%3Dlist; wp-settings-time-3=1483536385; wp-settings-time-4=1485794804; wp-settings-4=editor%3Dhtml; _ga=GA1.2.2025215041.1465995519; wordpress_google_apps_login=30a7b62f9ae5db1653367cafa3accacd; PHPSESSID=r8rr7hnl7kttpq40q7bkbcn5c2; ckon1703=sject1703_bfc34a0618c85; JCS_INENREF=; JCS_INENTIM=1489507850637; _gat=1");
+        int port = connector.getLocalPort();
+        resource = new Resource("http://localhost:" + port + "/",
+                new Resource("http://localhost:" + port + "/styles.css").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/pagenavi-css.css").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/style.css").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/genericicons.css").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/font-awesome.min.css").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jquery.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jquery-migrate.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/picturefill.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jscripts.php").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/cropped-WTLogo-2.png").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/pexels-photo-40120-1.jpeg").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/Keyboard.jpg").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/Jetty-Code-2x.jpg").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/rocket.png").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/aperture2.png").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/dev.png").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jetty-avatar.png").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/megaphone.png").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jquery.form.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/scripts.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jquery.circle2.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jquery.circle2.swipe.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/waypoints.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jquery.counterup.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/navigation.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/spacious-custom.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/jscripts-ftr-min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/wp-embed.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/wp-emoji-release.min.js").requestHeaders(headers),
+                new Resource("http://localhost:" + port + "/fontawesome-webfont.woff2").requestHeaders(headers)
+        ).requestHeaders(headers);
+
         return new LoadGenerator.Builder()
                 .threads(1)
-                .port(connector.getLocalPort())
                 .httpClientTransportBuilder(clientTransportBuilder)
                 .resource(resource)
                 .scheduler(scheduler);

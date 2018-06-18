@@ -79,6 +79,7 @@ public class FailFastTest
         }
     }
 
+    // FIXME: should_fail_fast_on_server_stop fail
     @Ignore
     @Test
     public void should_fail_fast_on_server_stop()
@@ -88,8 +89,6 @@ public class FailFastTest
         int localPort = connector.getLocalPort();
         LoadGenerator.Builder builder = //
             new LoadGenerator.Builder() //
-                .host( "localhost" ) //
-                .port(localPort) //
                 .resource( new Resource("http://localhost:" + localPort + "/index.html?fail=5" )) //
                 .warmupIterationsPerThread( 1 ) //
                 .usersPerThread( 1 ) //

@@ -18,17 +18,18 @@ package com.globocom.grou.groot.jetty.generator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.eclipse.jetty.client.HttpAuthenticationStore;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpRequest;
-import org.eclipse.jetty.client.api.ContentProvider;
-import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.client.api.Response;
-import org.eclipse.jetty.client.api.Result;
+import org.eclipse.jetty.client.api.*;
+import org.eclipse.jetty.client.util.BasicAuthentication;
 import org.eclipse.jetty.client.util.BytesContentProvider;
+import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.CountingCallback;
+import org.eclipse.jetty.util.HttpCookieStore;
 import org.eclipse.jetty.util.SocketAddressResolver;
 import org.eclipse.jetty.util.annotation.ManagedAttribute;
 import org.eclipse.jetty.util.annotation.ManagedObject;
@@ -37,10 +38,12 @@ import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.Scheduler;
 
+import java.net.CookieStore;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,11 +58,31 @@ public class LoadGenerator extends ContainerLifeCycle {
     private final CyclicBarrier barrier;
     private ExecutorService executorService;
     private volatile boolean interrupt;
+    private final AuthenticationStore authenticationStore = new HttpAuthenticationStore();
+    private final AtomicReference<CookieStore> cookieStore = new AtomicReference<>(null);
+    private boolean saveCookies = false;
+    private boolean authPreemptive = false;
+    private String userAgent = "UNDEF";
 
     private LoadGenerator(Config config) {
         this.config = config;
         this.barrier = new CyclicBarrier(config.threads);
         addBean(config);
+    }
+
+    public LoadGenerator saveCookies(boolean saveCookies) {
+        this.saveCookies = saveCookies;
+        return this;
+    }
+
+    public LoadGenerator authPreemptive(boolean authPreemptive) {
+        this.authPreemptive = authPreemptive;
+        return this;
+    }
+
+    public LoadGenerator userAgent(String userAgent) {
+        this.userAgent = userAgent;
+        return this;
     }
 
     private CompletableFuture<Void> proceed() {
@@ -254,6 +277,13 @@ public class LoadGenerator extends ContainerLifeCycle {
         httpClient.setConnectBlocking(config.isConnectBlocking());
         httpClient.setConnectTimeout(config.getConnectTimeout());
         httpClient.setIdleTimeout(config.getIdleTimeout());
+        httpClient.setUserAgentField(new HttpField(HttpHeader.USER_AGENT, userAgent));
+        if (saveCookies) {
+            cookieStore.compareAndSet(null, new HttpCookieStore());
+            httpClient.setCookieStore(cookieStore.get());
+        } else {
+            httpClient.setCookieStore(new HttpCookieStore.Empty());
+        }
         return httpClient;
     }
 
@@ -270,14 +300,22 @@ public class LoadGenerator extends ContainerLifeCycle {
         HttpFields requestHeaders = resource.getRequestHeaders();
         String contentType = requestHeaders.get(HttpHeader.CONTENT_TYPE.asString());
         requestHeaders.remove(HttpHeader.CONTENT_TYPE.asString());
-
         String method = resource.getMethod();
-        Request request = client.newRequest(config.getHost(), config.getPort())
-                .scheme(config.getScheme())
-                .method(method)
-                .path(resource.getPath());
+        Request request = client.newRequest(resource.getUri()).method(method);
         request.getHeaders().addAll(requestHeaders);
-
+        final String username = config.getUsername();
+        if (username != null && !username.isEmpty() && client.getAuthenticationStore() != authenticationStore) {
+            synchronized (this) {
+                if (client.getAuthenticationStore() != authenticationStore) {
+                    client.setAuthenticationStore(authenticationStore);
+                    if (authPreemptive) {
+                        authenticationStore.addAuthenticationResult(new BasicAuthentication.BasicResult(request.getURI(), config.getPassword(), config.getPassword()));
+                    } else {
+                        authenticationStore.addAuthentication(new BasicAuthentication(request.getURI(), "Realm", config.getUsername(), config.getPassword()));
+                    }
+                }
+            }
+        }
         if (resource.hasBody()) {
             if (contentType == null || contentType.isEmpty()) {
                 contentType = "application/octet-stream";
@@ -512,9 +550,6 @@ public class LoadGenerator extends ContainerLifeCycle {
         protected int channelsPerUser = 1024;
         protected int resourceRate = 1;
         protected long rateRampUpPeriod = 0;
-        protected String scheme = "http";
-        protected String host = "localhost";
-        protected int port = 8080;
         protected HTTPClientTransportBuilder httpClientTransportBuilder;
         protected SslContextFactory sslContextFactory;
         protected Scheduler scheduler;
@@ -528,6 +563,11 @@ public class LoadGenerator extends ContainerLifeCycle {
         protected boolean connectBlocking = true;
         protected long connectTimeout = 5000;
         protected long idleTimeout = 15000;
+        protected String username = null;
+        protected String password = null;
+        protected boolean saveCookies = false;
+        protected boolean authPreemptive = false;
+        protected String userAgent = "UNDEF";
 
         @ManagedAttribute("Number of sender threads")
         public int getThreads() {
@@ -569,19 +609,29 @@ public class LoadGenerator extends ContainerLifeCycle {
             return rateRampUpPeriod;
         }
 
-        @ManagedAttribute("Scheme for the request URI")
-        public String getScheme() {
-            return scheme;
+        @ManagedAttribute("Credential username")
+        public String getUsername() {
+            return username;
         }
 
-        @ManagedAttribute("Host for the request URI")
-        public String getHost() {
-            return host;
+        @ManagedAttribute("Credential password")
+        public String getPassword() {
+            return password;
         }
 
-        @ManagedAttribute("Port for the request URI")
-        public int getPort() {
-            return port;
+        @ManagedAttribute("Save Cookies")
+        public boolean isSaveCookies() {
+            return saveCookies;
+        }
+
+        @ManagedAttribute("Auth Preemptive")
+        public boolean isAuthPreemptive() {
+            return authPreemptive;
+        }
+
+        @ManagedAttribute("User Agent")
+        public String getUserAgent() {
+            return userAgent;
         }
 
         public HTTPClientTransportBuilder getHttpClientTransportBuilder() {
@@ -642,17 +692,14 @@ public class LoadGenerator extends ContainerLifeCycle {
 
         @Override
         public String toString() {
-            return String.format("%s[t=%d,i=%d,u=%d,c=%d,r=%d,rf=%ds,%s://%s:%d]",
+            return String.format("%s[t=%d,i=%d,u=%d,c=%d,r=%d,rf=%ds]",
                     Config.class.getSimpleName(),
                     threads,
                     runFor > 0 ? -1 : iterationsPerThread,
                     usersPerThread,
                     channelsPerUser,
                     resourceRate,
-                    runFor > 0 ? runFor : -1,
-                    scheme,
-                    host,
-                    port);
+                    runFor > 0 ? runFor : -1);
         }
     }
 
@@ -745,32 +792,35 @@ public class LoadGenerator extends ContainerLifeCycle {
         }
 
         /**
-         * @param scheme the default scheme
+         * @param username the credential username
          * @return this Builder
          */
-        public Builder scheme(String scheme) {
-            this.scheme = Objects.requireNonNull(scheme);
+        public Builder username(String username) {
+            this.username = Objects.requireNonNull(username);
             return this;
         }
 
         /**
-         * @param host the default host
+         * @param password the credential password
          * @return this Builder
          */
-        public Builder host(String host) {
-            this.host = Objects.requireNonNull(host);
+        public Builder password(String password) {
+            this.password = Objects.requireNonNull(password);
             return this;
         }
 
-        /**
-         * @param port the default port
-         * @return this Builder
-         */
-        public Builder port(int port) {
-            if (port <= 0) {
-                throw new IllegalArgumentException();
-            }
-            this.port = port;
+        public Builder saveCookies(boolean saveCookies) {
+            this.saveCookies = saveCookies;
+            return this;
+        }
+
+        public Builder authPreemptive(boolean authPreemptive) {
+            this.authPreemptive = authPreemptive;
+            return this;
+        }
+
+        public Builder userAgent(String userAgent) {
+            this.userAgent = userAgent;
             return this;
         }
 

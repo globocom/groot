@@ -75,7 +75,6 @@ public class HTTP2LoadGeneratorTest {
         int localPort = connector.getLocalPort();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
                 .httpClientTransportBuilder(new HTTP2ClientTransportBuilder())
-                .port(localPort)
                 .resource(new Resource("http://localhost:" + localPort + "/",
                         new Resource("http://localhost:" + localPort + "/1"),
                         new Resource("http://localhost:" + localPort + "/2")))

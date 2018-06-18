@@ -110,8 +110,6 @@ public class CollectorTest
             testRequestListeners.add( testRequestListener );
 
             LoadGenerator loadGenerator = new LoadGenerator.Builder() //
-                .host(host) //
-                .port( port ) //
                 .usersPerThread( 2 ) //
                 .iterationsPerThread( 10 ) //
                 .resourceRate( 20 ) //
