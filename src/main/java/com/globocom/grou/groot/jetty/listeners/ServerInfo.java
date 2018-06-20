@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 
-public class ServerInfo
-{
+public class ServerInfo {
+
     private String jettyVersion;
 
     private int availableProcessors;
@@ -33,80 +33,65 @@ public class ServerInfo
 
     private String javaVersion;
 
-    public String getJettyVersion()
-    {
+    public String getJettyVersion() {
         return jettyVersion;
     }
 
-    public int getAvailableProcessors()
-    {
+    public int getAvailableProcessors() {
         return availableProcessors;
     }
 
-    public long getTotalMemory()
-    {
+    public long getTotalMemory() {
         return totalMemory;
     }
 
-    public void setJettyVersion( String jettyVersion )
-    {
+    public void setJettyVersion(String jettyVersion) {
         this.jettyVersion = jettyVersion;
     }
 
-    public void setAvailableProcessors( int availableProcessors )
-    {
+    public void setAvailableProcessors(int availableProcessors) {
         this.availableProcessors = availableProcessors;
     }
 
-    public void setTotalMemory( long totalMemory )
-    {
+    public void setTotalMemory(long totalMemory) {
         this.totalMemory = totalMemory;
     }
 
-    public String getGitHash()
-    {
+    public String getGitHash() {
         return gitHash;
     }
 
-    public void setGitHash( String gitHash )
-    {
+    public void setGitHash(String gitHash) {
         this.gitHash = gitHash;
     }
 
-    public String getJavaVersion()
-    {
+    public String getJavaVersion() {
         return javaVersion;
     }
 
-    public void setJavaVersion( String javaVersion )
-    {
+    public void setJavaVersion(String javaVersion) {
         this.javaVersion = javaVersion;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "ServerInfo{" + "jettyVersion='" + jettyVersion + '\'' + ", availableProcessors=" + availableProcessors
             + ", totalMemory=" + totalMemory + ", gitHash='" + gitHash + '\'' + ", javaVersion='" + javaVersion + '\''
             + '}';
     }
 
-    public static ServerInfo retrieveServerInfo( String scheme, String host, int port, String path )
-        throws Exception
-    {
+    public static ServerInfo retrieveServerInfo(String scheme, String host, int port, String path)
+        throws Exception {
         HttpClient httpClient = new HttpClient();
 
-        try
-        {
+        try {
             httpClient.start();
-            ContentResponse contentResponse = httpClient.newRequest( host, port ).scheme( scheme ).path( path ).send();
+            ContentResponse contentResponse = httpClient.newRequest(host, port).scheme(scheme).path(path).send();
 
             return new ObjectMapper() //
-                .configure( DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false ) //
-                .readValue( contentResponse.getContent(), ServerInfo.class );
-        }
-        finally
-        {
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false) //
+                .readValue(contentResponse.getContent(), ServerInfo.class);
+        } finally {
             httpClient.stop();
         }
 

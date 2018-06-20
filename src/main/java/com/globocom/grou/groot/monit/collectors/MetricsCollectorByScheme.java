@@ -25,9 +25,9 @@ import java.net.URI;
 
 @SuppressWarnings("unused")
 public enum MetricsCollectorByScheme {
-    ZERO       (ZeroCollector.class),
-    SNMP       (SnmpMetricsCollector.class),
-    PROMETHEUS (PrometheusNodeMetricsCollector.class);
+    ZERO(ZeroCollector.class),
+    SNMP(SnmpMetricsCollector.class),
+    PROMETHEUS(PrometheusNodeMetricsCollector.class);
 
     private final Class<? extends MetricsCollector> targetCollectorClass;
 
@@ -35,8 +35,9 @@ public enum MetricsCollectorByScheme {
         this.targetCollectorClass = clazz;
     }
 
-    public MetricsCollector collect(final URI uri) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-        return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).getDeclaredConstructor().newInstance()).setUri(uri);
+    public MetricsCollector collect(final URI uri) throws Exception {
+        return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).getDeclaredConstructor().newInstance())
+            .setUri(uri);
     }
 
 }

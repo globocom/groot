@@ -18,6 +18,7 @@ package com.globocom.grou.groot.jetty.generator;
 
 import org.eclipse.jetty.client.HttpClientTransport;
 
-public interface HTTPClientTransportBuilder {
+public interface HttpClientTransportBuilder {
+
     HttpClientTransport build();
 }

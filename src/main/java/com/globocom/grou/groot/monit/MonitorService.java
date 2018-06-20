@@ -92,7 +92,8 @@ public class MonitorService {
             testTags = "".equals(testTags) ? "UNDEF" : testTags;
         }
         return String.format("%sproject.%s.%salltags.%s.%stest.%s.%s%s.%s.",
-                prefixTag, testProject, prefixTag, testTags, prefixTag, testName, prefixTag, SystemEnv.STATSD_LOADER_KEY.getValue(), sanitize(hostnameFormated, "_"));
+            prefixTag, testProject, prefixTag, testTags, prefixTag, testName, prefixTag,
+            SystemEnv.STATSD_LOADER_KEY.getValue(), sanitize(hostnameFormated, "_"));
     }
 
     private String getPrefixStatsdTargets(final Test test) {
@@ -112,7 +113,8 @@ public class MonitorService {
         final Map<String, Object> properties = test.getProperties();
         String monitTargets = (String) properties.get(GrootProperties.MONIT_TARGETS);
         if (monitTargets != null) {
-            targets = Arrays.stream(monitTargets.split(",")).map(String::trim).map(URI::create).map(mapUriToMetricsCollector()).collect(Collectors.toList());
+            targets = Arrays.stream(monitTargets.split(",")).map(String::trim).map(URI::create)
+                .map(mapUriToMetricsCollector()).collect(Collectors.toList());
         } else {
             targets = Collections.emptyList();
         }
@@ -125,7 +127,8 @@ public class MonitorService {
                 try {
                     return MetricsCollectorByScheme.valueOf(uriScheme.toUpperCase()).collect(uri);
                 } catch (Exception e) {
-                    LOGGER.warn("Monitoring scheme problem (" + uri.getScheme() + "). Using ZeroCollector because " + e.getMessage());
+                    LOGGER.warn("Monitoring scheme problem (" + uri.getScheme() + "). Using ZeroCollector because " + e
+                        .getMessage());
                     return new ZeroCollector().setUri(uri);
                 }
             }
@@ -156,8 +159,8 @@ public class MonitorService {
     }
 
     public void fail(final Throwable t, long start) {
-        boolean isInternalProblem = t instanceof EOFException ||
-                                    t.getMessage().contains("executor not accepting a task");
+        boolean isInternalProblem = t instanceof EOFException
+            || t.getMessage().contains("executor not accepting a task");
         if (!isInternalProblem) {
             String messageException = t.getMessage();
             if (messageException.contains("connection timed out")) {
@@ -192,7 +195,8 @@ public class MonitorService {
     public void sendStatus(String statusCode, long start) {
         String realStatus = (IS_INT.matcher(statusCode).matches()) ? "status_" + statusCode : statusCode;
         allStatus.add(String.valueOf(realStatus));
-        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - start);
+        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus,
+            System.currentTimeMillis() - start);
     }
 
     public void sendSize(int bodySize) {
@@ -234,8 +238,9 @@ public class MonitorService {
                     statsdClient.recordExecutionTime(prefixStatsd + "irq", targetCpuIrq);
                     statsdClient.recordExecutionTime(prefixStatsd + "softirq", targetCpuSoftIrq);
                     statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree / 1024 / 1024);
-                    statsdClient.recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers / 1024 / 1024);
-                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached / 1024 / 1024 );
+                    statsdClient
+                        .recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers / 1024 / 1024);
+                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached / 1024 / 1024);
                     statsdClient.gauge(prefixStatsd + "load1m", targetLoad1m);
                     statsdClient.gauge(prefixStatsd + "load5m", targetLoad5m);
                     statsdClient.gauge(prefixStatsd + "load15m", targetLoad15m);

@@ -22,10 +22,11 @@ import org.eclipse.jetty.client.http.HttpClientTransportOverHTTP;
 /**
  * Helper builder to provide an http(s) {@link HttpClientTransport}
  */
-public class HTTP1ClientTransportBuilder implements HTTPClientTransportBuilder {
+public class Http1ClientTransportBuilder implements HttpClientTransportBuilder {
+
     private int selectors = 1;
 
-    public HTTP1ClientTransportBuilder selectors(int selectors) {
+    public Http1ClientTransportBuilder selectors(int selectors) {
         this.selectors = selectors;
         return this;
     }

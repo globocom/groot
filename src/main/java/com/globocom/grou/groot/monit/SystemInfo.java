@@ -30,9 +30,11 @@ public final class SystemInfo {
 
     private static final Log LOGGER = LogFactory.getLog(SystemInfo.class);
 
-    private static final UnixOperatingSystemMXBean OS = (UnixOperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+    private static final UnixOperatingSystemMXBean OS = (UnixOperatingSystemMXBean) ManagementFactory
+        .getOperatingSystemMXBean();
 
-    private SystemInfo() { }
+    private SystemInfo() {
+    }
 
     public static int totalSocketsTcpEstablished() {
         try {
@@ -54,6 +56,7 @@ public final class SystemInfo {
         }
     }
 
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     public static String getOS() {
         return System.getProperty("os.name", "UNDEF").toLowerCase();
     }
@@ -81,7 +84,7 @@ public final class SystemInfo {
         }
         return hostname;
     }
-    
+
     private static BufferedReader exec(String... command) throws IOException {
         final Process process = Runtime.getRuntime().exec(command);
         return new BufferedReader(new InputStreamReader(process.getInputStream(), Charset.defaultCharset()));

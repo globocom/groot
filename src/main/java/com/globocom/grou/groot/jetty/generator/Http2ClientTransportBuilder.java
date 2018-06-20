@@ -23,12 +23,13 @@ import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
 /**
  * Helper builder to provide an http2 {@link HttpClientTransport}
  */
-public class HTTP2ClientTransportBuilder implements HTTPClientTransportBuilder {
+public class Http2ClientTransportBuilder implements HttpClientTransportBuilder {
+
     private int selectors = 1;
     private int sessionRecvWindow = 16 * 1024 * 1024;
     private int streamRecvWindow = 16 * 1024 * 1024;
 
-    public HTTP2ClientTransportBuilder selectors(int selectors) {
+    public Http2ClientTransportBuilder selectors(int selectors) {
         this.selectors = selectors;
         return this;
     }
@@ -37,7 +38,7 @@ public class HTTP2ClientTransportBuilder implements HTTPClientTransportBuilder {
         return selectors;
     }
 
-    public HTTP2ClientTransportBuilder sessionRecvWindow(int sessionRecvWindow) {
+    public Http2ClientTransportBuilder sessionRecvWindow(int sessionRecvWindow) {
         this.sessionRecvWindow = sessionRecvWindow;
         return this;
     }
@@ -46,7 +47,7 @@ public class HTTP2ClientTransportBuilder implements HTTPClientTransportBuilder {
         return sessionRecvWindow;
     }
 
-    public HTTP2ClientTransportBuilder streamRecvWindow(int streamRecvWindow) {
+    public Http2ClientTransportBuilder streamRecvWindow(int streamRecvWindow) {
         this.streamRecvWindow = streamRecvWindow;
         return this;
     }

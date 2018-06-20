@@ -23,67 +23,58 @@ import java.util.concurrent.atomic.LongAdder;
 /**
  *
  */
-public class ResponsePerStatus
-    implements Resource.NodeListener
-{
+public class ResponsePerStatus implements Resource.NodeListener {
 
-    private final LongAdder _responses1xx = new LongAdder();
+    private final LongAdder responses1xx = new LongAdder();
 
-    private final LongAdder _responses2xx = new LongAdder();
+    private final LongAdder responses2xx = new LongAdder();
 
-    private final LongAdder _responses3xx = new LongAdder();
+    private final LongAdder responses3xx = new LongAdder();
 
-    private final LongAdder _responses4xx = new LongAdder();
+    private final LongAdder responses4xx = new LongAdder();
 
-    private final LongAdder _responses5xx = new LongAdder();
+    private final LongAdder responses5xx = new LongAdder();
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
-        switch ( info.getStatus() / 100 )
-        {
+    public void onResourceNode(Resource.Info info) {
+        switch (info.getStatus() / 100) {
             case 1:
-                _responses1xx.increment();
+                responses1xx.increment();
                 break;
             case 2:
-                _responses2xx.increment();
+                responses2xx.increment();
                 break;
             case 3:
-                _responses3xx.increment();
+                responses3xx.increment();
                 break;
             case 4:
-                _responses4xx.increment();
+                responses4xx.increment();
                 break;
             case 5:
-                _responses5xx.increment();
+                responses5xx.increment();
                 break;
             default:
                 break;
         }
     }
 
-    public long getResponses1xx()
-    {
-        return _responses1xx.longValue();
+    public long getResponses1xx() {
+        return responses1xx.longValue();
     }
 
-    public long getResponses2xx()
-    {
-        return _responses2xx.longValue();
+    public long getResponses2xx() {
+        return responses2xx.longValue();
     }
 
-    public long getResponses3xx()
-    {
-        return _responses3xx.longValue();
+    public long getResponses3xx() {
+        return responses3xx.longValue();
     }
 
-    public long getResponses4xx()
-    {
-        return _responses4xx.longValue();
+    public long getResponses4xx() {
+        return responses4xx.longValue();
     }
 
-    public long getResponses5xx()
-    {
-        return _responses5xx.longValue();
+    public long getResponses5xx() {
+        return responses5xx.longValue();
     }
 }

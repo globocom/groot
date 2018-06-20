@@ -45,7 +45,7 @@ public class RedisConfiguration {
 
     @Bean
     public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory,
-                                                   MessageListenerAdapter listenerAdapter) {
+        MessageListenerAdapter listenerAdapter) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(listenerAdapter, new ChannelTopic(TEST_QUEUE + ":" + SystemInfo.hostname()));
@@ -58,8 +58,8 @@ public class RedisConfiguration {
         if (Boolean.valueOf(REDIS_USE_SENTINEL.getValue())) {
             List<String> redisSentinelNodesStringList = Arrays.asList(REDIS_SENTINEL_NODES.getValue().split(","));
             Iterable<RedisNode> redisSentinelNodesList = redisSentinelNodesStringList.stream()
-                    .map(node -> new RedisNode(node.split(":")[0], Integer.parseInt(node.split(":")[1])))
-                    .collect(Collectors.toList());
+                .map(node -> new RedisNode(node.split(":")[0], Integer.parseInt(node.split(":")[1])))
+                .collect(Collectors.toList());
             RedisSentinelConfiguration sentinelConfig = new RedisSentinelConfiguration();
             sentinelConfig.master(REDIS_SENTINEL_MASTER_NAME.getValue()).setSentinels(redisSentinelNodesList);
             jedisConnectionFactory = new JedisConnectionFactory(sentinelConfig);

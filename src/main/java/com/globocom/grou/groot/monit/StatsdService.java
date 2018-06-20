@@ -29,9 +29,9 @@ public class StatsdService {
 
     public StatsdService() {
         statsDClient = new NonBlockingStatsDClient(
-                STATSD_PREFIX.getValue(),
-                STATSD_HOST.getValue(),
-                Integer.parseInt(STATSD_PORT.getValue()));
+            STATSD_PREFIX.getValue(),
+            STATSD_HOST.getValue(),
+            Integer.parseInt(STATSD_PORT.getValue()));
     }
 
     public StatsDClient client() {

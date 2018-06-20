@@ -24,35 +24,32 @@ import java.io.Serializable;
  * Use this one to collect all values
  */
 public class DetailledTimeReportListener
-    implements  Serializable, Resource.NodeListener
-{
+    implements Serializable, Resource.NodeListener {
+
     private DetailledTimeValuesReport detailledResponseTimeValuesReport = new DetailledTimeValuesReport();
 
     private DetailledTimeValuesReport detailledLatencyTimeValuesReport = new DetailledTimeValuesReport();
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
+    public void onResourceNode(Resource.Info info) {
         this.detailledLatencyTimeValuesReport.addEntry(
-            new DetailledTimeValuesReport.Entry( info.getRequestTime(), //
-                                                 info.getResource().getPath(), //
-                                                 info.getStatus(), //
-                                                 info.getLatencyTime() - info.getRequestTime() ) );
+            new DetailledTimeValuesReport.Entry(info.getRequestTime(), //
+                info.getResource().getPath(), //
+                info.getStatus(), //
+                info.getLatencyTime() - info.getRequestTime()));
 
         this.detailledResponseTimeValuesReport.addEntry(
-            new DetailledTimeValuesReport.Entry( info.getRequestTime(), //
-                                                 info.getResource().getPath(), //
-                                                 info.getStatus(), //
-                                                 info.getResponseTime() - info.getRequestTime()) );
+            new DetailledTimeValuesReport.Entry(info.getRequestTime(), //
+                info.getResource().getPath(), //
+                info.getStatus(), //
+                info.getResponseTime() - info.getRequestTime()));
     }
 
-    public DetailledTimeValuesReport getDetailledResponseTimeValuesReport()
-    {
+    public DetailledTimeValuesReport getDetailledResponseTimeValuesReport() {
         return detailledResponseTimeValuesReport;
     }
 
-    public DetailledTimeValuesReport getDetailledLatencyTimeValuesReport()
-    {
+    public DetailledTimeValuesReport getDetailledLatencyTimeValuesReport() {
         return detailledLatencyTimeValuesReport;
     }
 }

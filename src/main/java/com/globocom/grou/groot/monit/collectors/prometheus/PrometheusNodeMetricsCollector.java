@@ -32,6 +32,7 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
 
     private String nodeUrl = "";
 
+    @SuppressWarnings({"checkstyle:RightCurlyAlone", "checkstyle:Indentation"})
     private final Map<String, Double> lastCpuTotalMetric = new HashMap<>() {{
         put("idle", -1.0);
         put("iowait", -1.0);
@@ -44,9 +45,11 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
         try {
             List<BigDecimal> metricsPerCpu = new ArrayList<>();
             nodeExporterClient.get(nodeUrl).entrySet().stream()
-                    .filter(e -> e.getKey().startsWith("node_cpu") && e.getKey().endsWith("mode=\"" + metric + "\"}"))
-                    .map(Map.Entry::getValue).filter(v -> v >= 0.0).forEach(v -> metricsPerCpu.add(BigDecimal.valueOf(v)));
-            double total = metricsPerCpu.stream().reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue() / (double) metricsPerCpu.size();
+                .filter(e -> e.getKey().startsWith("node_cpu") && e.getKey().endsWith("mode=\"" + metric + "\"}"))
+                .map(Map.Entry::getValue).filter(v -> v >= 0.0).forEach(v -> metricsPerCpu.add(BigDecimal.valueOf(v)));
+            double total =
+                metricsPerCpu.stream().reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue() / (double) metricsPerCpu
+                    .size();
             int result = 0;
             double cpuMetric = lastCpuTotalMetric.get(metric);
             if (cpuMetric >= 0.0D) {
@@ -70,7 +73,9 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     @Override
     public int getConns() {
         try {
-            return Optional.ofNullable(nodeExporterClient.get(nodeUrl).get("node_tcp_connection_states{state=\"established\"}")).orElse(-1.0).intValue();
+            return Optional
+                .ofNullable(nodeExporterClient.get(nodeUrl).get("node_tcp_connection_states{state=\"established\"}"))
+                .orElse(-1.0).intValue();
         } catch (Exception e) {
             return -1;
         }

@@ -26,10 +26,10 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -37,108 +37,89 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CsvResultStore
-    extends AbstractResultStore
-    implements ResultStore
-{
+import static com.opencsv.CSVWriter.DEFAULT_ESCAPE_CHARACTER;
+import static com.opencsv.CSVWriter.DEFAULT_LINE_END;
+import static com.opencsv.CSVWriter.DEFAULT_QUOTE_CHARACTER;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
 
-    public static final String STORE_FILE_KEY = "csvStoreFile";
+public class CsvResultStore extends AbstractResultStore implements ResultStore {
 
-    private final static Log LOGGER = LogFactory.getLog(CsvResultStore.class.getName());
+    private static final String STORE_FILE_KEY = "csvStoreFile";
+
+    private static final Log LOGGER = LogFactory.getLog(CsvResultStore.class.getName());
+
+    public static final String ID = "csv";
 
     private final ReentrantLock lock = new ReentrantLock();
 
     private String fileName = "load_result.csv";
 
-    public static final String ID = "csv";
-
     private File csvFile;
 
-    public CsvResultStore()
-    {
+    public CsvResultStore() {
         //no op
     }
 
     @Override
-    public void initialize( Map<String, String> setupData )
-    {
-        this.fileName = setupData.get( STORE_FILE_KEY );
-        if ( StringUtils.isEmpty( this.fileName ) )
-        {
-            throw new IllegalArgumentException( STORE_FILE_KEY + " cannot be empty" );
+    public void initialize(Map<String, String> setupData) {
+        this.fileName = setupData.get(STORE_FILE_KEY);
+        if (StringUtils.isEmpty(this.fileName)) {
+            throw new IllegalArgumentException(STORE_FILE_KEY + " cannot be empty");
         }
     }
 
-    protected void initStoreFile( String fileName )
-    {
+    protected void initStoreFile(String fileName) {
         // create the file if not exists
-        this.csvFile = new File( fileName );
-        if ( !Files.exists( this.csvFile.toPath() ) )
-        {
-            try
-            {
-                Files.createFile( this.csvFile.toPath() );
+        this.csvFile = new File(fileName);
+        if (!Files.exists(this.csvFile.toPath())) {
+            try {
+                Files.createFile(this.csvFile.toPath());
                 // write csv headers
-                writeStrings( new String[]{ "uuid", "processors", "jettyVersion", "memory", //
+                writeStrings(new String[]{"uuid", "processors", "jettyVersion", "memory", //
                     "minValue", "meanValue", "maxValue", "total", "start", "end", "value50", //
-                    "value90", "stdDeviation", "comment" } );
-            }
-            catch ( IOException e )
-            {
+                    "value90", "stdDeviation", "comment"});
+            } catch (IOException e) {
                 String msg = "Cannot create file:" + this.csvFile;
-                LOGGER.error(msg, e );
-                throw new RuntimeException( e.getMessage(), e );
+                LOGGER.error(msg, e);
+                throw new RuntimeException(e.getMessage(), e);
             }
         }
     }
 
     @Override
-    public String getProviderId()
-    {
+    public String getProviderId() {
         return ID;
     }
 
     @Override
-    public void save( LoadResult loadResult )
-    {
+    public void save(LoadResult loadResult) {
         lock.lock();
-        try
-        {
-            writeStrings( toCsv( loadResult ) );
-        }
-        catch ( IOException e )
-        {
+        try {
+            writeStrings(toCsv(loadResult));
+        } catch (IOException e) {
             String msg = "Cannot write entry:" + loadResult;
-            LOGGER.error(msg, e );
-            throw new RuntimeException( e.getMessage(), e );
-        }
-        finally
-        {
+            LOGGER.error(msg, e);
+            throw new RuntimeException(e.getMessage(), e);
+        } finally {
             lock.unlock();
         }
     }
 
-    private void writeStrings( String[] values )
-        throws IOException
-    {
-        if ( this.csvFile == null )
-        {
-            initStoreFile( this.fileName );
+    private void writeStrings(String[] values) throws IOException {
+        if (csvFile == null) {
+            initStoreFile(this.fileName);
         }
-        try (CSVWriter writer = new CSVWriter( new FileWriter( this.csvFile, true ), ';',
-                                               CSVWriter.DEFAULT_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-                                               CSVWriter.DEFAULT_LINE_END ))
-        {
-
-            writer.writeNext( values );
+        try (CSVWriter writer = new CSVWriter(
+            Files.newBufferedWriter(csvFile.toPath(), Charset.defaultCharset(), CREATE, APPEND), ';',
+            DEFAULT_QUOTE_CHARACTER, DEFAULT_ESCAPE_CHARACTER, DEFAULT_LINE_END)) {
+            writer.writeNext(values);
             writer.flushQuietly();
         }
 
     }
 
-
-    protected String[] toCsv( LoadResult loadResult )
-    {
+    protected String[] toCsv(LoadResult loadResult) {
         ServerInfo serverInfo = loadResult.getServerInfo();
         CollectorInformations collectorInformations = loadResult.getCollectorInformations();
 
@@ -156,104 +137,90 @@ public class CsvResultStore
         long value90 = collectorInformations.getValue90();
         double stdDeviation = collectorInformations.getStdDeviation();
 
-        return new String[]{ uuid, String.valueOf( processors ), jettyVersion, String.valueOf( memory ), //
-            String.valueOf( minValue ), String.valueOf( meanValue ), String.valueOf( maxValue ), //
-            String.valueOf( total ), String.valueOf( start ), String.valueOf( end ), String.valueOf( value50 ), //
-            String.valueOf( value90 ), String.valueOf( stdDeviation ), loadResult.getComment() };
+        return new String[]{uuid, String.valueOf(processors), jettyVersion, String.valueOf(memory), //
+            String.valueOf(minValue), String.valueOf(meanValue), String.valueOf(maxValue), //
+            String.valueOf(total), String.valueOf(start), String.valueOf(end), String.valueOf(value50), //
+            String.valueOf(value90), String.valueOf(stdDeviation), loadResult.getComment()};
 
 
     }
 
 
-    protected LoadResult fromCsv( String[] values )
-    {
+    protected LoadResult fromCsv(String[] values) {
 
         ServerInfo serverInfo = new ServerInfo();
-        serverInfo.setAvailableProcessors( Integer.valueOf( values[1] ) );
-        serverInfo.setJettyVersion( values[2] );
-        serverInfo.setTotalMemory( Long.valueOf( values[3] ) );
+        serverInfo.setAvailableProcessors(Integer.valueOf(values[1]));
+        serverInfo.setJettyVersion(values[2]);
+        serverInfo.setTotalMemory(Long.valueOf(values[3]));
 
         CollectorInformations collectorInformations = new CollectorInformations();
-        collectorInformations.setMinValue( Long.valueOf( values[4] ) );
-        collectorInformations.setMean( Double.valueOf( values[5] ) );
-        collectorInformations.setMaxValue( Long.valueOf( values[6] ) );
-        collectorInformations.setTotalCount( Long.valueOf( values[7] ) );
-        collectorInformations.setStartTimeStamp( Long.valueOf( values[8] ) );
-        collectorInformations.setEndTimeStamp( Long.valueOf( values[9] ) );
-        collectorInformations.setValue50( Long.valueOf( values[10] ) );
-        collectorInformations.setValue90( Long.valueOf( values[11] ) );
-        collectorInformations.setStdDeviation( Double.valueOf( values[12] ) );
+        collectorInformations.setMinValue(Long.valueOf(values[4]));
+        collectorInformations.setMean(Double.valueOf(values[5]));
+        collectorInformations.setMaxValue(Long.valueOf(values[6]));
+        collectorInformations.setTotalCount(Long.valueOf(values[7]));
+        collectorInformations.setStartTimeStamp(Long.valueOf(values[8]));
+        collectorInformations.setEndTimeStamp(Long.valueOf(values[9]));
+        collectorInformations.setValue50(Long.valueOf(values[10]));
+        collectorInformations.setValue90(Long.valueOf(values[11]));
+        collectorInformations.setStdDeviation(Double.valueOf(values[12]));
 
         LoadResult loadResult =
-            new LoadResult( serverInfo, collectorInformations, null );
+            new LoadResult(serverInfo, collectorInformations, null);
 
-        return loadResult.comment( values[13] ).uuid( values[0] );
+        return loadResult.comment(values[13]).uuid(values[0]);
     }
 
     @Override
-    public void remove( LoadResult loadResult )
-    {
+    public void remove(LoadResult loadResult) {
         // not supported
     }
 
     @Override
-    public List<LoadResult> find( QueryFilter queryFilter )
-    {
+    public List<LoadResult> find(QueryFilter queryFilter) {
         // TODO filter on result
         return findAll();
     }
 
     @Override
-    public LoadResult get( String loadResultId )
-    {
+    public LoadResult get(String loadResultId) {
         return null;
     }
 
     @Override
-    public List<LoadResult> get( List<String> loadResultId )
-    {
+    public List<LoadResult> get(List<String> loadResultId) {
         return null;
     }
 
     @Override
-    public List<LoadResult> findAll()
-    {
-        return findWithFilters( null );
+    public List<LoadResult> findAll() {
+        return findWithFilters(null);
     }
 
-    public List<LoadResult> findWithFilters( List<Predicate<String[]>> predicates )
-    {
+    public List<LoadResult> findWithFilters(List<Predicate<String[]>> predicates) {
         lock.lock();
-        try (CSVReader reader = new CSVReader( new FileReader( "yourfile.csv" ) ))
-        {
+        try (CSVReader reader = new CSVReader(
+            Files.newBufferedReader(Paths.get("yourfile.csv"), Charset.defaultCharset()))) {
 
-            Stream<String[]> stream = Stream.generate( reader.iterator()::next );
-            if ( predicates != null )
-            {
-                for ( Predicate predicate : predicates )
-                {
-                    stream = stream.filter( predicate );
+            Stream<String[]> stream = Stream.generate(reader.iterator()::next);
+            if (predicates != null) {
+                for (Predicate<String[]> predicate : predicates) {
+                    stream = stream.filter(predicate);
                 }
             }
             return stream.map(this::fromCsv) //
-                .collect( Collectors.toList() );
+                .collect(Collectors.toList());
 
-        }
-        catch ( IOException e )
-        {
-            LOGGER.error(e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
-        }
-        finally
-        {
+        } catch (IOException e) {
+            LOGGER.error(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
+        } finally {
             lock.unlock();
         }
     }
 
     @Override
     public void close()
-        throws IOException
-    {
+        throws IOException {
         // no op
     }
 }

@@ -30,8 +30,7 @@ import java.util.stream.StreamSupport;
  *
  */
 public interface ResultStore
-    extends Closeable
-{
+    extends Closeable {
 
     /**
      * @param setupData very generic way of passing some data/parameters to initialize the component
@@ -40,32 +39,29 @@ public interface ResultStore
 
     /**
      * save a {@link LoadResult} value
+     *
      * @param loadResult the value to save
      */
     void save(LoadResult loadResult);
 
     /**
-     *
      * @param loadResultId the {@link LoadResult} unique to retrieve
      * @return the {@link LoadResult} corresponding to the id
      */
     LoadResult get(String loadResultId);
 
     /**
-     *
      * @param loadResultIds the {@link List} od unique id to retrieve
      * @return the {@link List} of {@link LoadResult}
      */
     List<LoadResult> get(List<String> loadResultIds);
 
     /**
-     *
      * @param loadResult the instance to remove from the store
      */
     void remove(LoadResult loadResult);
 
     /**
-     *
      * @param queryFilter the {@link QueryFilter} to search {@link LoadResult}
      * @return the {@link List} of {@link LoadResult} corresponding to the filter
      */
@@ -73,109 +69,95 @@ public interface ResultStore
 
     /**
      * <b>might be very expensive and some implementations not implemented it</b>
+     *
      * @return all {@link LoadResult}
      */
     List<LoadResult> findAll();
 
     /**
-     *
      * @return an unique id corresponding to the {@link ResultStore} implementation
      */
     String getProviderId();
 
     /**
-     *
-     * @param setupData
      * @return <code>true</code> if the {@link ResultStore} implementation is active
      */
     boolean isActive(Map<String, String> setupData);
 
-    class QueryFilter
-    {
-        private String jettyVersion, uuid;
+    class QueryFilter {
 
-        private Date startDate, endDate;
+        private String jettyVersion;
+        private String uuid;
 
-        public String getJettyVersion()
-        {
+        private Date startDate;
+        private Date endDate;
+
+        public String getJettyVersion() {
             return jettyVersion;
         }
 
-        public void setJettyVersion( String jettyVersion )
-        {
+        public void setJettyVersion(String jettyVersion) {
             this.jettyVersion = jettyVersion;
         }
 
-        public QueryFilter jettyVersion( String jettyVersion )
-        {
+        public QueryFilter jettyVersion(String jettyVersion) {
             this.jettyVersion = jettyVersion;
             return this;
         }
 
-        public Date getStartDate()
-        {
+        public Date getStartDate() {
             return startDate;
         }
 
-        public void setStartDate( Date startDate )
-        {
+        public void setStartDate(Date startDate) {
             this.startDate = startDate;
         }
 
-        public QueryFilter startDate( Date startDate )
-        {
+        public QueryFilter startDate(Date startDate) {
             this.startDate = startDate;
             return this;
         }
 
-        public Date getEndDate()
-        {
+        public Date getEndDate() {
             return endDate;
         }
 
-        public void setEndDate( Date endDate )
-        {
+        public void setEndDate(Date endDate) {
             this.endDate = endDate;
         }
 
-        public QueryFilter endDate( Date endDate )
-        {
+        public QueryFilter endDate(Date endDate) {
             this.endDate = endDate;
             return this;
         }
 
-        public String getUuid()
-        {
+        public String getUuid() {
             return uuid;
         }
 
-        public void setUuid( String uuid )
-        {
+        public void setUuid(String uuid) {
             this.uuid = uuid;
         }
 
-        public QueryFilter uuid( String uuid )
-        {
+        public QueryFilter uuid(String uuid) {
             this.uuid = uuid;
             return this;
         }
     }
 
-    static List<ResultStore> getActives(Map<String, String> setupData)
-    {
-        return StreamSupport.stream( ServiceLoader.load( ResultStore.class ).spliterator(), false ) //
-            .filter( resultStore -> resultStore.isActive( setupData ) ) //
-            .collect( Collectors.toList() );
+    static List<ResultStore> getActives(Map<String, String> setupData) {
+        return StreamSupport.stream(ServiceLoader.load(ResultStore.class).spliterator(), false) //
+            .filter(resultStore -> resultStore.isActive(setupData)) //
+            .collect(Collectors.toList());
     }
 
-    static ResultStore getActiveFromId(String id, Map<String, String> setupData)
-    {
+    static ResultStore getActiveFromId(String id, Map<String, String> setupData) {
         List<ResultStore> resultStores = //
-            getActives( setupData ).stream().filter(
-                resultStore -> resultStore.getProviderId().equalsIgnoreCase( id ) ) //
-                .collect( Collectors.toList() );
+            getActives(setupData).stream().filter(
+                resultStore -> resultStore.getProviderId().equalsIgnoreCase(id)) //
+                .collect(Collectors.toList());
 
         // warning if more than one with same id?
-        return resultStores.isEmpty() ? null : resultStores.get( 0 );
+        return resultStores.isEmpty() ? null : resultStores.get(0);
     }
 }

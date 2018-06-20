@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class HTTP1WebsiteLoadGeneratorTest extends WebsiteLoadGeneratorTest {
+
     @Before
     public void prepare() throws Exception {
         prepareServer(new HttpConnectionFactory(), new TestHandler());
@@ -37,37 +38,39 @@ public class HTTP1WebsiteLoadGeneratorTest extends WebsiteLoadGeneratorTest {
 
     @Test
     public void testHTTP1() throws Exception {
-        MonitoringThreadPoolExecutor executor = new MonitoringThreadPoolExecutor( 1024, 60, TimeUnit.SECONDS);
+        MonitoringThreadPoolExecutor executor = new MonitoringThreadPoolExecutor(1024, 60, TimeUnit.SECONDS);
 
         AtomicLong requests = new AtomicLong();
-        Histogram treeHistogram = new AtomicHistogram(TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.SECONDS.toNanos(10), 3);
-        Histogram rootHistogram = new AtomicHistogram(TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.SECONDS.toNanos(10), 3);
-        LoadGenerator loadGenerator = prepareLoadGenerator(new HTTP1ClientTransportBuilder())
-                .warmupIterationsPerThread(10)
-                .iterationsPerThread(100)
+        Histogram treeHistogram = new AtomicHistogram(TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.SECONDS.toNanos(10),
+            3);
+        Histogram rootHistogram = new AtomicHistogram(TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.SECONDS.toNanos(10),
+            3);
+        LoadGenerator loadGenerator = prepareLoadGenerator(new Http1ClientTransportBuilder())
+            .warmupIterationsPerThread(10)
+            .iterationsPerThread(100)
 //                .warmupIterationsPerThread(1000)
 //                .runFor(2, TimeUnit.MINUTES)
-                .usersPerThread(100)
-                .channelsPerUser(6)
-                .resourceRate(20)
-                .executor(executor)
-                .resourceListener((Resource.TreeListener)info -> {
-                    rootHistogram.recordValue(info.getResponseTime() - info.getRequestTime());
-                    treeHistogram.recordValue(info.getTreeTime() - info.getRequestTime());
-                })
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onQueued(Request request) {
-                        requests.incrementAndGet();
-                    }
-                })
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        requests.decrementAndGet();
-                    }
-                })
-                .build();
+            .usersPerThread(100)
+            .channelsPerUser(6)
+            .resourceRate(20)
+            .executor(executor)
+            .resourceListener((Resource.TreeListener) info -> {
+                rootHistogram.recordValue(info.getResponseTime() - info.getRequestTime());
+                treeHistogram.recordValue(info.getTreeTime() - info.getRequestTime());
+            })
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onQueued(Request request) {
+                    requests.incrementAndGet();
+                }
+            })
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    requests.decrementAndGet();
+                }
+            })
+            .build();
 
         serverStats.statsReset();
         loadGenerator.begin().join();
@@ -77,19 +80,21 @@ public class HTTP1WebsiteLoadGeneratorTest extends WebsiteLoadGeneratorTest {
 
         int serverRequests = serverStats.getRequests();
         System.err.printf("%nserver - requests: %d, rate: %.3f, max_request_time: %d%n%n",
-                serverRequests,
-                elapsed > 0 ? serverRequests * 1000F / elapsed : 0F,
-                serverStats.getRequestTimeMax());
+            serverRequests,
+            elapsed > 0 ? serverRequests * 1000F / elapsed : 0F,
+            serverStats.getRequestTimeMax());
 
-        HistogramSnapshot treeSnapshot = new HistogramSnapshot(treeHistogram, 20, "tree response time", "us", TimeUnit.NANOSECONDS::toMicros);
+        HistogramSnapshot treeSnapshot = new HistogramSnapshot(treeHistogram, 20, "tree response time", "us",
+            TimeUnit.NANOSECONDS::toMicros);
         System.err.println(treeSnapshot);
-        HistogramSnapshot rootSnapshot = new HistogramSnapshot(rootHistogram, 20, "root response time", "us", TimeUnit.NANOSECONDS::toMicros);
+        HistogramSnapshot rootSnapshot = new HistogramSnapshot(rootHistogram, 20, "root response time", "us",
+            TimeUnit.NANOSECONDS::toMicros);
         System.err.println(rootSnapshot);
 
         System.err.printf("client thread pool - max_threads: %d, max_queue_size: %d, max_queue_latency: %dms%n%n",
-                executor.getMaxActiveThreads(),
-                executor.getMaxQueueSize(),
-                TimeUnit.NANOSECONDS.toMillis(executor.getMaxQueueLatency())
+            executor.getMaxActiveThreads(),
+            executor.getMaxQueueSize(),
+            TimeUnit.NANOSECONDS.toMillis(executor.getMaxQueueLatency())
         );
 
         executor.shutdown();

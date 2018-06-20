@@ -29,16 +29,14 @@ import static com.globocom.grou.groot.LogUtils.format;
  *
  */
 public class LoggerCollectorResultHandler
-    implements com.globocom.grou.groot.jetty.collector.CollectorResultHandler
-{
-    private static final Log LOGGER = LogFactory.getLog(LoggerCollectorResultHandler.class );
+    implements com.globocom.grou.groot.jetty.collector.CollectorResultHandler {
+
+    private static final Log LOGGER = LogFactory.getLog(LoggerCollectorResultHandler.class);
 
 
     @Override
-    public void handleResponseTime( Map<String, CollectorInformations> responseTimePerPath )
-    {
-        for ( Map.Entry<String, CollectorInformations> entry : responseTimePerPath.entrySet() )
-        {
+    public void handleResponseTime(Map<String, CollectorInformations> responseTimePerPath) {
+        for (Map.Entry<String, CollectorInformations> entry : responseTimePerPath.entrySet()) {
             LOGGER.info(format("path: {}, responseTime: {}", entry.getKey(), entry.getValue()));
         }
     }

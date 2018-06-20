@@ -35,12 +35,12 @@ import static com.globocom.grou.groot.LogUtils.format;
  */
 public class GlobalSummaryListener
     extends Request.Listener.Adapter
-    implements Resource.NodeListener
-{
+    implements Resource.NodeListener {
 
     private static final Log LOGGER = LogFactory.getLog(GlobalSummaryListener.class);
 
-    private Recorder responseHistogram, latencyHistogram;
+    private Recorder responseHistogram;
+    private Recorder latencyHistogram;
 
     private List<Integer> excludeHttpStatusFamily = new ArrayList<>();
 
@@ -56,44 +56,36 @@ public class GlobalSummaryListener
 
     private final LongAdder requestCommitTotal = new LongAdder();
 
-    public GlobalSummaryListener( long lowestDiscernibleValue, long highestTrackableValue,
-                                  int numberOfSignificantValueDigits )
-    {
+    public GlobalSummaryListener(long lowestDiscernibleValue, long highestTrackableValue,
+        int numberOfSignificantValueDigits) {
         this.responseHistogram =
-            new Recorder( lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits );
+            new Recorder(lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits);
         this.latencyHistogram =
-            new Recorder( lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits );
+            new Recorder(lowestDiscernibleValue, highestTrackableValue, numberOfSignificantValueDigits);
     }
 
-    public GlobalSummaryListener()
-    {
-        this( HistogramConstants.LOWEST_DISCERNIBLE_VALUE, //
-              HistogramConstants.HIGHEST_TRACKABLE_VALUE, //
-              HistogramConstants.NUMBER_OF_SIGNIFICANT_VALUE_DIGITS );
+    public GlobalSummaryListener() {
+        this(HistogramConstants.LOWEST_DISCERNIBLE_VALUE, //
+            HistogramConstants.HIGHEST_TRACKABLE_VALUE, //
+            HistogramConstants.NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
     }
 
     /**
      * @param httpStatusFamilies if you want to exclude 1xx or 5xx, add 100 or 500
-     * @return
      */
-    public GlobalSummaryListener addExcludeHttpStatusFamily( int... httpStatusFamilies )
-    {
-        if ( httpStatusFamilies == null )
-        {
+    public GlobalSummaryListener addExcludeHttpStatusFamily(int... httpStatusFamilies) {
+        if (httpStatusFamilies == null) {
             return this;
         }
-        for ( int status : httpStatusFamilies )
-        {
-            this.excludeHttpStatusFamily.add( status / 100 );
+        for (int status : httpStatusFamilies) {
+            this.excludeHttpStatusFamily.add(status / 100);
         }
         return this;
     }
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
-        switch ( info.getStatus() / 100 )
-        {
+    public void onResourceNode(Resource.Info info) {
+        switch (info.getStatus() / 100) {
             case 1:
                 responses1xx.increment();
                 break;
@@ -113,83 +105,66 @@ public class GlobalSummaryListener
                 break;
         }
 
-        if ( this.excludeHttpStatusFamily.contains( info.getStatus() / 100 ) )
-        {
-            if ( LOGGER.isDebugEnabled() )
-            {
+        if (this.excludeHttpStatusFamily.contains(info.getStatus() / 100)) {
+            if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(format("exclude http status: {}", info.getStatus()));
             }
             return;
         }
-        try
-        {
+        try {
             long latencyTime = info.getLatencyTime() - info.getRequestTime();
-            if ( LOGGER.isDebugEnabled() )
-            {
+            if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(format("latencyTime: {} resource: {}, status: {}", //
-                              TimeUnit.MILLISECONDS.convert( latencyTime, TimeUnit.NANOSECONDS ), //
-                              info.getResource().getPath(), //
-                              info.getStatus()));
+                    TimeUnit.MILLISECONDS.convert(latencyTime, TimeUnit.NANOSECONDS), //
+                    info.getResource().getPath(), //
+                    info.getStatus()));
             }
-            latencyHistogram.recordValue( latencyTime );
-        }
-        catch ( ArrayIndexOutOfBoundsException e )
-        {
+            latencyHistogram.recordValue(latencyTime);
+        } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.warn(format("fail to record latency value: {}", info.getLatencyTime()));
         }
-        try
-        {
+        try {
             long responseTime = info.getResponseTime() - info.getRequestTime();
             LOGGER.debug(format("responseTime: {} resource: {}, status: {}", //
-                          TimeUnit.MILLISECONDS.convert( responseTime, TimeUnit.NANOSECONDS ), //
-                          info.getResource().getPath(), //
-                          info.getStatus()));
-            responseHistogram.recordValue( responseTime );
-        }
-        catch ( ArrayIndexOutOfBoundsException e )
-        {
+                TimeUnit.MILLISECONDS.convert(responseTime, TimeUnit.NANOSECONDS), //
+                info.getResource().getPath(), //
+                info.getStatus()));
+            responseHistogram.recordValue(responseTime);
+        } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.warn(format("fail to record response time value: {}", info.getLatencyTime()));
         }
     }
 
 
-    public Recorder getResponseTimeHistogram()
-    {
+    public Recorder getResponseTimeHistogram() {
         return responseHistogram;
     }
 
-    public Recorder getLatencyTimeHistogram()
-    {
+    public Recorder getLatencyTimeHistogram() {
         return latencyHistogram;
     }
 
-    public LongAdder getResponses1xx()
-    {
+    public LongAdder getResponses1xx() {
         return responses1xx;
     }
 
-    public LongAdder getResponses2xx()
-    {
+    public LongAdder getResponses2xx() {
         return responses2xx;
     }
 
-    public LongAdder getResponses3xx()
-    {
+    public LongAdder getResponses3xx() {
         return responses3xx;
     }
 
-    public LongAdder getResponses4xx()
-    {
+    public LongAdder getResponses4xx() {
         return responses4xx;
     }
 
-    public LongAdder getResponses5xx()
-    {
+    public LongAdder getResponses5xx() {
         return responses5xx;
     }
 
-    public long getTotalResponse()
-    {
+    public long getTotalResponse() {
         return responses1xx.longValue() //
             + responses2xx.longValue() //
             + responses3xx.longValue() //
@@ -198,13 +173,11 @@ public class GlobalSummaryListener
     }
 
     @Override
-    public void onCommit( Request request )
-    {
+    public void onCommit(Request request) {
         requestCommitTotal.increment();
     }
 
-    public long getRequestCommitTotal()
-    {
+    public long getRequestCommitTotal() {
         return requestCommitTotal.longValue();
     }
 }

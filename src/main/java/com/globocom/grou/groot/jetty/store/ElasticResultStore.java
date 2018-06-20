@@ -48,7 +48,7 @@ import static com.globocom.grou.groot.LogUtils.format;
 
 public class ElasticResultStore extends AbstractResultStore implements ResultStore {
 
-    private final static Log LOGGER = LogFactory.getLog(ElasticResultStore.class);
+    private static final Log LOGGER = LogFactory.getLog(ElasticResultStore.class);
 
     public static final String ID = "elastic";
 
@@ -64,261 +64,254 @@ public class ElasticResultStore extends AbstractResultStore implements ResultSto
 
     private HttpClient httpClient;
 
-    private String host, scheme, username, password;
-
+    private String host;
+    private String scheme;
+    private String username;
+    private String password;
     private int port;
 
     static {
-        Configuration.setDefaults( new Configuration.Defaults() {
+        Configuration.setDefaults(new Configuration.Defaults() {
 
             private final JsonProvider jsonProvider = new JacksonJsonProvider(
-                new ObjectMapper().configure( DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false ) );
+                new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false));
 
             private final MappingProvider mappingProvider = new JacksonMappingProvider(
-                new ObjectMapper().configure( DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false ) );
+                new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false));
 
             @Override
-            public JsonProvider jsonProvider()
-            {
+            public JsonProvider jsonProvider() {
                 return jsonProvider;
             }
 
             @Override
-            public MappingProvider mappingProvider()
-            {
+            public MappingProvider mappingProvider() {
                 return mappingProvider;
             }
 
             @Override
-            public Set<Option> options()
-            {
-                return EnumSet.noneOf( Option.class );
+            public Set<Option> options() {
+                return EnumSet.noneOf(Option.class);
             }
-        } );
+        });
     }
 
 
     @Override
-    public void initialize( Map<String, String> setupData ) {
-        host = getSetupValue( setupData, HOST_KEY, "localhost" );
-        port = getSetupValue( setupData, PORT_KEY, 9200 );
-        scheme = getSetupValue( setupData, SCHEME_KEY, "http" );
-        username = getSetupValue( setupData, USER_KEY, null );
-        password = getSetupValue( setupData, PWD_KEY, null );
+    public void initialize(Map<String, String> setupData) {
+        host = getSetupValue(setupData, HOST_KEY, "localhost");
+        port = getSetupValue(setupData, PORT_KEY, 9200);
+        scheme = getSetupValue(setupData, SCHEME_KEY, "http");
+        username = getSetupValue(setupData, USER_KEY, null);
+        password = getSetupValue(setupData, PWD_KEY, null);
 
-        this.httpClient = new HttpClient( new SslContextFactory( true ) );
+        this.httpClient = new HttpClient(new SslContextFactory(true));
         try {
-            if ( StringUtils.isNotEmpty( username ) )
-            {
-                URI uri = new URI( scheme + "://" + host + ":" + port );
+            if (StringUtils.isNotEmpty(username)) {
+                URI uri = new URI(scheme + "://" + host + ":" + port);
                 AuthenticationStore auth = httpClient.getAuthenticationStore();
-                auth.addAuthenticationResult( new BasicAuthentication.BasicResult( uri, username, password ) );
+                auth.addAuthenticationResult(new BasicAuthentication.BasicResult(uri, username, password));
             }
             this.httpClient.start();
-            LOGGER.debug(format("elastic http client initialize to {}:{}", host, port));
-
-        } catch ( Exception e ) {
-            LOGGER.warn( e );
-            throw new RuntimeException( "Cannot start http client: " + e.getMessage(), e );
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(format("elastic http client initialize to {}:{}", host, port));
+            }
+        } catch (Exception e) {
+            LOGGER.warn(e);
+            throw new RuntimeException("Cannot start http client: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public void save( LoadResult loadResult ) {
+    public void save(LoadResult loadResult) {
         try {
             StringWriter stringWriter = new StringWriter();
-            new ObjectMapper().writeValue( stringWriter, loadResult );
-            LOGGER.debug(format("save loadResult with UUID {}", loadResult.getUuid()));
+            new ObjectMapper().writeValue(stringWriter, loadResult);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(format("save loadResult with UUID {}", loadResult.getUuid()));
+            }
 
-            ContentResponse contentResponse = httpClient.newRequest( host, port ).scheme( scheme ) //
-                .path( "/loadresult/result/" + loadResult.getUuid() ) //
-                .content( new StringContentProvider( stringWriter.toString() ) ) //
-                .method( HttpMethod.PUT ) //
-                .header( "Content-Type", "application/json" ) //
+            ContentResponse contentResponse = httpClient.newRequest(host, port).scheme(scheme)
+                .path("/loadresult/result/" + loadResult.getUuid())
+                .content(new StringContentProvider(stringWriter.toString()))
+                .method(HttpMethod.PUT)
+                .header("Content-Type", "application/json")
                 .send();
 
-            if ( contentResponse.getStatus() != HttpStatus.CREATED_201 ) {
+            if (contentResponse.getStatus() != HttpStatus.CREATED_201) {
                 LOGGER.info(format("Cannot record load result: {}", contentResponse.getContentAsString()));
             } else {
-                LOGGER.info( "Load result recorded" );
+                LOGGER.info("Load result recorded");
             }
-        } catch ( Exception e ) {
-            LOGGER.warn( "Cannot save result:" + e.getMessage(), e );
+        } catch (Exception e) {
+            LOGGER.warn("Cannot save result:" + e.getMessage(), e);
             //throw new RuntimeException( e.getMessage(), e );
         }
     }
 
     @Override
-    public void remove( LoadResult loadResult ) {
+    public void remove(LoadResult loadResult) {
         try {
-            ContentResponse contentResponse = httpClient.newRequest( host, port ) //
-                .scheme( scheme ) //
-                .path( "/loadresult/result/" + loadResult.getUuid() ) //
-                .method( HttpMethod.DELETE ) //
+            ContentResponse contentResponse = httpClient.newRequest(host, port)
+                .scheme(scheme)
+                .path("/loadresult/result/" + loadResult.getUuid())
+                .method(HttpMethod.DELETE)
                 .send();
-            if ( contentResponse.getStatus() != HttpStatus.OK_200 ) {
+            if (contentResponse.getStatus() != HttpStatus.OK_200) {
                 LOGGER.info(format("Cannot delete load result: {}", contentResponse.getContentAsString()));
             } else {
-                LOGGER.info( "Load result deleted" );
+                LOGGER.info("Load result deleted");
             }
-        } catch ( Exception e ) {
-            LOGGER.warn( e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     @Override
-    public LoadResult get( String loadResultId ) {
+    public LoadResult get(String loadResultId) {
         try {
-            ContentResponse contentResponse = httpClient.newRequest( host, port ) //
-                .scheme( scheme ) //
-                .path( "/loadresult/result/_search/" + loadResultId ) //
-                .method( HttpMethod.GET ) //
+            ContentResponse contentResponse = httpClient.newRequest(host, port)
+                .scheme(scheme)
+                .path("/loadresult/result/_search/" + loadResultId)
+                .method(HttpMethod.GET)
                 .send();
-            if ( contentResponse.getStatus() != HttpStatus.OK_200 ) {
+            if (contentResponse.getStatus() != HttpStatus.OK_200) {
                 LOGGER.info(format("Cannot get load result: {}", contentResponse.getContentAsString()));
                 return null;
             }
 
-            List<LoadResult> loadResults = map( contentResponse );
+            List<LoadResult> loadResults = map(contentResponse);
 
             LOGGER.debug(format("result {}", loadResults));
-            return loadResults == null || loadResults.isEmpty() ? null : loadResults.get( 0 );
+            return loadResults == null || loadResults.isEmpty() ? null : loadResults.get(0);
 
-        } catch ( Exception e ) {
-            LOGGER.warn( e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     public List<LoadResult> searchResultsByExternalId(String anExternalId) {
         try {
+            final Map<String, Object> externalId = new HashMap<>();
+            externalId.put("externalId", anExternalId);
+            final Map<String, Object> term = new HashMap<>();
+            term.put("term", externalId);
 
+            final Map<String, Object> filter = new HashMap<>();
+            filter.put("filter", term);
 
-            Map<String, Object> json = new HashMap<>();
+            final Map<String, Object> order = new HashMap<>();
+            order.put("order", "desc");
+            final Map<String, Object> timestamp = new HashMap<>();
+            timestamp.put("timestamp", order);
 
-            Map<String, Object> externalId = new HashMap<>();
-            externalId.put( "externalId", anExternalId );
-            Map<String, Object> term = new HashMap<>();
-            term.put( "term", externalId );
+            final Map<String, Object> constant_score = new HashMap<>();
+            constant_score.put("constant_score", filter);
 
-            Map<String, Object> filter = new HashMap<>();
-            filter.put( "filter", term );
-
-            Map<String, Object> constant_score = new HashMap<>();
-            constant_score.put( "constant_score", filter );
-
-            json.put( "query", constant_score );
-
-            Map<String, Object> order = new HashMap<>();
-            order.put( "order", "desc" );
-            Map<String, Object> timestamp = new HashMap<>();
-            timestamp.put( "timestamp", order );
-
-            json.put( "sort", timestamp );
+            final Map<String, Object> json = new HashMap<>();
+            json.put("query", constant_score);
+            json.put("sort", timestamp);
 
             StringWriter stringWriter = new StringWriter();
-            new ObjectMapper().writeValue( stringWriter, json );
+            new ObjectMapper().writeValue(stringWriter, json);
 
-
-
-            ContentResponse contentResponse = getHttpClient() //
-                .newRequest( host, port ) //
-                .scheme( scheme ) //
-                .header( "Content-Type","application/json" ) //
-                .method( HttpMethod.GET ) //
-                .path( "/loadresult/result/_search?sort=timestamp" ) //
-                .content( new StringContentProvider( stringWriter.toString() ) ) //
+            ContentResponse contentResponse = getHttpClient()
+                .newRequest(host, port)
+                .scheme(scheme)
+                .header("Content-Type", "application/json")
+                .method(HttpMethod.GET)
+                .path("/loadresult/result/_search?sort=timestamp")
+                .content(new StringContentProvider(stringWriter.toString()))
                 .send();
-            return map( contentResponse );
-        }
-        catch ( Exception e ) {
-            LOGGER.warn( e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
+            return map(contentResponse);
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     @Override
-    public List<LoadResult> get( List<String> loadResultIds ) {
+    public List<LoadResult> get(List<String> loadResultIds) {
         try {
-            //     we need this type of Json
-            //        {
-            //            "query": {
-            //            "ids" : {
-            //                "values" : ["192267e6-7f74-4806-867a-c13ef777d6eb", "80a2dc5b-4a92-48ba-8f5b-f2de1588318a"]
-            //            }
-            //        }
-            //        }
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> values = new HashMap<>();
-            values.put( "values", loadResultIds );
-            Map<String, Object> ids = new HashMap<>();
-            ids.put( "ids", values );
-            Map<String, Object> query = new HashMap<>();
-            query.put( "query", ids );
-            StringWriter stringWriter = new StringWriter();
-            objectMapper.writeValue( stringWriter, query );
+            // we need this type of Json
+            //{
+            //  "query": {
+            //    "ids" : {
+            //        "values" : ["192267e6-7f74-4806-867a-c13ef777d6eb", "80a2dc5b-4a92-48ba-8f5b-f2de1588318a"]
+            //    }
+            //  }
+            //}
+            final Map<String, Object> values = new HashMap<>();
+            values.put("values", loadResultIds);
+            final Map<String, Object> ids = new HashMap<>();
+            ids.put("ids", values);
+            final Map<String, Object> query = new HashMap<>();
+            query.put("query", ids);
+            final StringWriter stringWriter = new StringWriter();
+            final ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.writeValue(stringWriter, query);
 
-            ContentResponse contentResponse = getHttpClient() //
-                .newRequest( host, port ) //
-                .scheme( scheme ) //
-                .method( HttpMethod.GET ) //
-                .header( "Content-Type", "application/json" ) //
-                .path( "/loadresult/result/_search?sort=timestamp" ) //
-                .content( new StringContentProvider( stringWriter.toString() ) ) //
+            final ContentResponse contentResponse = getHttpClient()
+                .newRequest(host, port)
+                .scheme(scheme)
+                .method(HttpMethod.GET)
+                .header("Content-Type", "application/json")
+                .path("/loadresult/result/_search?sort=timestamp")
+                .content(new StringContentProvider(stringWriter.toString()))
                 .send();
-            return map( contentResponse );
+            return map(contentResponse);
 
-        } catch ( Exception e ) {
-            LOGGER.warn( e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
-    public String search( String searchPost ) {
+    public String search(String searchPost) {
         try {
-            ContentResponse contentResponse = getHttpClient() //
-                .newRequest( host, port ) //
-                .scheme( scheme ) //
-                .method( HttpMethod.GET ) //
-                .header( "Content-Type", "application/json" ) //
-                .path( "/loadresult/result/_search?pretty" ) //
-                .content( new StringContentProvider( searchPost ) ) //
+            ContentResponse contentResponse = getHttpClient()
+                .newRequest(host, port)
+                .scheme(scheme)
+                .method(HttpMethod.GET)
+                .header("Content-Type", "application/json")
+                .path("/loadresult/result/_search?pretty")
+                .content(new StringContentProvider(searchPost))
                 .send();
             return contentResponse.getContentAsString();
-        } catch ( Exception e ) {
-            LOGGER.warn( e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     @Override
-    public List<LoadResult> find( QueryFilter queryFilter )
-    {
+    public List<LoadResult> find(QueryFilter queryFilter) {
         return null;
     }
 
     @Override
     public List<LoadResult> findAll() {
         try {
-            ContentResponse contentResponse = httpClient.newRequest( host, port ) //
-                .scheme( scheme ) //
-                .path( "/loadresult/result/_search?pretty" ) //
-                .method( HttpMethod.GET ) //
+            ContentResponse contentResponse = httpClient.newRequest(host, port)
+                .scheme(scheme)
+                .path("/loadresult/result/_search?pretty")
+                .method(HttpMethod.GET)
                 .send();
-            if ( contentResponse.getStatus() != HttpStatus.OK_200 ) {
+            if (contentResponse.getStatus() != HttpStatus.OK_200) {
                 LOGGER.info(format("Cannot get load result: {}", contentResponse.getContentAsString()));
                 return Collections.emptyList();
             }
 
-            List<LoadResult> loadResults = map( contentResponse );
+            List<LoadResult> loadResults = map(contentResponse);
 
             LOGGER.debug(format("result {}", loadResults));
             return loadResults;
 
-        } catch ( Exception e ) {
-            LOGGER.warn( e.getMessage(), e );
-            throw new RuntimeException( e.getMessage(), e );
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
@@ -326,32 +319,31 @@ public class ElasticResultStore extends AbstractResultStore implements ResultSto
     public void close() throws IOException {
         try {
             this.httpClient.stop();
-        } catch ( Exception e ) {
-            throw new IOException( e.getMessage(), e );
+        } catch (Exception e) {
+            throw new IOException(e.getMessage(), e);
         }
     }
 
-    public static List<LoadResult> map( ContentResponse contentResponse ) {
-        return map( Collections.singletonList( contentResponse ) );
+    public static List<LoadResult> map(ContentResponse contentResponse) {
+        return map(Collections.singletonList(contentResponse));
     }
 
-    public static List<LoadResult> map( List<ContentResponse> contentResponses ) {
+    public static List<LoadResult> map(List<ContentResponse> contentResponses) {
         List<LoadResult> results = new ArrayList<>();
         contentResponses.forEach(
             contentResponse -> results.addAll(
-                    JsonPath.parse(contentResponse.getContentAsString())
-                            .read( "$.hits.hits[*]._source", new TypeRef<List<LoadResult>>(){})));
+                JsonPath.parse(contentResponse.getContentAsString())
+                    .read("$.hits.hits[*]._source", new TypeRef<List<LoadResult>>() {
+                    })));
         return results;
     }
 
-    private HttpClient getHttpClient()
-    {
+    private HttpClient getHttpClient() {
         return httpClient;
     }
 
     @Override
-    public String getProviderId()
-    {
+    public String getProviderId() {
         return ID;
     }
 }

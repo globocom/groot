@@ -72,7 +72,8 @@ public class SimpleSnmpClient implements AutoCloseable {
         transport.listen();
     }
 
-    private PDU getPDU(OID oids[]) {
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    private PDU getPDU(OID[] oids) {
         PDU pdu = new PDU();
         for (OID oid : oids) {
             pdu.add(new VariableBinding(oid));
@@ -82,9 +83,9 @@ public class SimpleSnmpClient implements AutoCloseable {
         return pdu;
     }
 
-    public ResponseEvent get(OID oids[]) throws IOException {
+    public ResponseEvent get(OID[] oids) throws IOException {
         ResponseEvent event = snmp.send(getPDU(oids), getTarget(), null);
-        if(event != null) {
+        if (event != null) {
             return event;
         }
         throw new RuntimeException("GET timed out");

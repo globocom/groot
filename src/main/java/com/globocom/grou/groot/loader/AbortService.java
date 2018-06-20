@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class AbortService {
+
     private static final Log LOGGER = LogFactory.getLog(AbortService.class);
 
     private AtomicBoolean abort;
@@ -49,6 +50,8 @@ public class AbortService {
 
     @Scheduled(fixedDelay = 5000L)
     public void check() {
-        if (started.get() && abort.get()) stop();
+        if (started.get() && abort.get()) {
+            stop();
+        }
     }
 }

@@ -63,9 +63,13 @@ public class Loader implements Serializable {
         this.statusDetailed = statusDetailed;
     }
 
-    public String getGroupName() { return groupName; }
+    public String getGroupName() {
+        return groupName;
+    }
 
-    public void setGroupName(String groupName) { this.groupName = groupName; }
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
 
     public String getVersion() {
         return version;
@@ -85,7 +89,9 @@ public class Loader implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Loader loader = (Loader) o;
         return name.equals(loader.getName());
     }

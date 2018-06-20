@@ -16,7 +16,7 @@
 
 package com.globocom.grou.groot.jetty.collector;
 
-import com.globocom.grou.groot.jetty.generator.HTTP1ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.Http1ClientTransportBuilder;
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
 import com.globocom.grou.groot.jetty.generator.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorServer;
@@ -46,9 +46,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.globocom.grou.groot.LogUtils.format;
 
-@RunWith( Parameterized.class )
-public class CollectorTest
-{
+@RunWith(Parameterized.class)
+public class CollectorTest {
 
     private static final Log LOGGER = LogFactory.getLog(CollectorTest.class);
 
@@ -56,185 +55,164 @@ public class CollectorTest
 
     private List<Server> servers;
 
-    public CollectorTest(Integer serverNumbers )
-        throws Exception
-    {
+    public CollectorTest(Integer serverNumbers) throws Exception {
         this.serverNumbers = serverNumbers;
-        this.servers = new ArrayList<>( this.serverNumbers );
-        for ( int i = 0; i < this.serverNumbers; i++ )
-        {
-            this.servers.add( startServer( new LoadHandler() ) );
+        this.servers = new ArrayList<>(this.serverNumbers);
+        for (int i = 0; i < this.serverNumbers; i++) {
+            this.servers.add(startServer(new LoadHandler()));
         }
 
     }
 
-    @Parameterized.Parameters( name = "servers: {0}" )
-    public static Collection<Integer> data()
-    {
+    @Parameterized.Parameters(name = "servers: {0}")
+    public static Collection<Integer> data() {
         List<Integer> number = new ArrayList<>();
-        number.add( Integer.valueOf( 1 ) );
-        number.add( Integer.valueOf( 2 ) );
+        number.add(1);
+        number.add(2);
 
         return number;
     }
 
     @After
-    public void shutdown()
-        throws Exception
-    {
-        for ( Server server : this.servers )
-        {
+    public void shutdown() throws Exception {
+        for (Server server : this.servers) {
             server.stop();
         }
     }
 
     @Test
     //@Ignore("ATM not a priority ATM")
-    public void collect_informations()
-        throws Exception
-    {
-        List<LoadGenerator> loadGenerators = new ArrayList<>( serverNumbers );
+    public void collect_informations() throws Exception {
+        List<LoadGenerator> loadGenerators = new ArrayList<>(serverNumbers);
         List<CollectorClient> collectorClients = new CopyOnWriteArrayList<>();
-        List<TestRequestListener> testRequestListeners = new ArrayList<>( serverNumbers );
-        List<CollectorResultHandler> collectorResultHandlers = Arrays.asList( new LoggerCollectorResultHandler() );
+        List<TestRequestListener> testRequestListeners = new ArrayList<>(serverNumbers);
+        List<CollectorResultHandler> collectorResultHandlers = Collections
+            .singletonList(new LoggerCollectorResultHandler());
 
-        for ( Server server : servers )
-        {
-            CollectorServer collectorServer = new CollectorServer( 0 ).start();
+        for (Server server : servers) {
+            CollectorServer collectorServer = new CollectorServer(0).start();
             String host = "localhost";
-            int port = ( (ServerConnector) server.getConnectors()[0] ).getLocalPort();
+            int port = ((ServerConnector) server.getConnectors()[0]).getLocalPort();
             Resource resource = new Resource("http://" + host + ":" + port + "/index.html");
 
             TestRequestListener testRequestListener = new TestRequestListener();
 
-            testRequestListeners.add( testRequestListener );
+            testRequestListeners.add(testRequestListener);
 
             LoadGenerator loadGenerator = new LoadGenerator.Builder() //
-                .usersPerThread( 2 ) //
-                .iterationsPerThread( 10 ) //
-                .resourceRate( 20 ) //
+                .usersPerThread(2) //
+                .iterationsPerThread(10) //
+                .resourceRate(20) //
 //                .transport( LoadGenerator.Transport.HTTP ) //
-                .httpClientTransportBuilder( new HTTP1ClientTransportBuilder() ) //
+                .httpClientTransportBuilder(new Http1ClientTransportBuilder()) //
                 //.scheduler( scheduler ) //
-                .resource( resource ) //
+                .resource(resource) //
                 // FIXME here
                 //.responseTimeListeners( collectorServer ) //
-                .requestListener( testRequestListener ) //
+                .requestListener(testRequestListener) //
                 .build();
 
             loadGenerator.begin();
 
-            loadGenerators.add( loadGenerator );
+            loadGenerators.add(loadGenerator);
 
             CollectorClient collectorClient = new CollectorClient.Builder() //
-                .addAddress( "localhost:" + collectorServer.getPort() ) //
-                .scheduleDelayInMillis( 500 ) //
-                .collectorResultHandlers( collectorResultHandlers ) //
+                .addAddress("localhost:" + collectorServer.getPort()) //
+                .scheduleDelayInMillis(500) //
+                .collectorResultHandlers(collectorResultHandlers) //
                 .build();
 
             collectorClient.start();
 
-            collectorClients.add( collectorClient );
+            collectorClients.add(collectorClient);
 
         }
 
-        Thread.sleep( 3000 );
+        Thread.sleep(3000);
 
-        for ( CollectorClient collectorClient : collectorClients )
-        {
+        for (CollectorClient collectorClient : collectorClients) {
             collectorClient.stop();
         }
 
-        for ( LoadGenerator loadGenerator : loadGenerators )
-        {
+        for (LoadGenerator loadGenerator : loadGenerators) {
             loadGenerator.interrupt();
         }
 
-        for ( TestRequestListener testRequestListener : testRequestListeners )
-        {
-            Assert.assertTrue( "successReponsesReceived :" + testRequestListener.success.get(), //
-                               testRequestListener.success.get() > 1 );
+        for (TestRequestListener testRequestListener : testRequestListeners) {
+            Assert.assertTrue("successReponsesReceived :" + testRequestListener.success.get(), //
+                testRequestListener.success.get() > 1);
 
             LOGGER.info(format("successReponsesReceived: {}", testRequestListener.success.get()));
 
-            Assert.assertTrue( "failedReponsesReceived: " + testRequestListener.failed.get(), //
-                               testRequestListener.failed.get() < 1 );
+            Assert.assertTrue("failedReponsesReceived: " + testRequestListener.failed.get(), //
+                testRequestListener.failed.get() < 1);
         }
 
     }
 
-    protected Server startServer( HttpServlet handler )
-        throws Exception
-    {
+    protected Server startServer(HttpServlet handler) throws Exception {
         QueuedThreadPool serverThreads = new QueuedThreadPool();
-        serverThreads.setName( "server" );
-        Server server = new Server( serverThreads );
+        serverThreads.setName("server");
+        Server server = new Server(serverThreads);
 //        server.setSessionIdManager( new HashSessionIdManager() );
-        ServerConnector connector = new ServerConnector( server, new HttpConnectionFactory( new HttpConfiguration() ) );
-        server.addConnector( connector );
+        ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(new HttpConfiguration()));
+        server.addConnector(connector);
 
-        ServletContextHandler context = new ServletContextHandler( ServletContextHandler.SESSIONS );
-        context.setContextPath( "/" );
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.setContextPath("/");
 
         HandlerCollection handlerCollection = new HandlerCollection();
-        handlerCollection.setHandlers( new Handler[]{ context } );
+        handlerCollection.setHandlers(new Handler[]{context});
 
-        server.setHandler( handlerCollection );
-        context.addServlet( new ServletHolder( handler ), "/*" );
+        server.setHandler(handlerCollection);
+        context.addServlet(new ServletHolder(handler), "/*");
         server.start();
 
         return server;
     }
 
 
-    private class LoadHandler
-        extends HttpServlet
-    {
+    private static class LoadHandler extends HttpServlet {
 
-        private final Log LOGGER = LogFactory.getLog(getClass());
+        private static final Log LOGGER = LogFactory.getLog(LoadHandler.class);
 
         @Override
-        protected void service( HttpServletRequest request, HttpServletResponse response )
-            throws ServletException, IOException
-        {
+        protected void service(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-            String method = request.getMethod().toUpperCase( Locale.ENGLISH );
+            String method = request.getMethod().toUpperCase(Locale.ENGLISH);
 
             HttpSession httpSession = request.getSession();
 
-            int contentLength = request.getIntHeader( "X-Download" );
+            int contentLength = request.getIntHeader("X-Download");
 
             LOGGER.debug(format("method: {}, contentLength: {}, id: {}, pathInfo: {}", //
-                          method, contentLength, httpSession.getId(), request.getPathInfo()));
+                method, contentLength, httpSession.getId(), request.getPathInfo()));
 
 
         }
     }
 
-    static class TestRequestListener
-        extends Request.Listener.Adapter
-    {
-        AtomicLong committed = new AtomicLong( 0 );
+    static class TestRequestListener extends Request.Listener.Adapter {
 
-        AtomicLong success = new AtomicLong( 0 );
+        AtomicLong committed = new AtomicLong(0);
 
-        AtomicLong failed = new AtomicLong( 0 );
+        AtomicLong success = new AtomicLong(0);
+
+        AtomicLong failed = new AtomicLong(0);
 
         @Override
-        public void onCommit( Request request )
-        {
+        public void onCommit(Request request) {
             committed.incrementAndGet();
         }
 
         @Override
-        public void onSuccess( Request request )
-        {
+        public void onSuccess(Request request) {
             success.incrementAndGet();
         }
 
         @Override
-        public void onFailure( Request request, Throwable failure )
-        {
+        public void onFailure(Request request, Throwable failure) {
             failed.incrementAndGet();
         }
     }

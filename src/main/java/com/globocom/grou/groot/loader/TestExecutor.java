@@ -48,8 +48,8 @@ public class TestExecutor implements Runnable {
     private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
 
     private final ObjectMapper mapper = new ObjectMapper()
-                                            .configure(SerializationFeature.INDENT_OUTPUT, true)
-                                            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        .configure(SerializationFeature.INDENT_OUTPUT, true)
+        .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     private final GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
     private final LoadGenerator.Builder builder;
 
@@ -59,41 +59,58 @@ public class TestExecutor implements Runnable {
     public TestExecutor(final Test test, long durationTimeMillis, final MonitorService monitorService) {
         long start = System.currentTimeMillis();
         final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
-        final List<Map<String, Object>> requestsProp = (List<Map<String, Object>>) Optional.ofNullable(properties.get(GrootProperties.REQUESTS)).orElse(
-                Collections.singletonList(new HashMap<>(){{
-                    put(GrootProperties.ORDER, 0);
-                    put(GrootProperties.URI_REQUEST, properties.get(GrootProperties.URI_REQUEST));
-                    put(GrootProperties.HEADERS, properties.get(GrootProperties.HEADERS));
-                    put(GrootProperties.METHOD, properties.get(GrootProperties.METHOD));
-                    put(GrootProperties.BODY, properties.get(GrootProperties.BODY));
-                    put(GrootProperties.AUTH, properties.get(GrootProperties.AUTH));
-                    put(GrootProperties.SAVE_COOKIES, properties.get(GrootProperties.SAVE_COOKIES));
-                    put(GrootProperties.CREDENTIALS, properties.get(GrootProperties.CREDENTIALS));
-                    put(GrootProperties.PREEMPTIVE, properties.get(GrootProperties.PREEMPTIVE));
-                }}));
+        @SuppressWarnings({"checkstyle:RightCurlyAlone", "checkstyle:Indentation"})
+        final List<Map<String, Object>> requestsProp =
+            (List<Map<String, Object>>) Optional.ofNullable(properties.get(GrootProperties.REQUESTS))
+                .orElse(Collections.singletonList(new HashMap<>() {{
+                            put(GrootProperties.ORDER, 0);
+                            put(GrootProperties.URI_REQUEST, properties.get(GrootProperties.URI_REQUEST));
+                            put(GrootProperties.HEADERS, properties.get(GrootProperties.HEADERS));
+                            put(GrootProperties.METHOD, properties.get(GrootProperties.METHOD));
+                            put(GrootProperties.BODY, properties.get(GrootProperties.BODY));
+                            put(GrootProperties.AUTH, properties.get(GrootProperties.AUTH));
+                            put(GrootProperties.SAVE_COOKIES, properties.get(GrootProperties.SAVE_COOKIES));
+                            put(GrootProperties.CREDENTIALS, properties.get(GrootProperties.CREDENTIALS));
+                            put(GrootProperties.PREEMPTIVE, properties.get(GrootProperties.PREEMPTIVE));
+                        }}));
 
-        int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS)).orElse(0);
-        int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN)).orElse(0);
-        int channelsPerUser = numConns > 0 ? 1 : (int) Optional.ofNullable(properties.get(GrootProperties.CONNS_PER_USER)).orElse(1);
-        int iterations = (int) Optional.ofNullable(properties.get(GrootProperties.ITERATIONS)).orElse(0);
-        int warmupIterations = (int) Optional.ofNullable(properties.get(GrootProperties.WARMUP_ITERATIONS)).orElse(0);
+        int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS))
+            .orElse(0);
+        int numConns = (int) Optional.ofNullable(properties.get(GrootProperties.NUM_CONN))
+            .orElse(0);
+        final int channelsPerUser = numConns > 0
+            ? 1 : (int) Optional.ofNullable(properties.get(GrootProperties.CONNS_PER_USER))
+            .orElse(1);
+        int iterations = (int) Optional.ofNullable(properties.get(GrootProperties.ITERATIONS))
+            .orElse(0);
+        int warmupIterations = (int) Optional.ofNullable(properties.get(GrootProperties.WARMUP_ITERATIONS))
+            .orElse(0);
 
-        int threadsFromProperties = (int) Optional.ofNullable(properties.get(GrootProperties.THREADS)).orElse(Runtime.getRuntime().availableProcessors());
+        int threadsFromProperties = (int) Optional.ofNullable(properties.get(GrootProperties.THREADS))
+            .orElse(Runtime.getRuntime().availableProcessors());
         int threads = recalNumThreadsIfNecessary(threadsFromProperties, users, numConns, iterations);
 
-        int usersPerThread = numConns > 0 ? Math.max(1, numConns / threads) : Math.max(1, users / threads);
-        int iterationsPerThread = Math.max(1, iterations / threads);
-        int warmupIterationsPerThread = warmupIterations / threads;
+        final int usersPerThread = numConns > 0 ? Math.max(1, numConns / threads) : Math.max(1, users / threads);
+        final int iterationsPerThread = Math.max(1, iterations / threads);
+        final int warmupIterationsPerThread = warmupIterations / threads;
 
-        int resourceRate = (int) Optional.ofNullable(properties.get(GrootProperties.RESOURCE_RATE)).orElse(0);
-        long rateRampUpPeriod = (long) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD)).orElse(0L);
-        int numberOfNIOselectors = (int) Optional.ofNullable(properties.get(GrootProperties.NIO_SELECTORS)).orElse(1);
-        int maxRequestsQueued = (int) Optional.ofNullable(properties.get(GrootProperties.MAX_REQUESTS_QUEUED)).orElse(128 * threads * 1024);
-        boolean connectionBlocking = (boolean) Optional.ofNullable(properties.get(GrootProperties.BLOCKING)).orElse(true);
-        long connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT)).orElse(2000L);
-        long idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT)).orElse(5000L);
+        final int resourceRate = (int) Optional.ofNullable(properties.get(GrootProperties.RESOURCE_RATE))
+            .orElse(0);
+        final long rateRampUpPeriod = (long) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD))
+            .orElse(0L);
+        @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+        int numberOfNIOselectors = (int) Optional.ofNullable(properties.get(GrootProperties.NIO_SELECTORS))
+            .orElse(1);
+        final int maxRequestsQueued = (int) Optional.ofNullable(properties.get(GrootProperties.MAX_REQUESTS_QUEUED))
+            .orElse(128 * threads * 1024);
+        final boolean connectionBlocking = (boolean) Optional.ofNullable(properties.get(GrootProperties.BLOCKING))
+            .orElse(true);
+        final long connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT))
+            .orElse(2000L);
+        final long idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT))
+            .orElse(5000L);
 
-        final AtomicReference<HTTPClientTransportBuilder> httpClientTransportBuilder = new AtomicReference<>(null);
+        final AtomicReference<HttpClientTransportBuilder> httpClientTransportBuilder = new AtomicReference<>(null);
         final AtomicReference<String> scheme = new AtomicReference<>(null);
         final AtomicReference<String> host = new AtomicReference<>(null);
         final AtomicInteger port = new AtomicInteger(0);
@@ -104,14 +121,17 @@ public class TestExecutor implements Runnable {
             LOGGER.error(e.getMessage(), e);
         }
 
-        final boolean saveCookies = (boolean) Optional.ofNullable(properties.get(GrootProperties.SAVE_COOKIES)).orElse(false);
-        final Map<String, String> auth = (Map<String, String>) Optional.ofNullable(properties.get(GrootProperties.AUTH)).orElse(Collections.emptyMap());
+        final boolean saveCookies = (boolean) Optional.ofNullable(properties.get(GrootProperties.SAVE_COOKIES))
+            .orElse(false);
+        final Map<String, String> auth = (Map<String, String>) Optional.ofNullable(properties.get(GrootProperties.AUTH))
+            .orElse(Collections.emptyMap());
         boolean authPreemptive = false;
         String username = null;
         String password = null;
         if (!auth.isEmpty()) {
             String credentials = auth.get(GrootProperties.CREDENTIALS);
-            authPreemptive = Boolean.parseBoolean(Optional.ofNullable(auth.get(GrootProperties.PREEMPTIVE)).orElse("false"));
+            authPreemptive = Boolean.parseBoolean(Optional.ofNullable(auth.get(GrootProperties.PREEMPTIVE))
+                .orElse("false"));
             int idx;
             if (credentials != null && (idx = credentials.indexOf(":")) > -1) {
                 username = credentials.substring(0, idx);
@@ -121,7 +141,8 @@ public class TestExecutor implements Runnable {
 
         final Resource resource = new Resource();
         requestsProp.forEach(requestProp ->
-            resource.addResource(resourceBuild(requestProp, httpClientTransportBuilder, scheme, host, port, numberOfNIOselectors))
+            resource.addResource(
+                resourceBuild(requestProp, httpClientTransportBuilder, scheme, host, port, numberOfNIOselectors))
         );
         try {
             LOGGER.info(mapper.writeValueAsString(resource));
@@ -132,53 +153,61 @@ public class TestExecutor implements Runnable {
         final TestListener testListener = new TestListener(monitorService, start);
 
         builder = new LoadGenerator.Builder()
-                .threads(threads)
-                .warmupIterationsPerThread(warmupIterationsPerThread)
-                .iterationsPerThread(iterationsPerThread)
-                .runFor(durationTimeMillis, TimeUnit.MILLISECONDS)
-                .usersPerThread(usersPerThread)
-                .channelsPerUser(channelsPerUser)
-                .resource(resource)
-                .resourceRate(resourceRate)
-                .rateRampUpPeriod(rateRampUpPeriod)
-                .httpClientTransportBuilder(httpClientTransportBuilder.get())
-                .sslContextFactory(sslContextFactory)
-                .username(username)
-                .password(password)
-                .saveCookies(saveCookies)
-                .authPreemptive(authPreemptive)
-                .userAgent(Application.GROOT_USERAGENT)
-                .maxRequestsQueued(maxRequestsQueued)
-                .connectBlocking(connectionBlocking)
-                .connectTimeout(connectionTimeout)
-                .idleTimeout(idleTimeout)
-                .resourceListener(testListener)
-                .resourceListener(globalSummaryListener)
-                .requestListener(testListener)
-                .requestListener(globalSummaryListener);
+            .threads(threads)
+            .warmupIterationsPerThread(warmupIterationsPerThread)
+            .iterationsPerThread(iterationsPerThread)
+            .runFor(durationTimeMillis, TimeUnit.MILLISECONDS)
+            .usersPerThread(usersPerThread)
+            .channelsPerUser(channelsPerUser)
+            .resource(resource)
+            .resourceRate(resourceRate)
+            .rateRampUpPeriod(rateRampUpPeriod)
+            .httpClientTransportBuilder(httpClientTransportBuilder.get())
+            .sslContextFactory(sslContextFactory)
+            .username(username)
+            .password(password)
+            .saveCookies(saveCookies)
+            .authPreemptive(authPreemptive)
+            .userAgent(Application.GROOT_USERAGENT)
+            .maxRequestsQueued(maxRequestsQueued)
+            .connectBlocking(connectionBlocking)
+            .connectTimeout(connectionTimeout)
+            .idleTimeout(idleTimeout)
+            .resourceListener(testListener)
+            .resourceListener(globalSummaryListener)
+            .requestListener(testListener)
+            .requestListener(globalSummaryListener);
     }
 
     private Resource resourceBuild(
-            final Map<String, Object> requestProp,
-            final AtomicReference<HTTPClientTransportBuilder> httpClientTransportBuilder,
-            final AtomicReference<String> scheme,
-            final AtomicReference<String> host,
-            final AtomicInteger port,
-            int numberOfNIOselectors) {
-        final URI uri = URI.create(String.valueOf(Optional.ofNullable(requestProp.get(GrootProperties.URI_REQUEST)).orElse("https://127.0.0.1:8443")));
+        final Map<String, Object> requestProp,
+        final AtomicReference<HttpClientTransportBuilder> httpClientTransportBuilder,
+        final AtomicReference<String> scheme,
+        final AtomicReference<String> host,
+        final AtomicInteger port,
+        @SuppressWarnings("checkstyle:AbbreviationAsWordInName") int numberOfNIOselectors) {
+        final URI uri = URI.create(String.valueOf(Optional.ofNullable(requestProp.get(GrootProperties.URI_REQUEST))
+            .orElse("https://127.0.0.1:8443")));
         String localScheme = uri.getScheme();
-        httpClientTransportBuilder.compareAndExchange(null, getHttpClientTransportBuilder(localScheme, numberOfNIOselectors));
+        httpClientTransportBuilder
+            .compareAndExchange(null, getHttpClientTransportBuilder(localScheme, numberOfNIOselectors));
 
-        if ("h2c".equals(localScheme)) localScheme = HttpScheme.HTTPS.asString();
-        if ("h2".equals(localScheme)) localScheme = HttpScheme.HTTP.asString();
+        if ("h2c".equals(localScheme)) {
+            localScheme = HttpScheme.HTTPS.asString();
+        }
+        if ("h2".equals(localScheme)) {
+            localScheme = HttpScheme.HTTP.asString();
+        }
 
         scheme.compareAndSet(null, localScheme);
         port.compareAndSet(0, uri.getPort() > 0 ? uri.getPort() : (localScheme.endsWith("s") ? 443 : 80));
         host.compareAndSet(null, uri.getHost());
 
-        final String method = (String) Optional.ofNullable(requestProp.get(GrootProperties.METHOD)).orElse("GET");
+        final String method = (String) Optional.ofNullable(requestProp.get(GrootProperties.METHOD))
+            .orElse("GET");
         final HttpFields headers = getHttpFields(requestProp);
-        final int order = (int) Optional.ofNullable(requestProp.get(GrootProperties.ORDER)).orElse(Math.abs(new Random().nextInt()));
+        final int order = (int) Optional.ofNullable(requestProp.get(GrootProperties.ORDER))
+            .orElse(Math.abs(new Random().nextInt()));
 
         String body = "";
         if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
@@ -192,7 +221,8 @@ public class TestExecutor implements Runnable {
     }
 
     private int recalNumThreadsIfNecessary(int threads, int users, int numConns, int iterations) {
-        return IntStream.of(threads, users, numConns, iterations, DEFAULT_NUM_THREADS).filter(x -> x > 0).sorted().findFirst().orElse(1);
+        return IntStream.of(threads, users, numConns, iterations, DEFAULT_NUM_THREADS).filter(x -> x > 0).sorted()
+            .findFirst().orElse(1);
     }
 
     @Override
@@ -230,9 +260,9 @@ public class TestExecutor implements Runnable {
                 final List<?> listOfHeaders = (List<?>) headersObj;
                 final HttpFields httpFields = new HttpFields(listOfHeaders.size());
                 listOfHeaders.stream()
-                        .filter(map -> map instanceof Map)
-                        .map(map -> (Map<String, String>) map)
-                        .forEach(map -> map.forEach(httpFields::put));
+                    .filter(map -> map instanceof Map)
+                    .map(map -> (Map<String, String>) map)
+                    .forEach(map -> map.forEach(httpFields::put));
                 return httpFields;
             }
             return new HttpFields(0);
@@ -243,19 +273,26 @@ public class TestExecutor implements Runnable {
     }
 
     public void interrupt() {
-        if (loadGenerator != null) loadGenerator.interrupt();
+        if (loadGenerator != null) {
+            loadGenerator.interrupt();
+        }
     }
 
-    private HTTPClientTransportBuilder getHttpClientTransportBuilder(String schema, int numberOfNIOselectors) {
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+    private HttpClientTransportBuilder getHttpClientTransportBuilder(
+        String schema,
+        @SuppressWarnings("checkstyle:AbbreviationAsWordInName") int numberOfNIOselectors) {
+
         switch (schema) {
             case "http":
             case "https": {
-                return new HTTP1ClientTransportBuilder().selectors(numberOfNIOselectors);
+                return new Http1ClientTransportBuilder().selectors(numberOfNIOselectors);
             }
             case "h2c":
             case "h2": {
                 // Chrome uses 15 MiB session and 6 MiB stream windows.
-                return new HTTP2ClientTransportBuilder().sessionRecvWindow(15 * 1024 * 1024).streamRecvWindow(6 * 1024 * 1024).selectors(numberOfNIOselectors);
+                return new Http2ClientTransportBuilder().sessionRecvWindow(15 * 1024 * 1024)
+                    .streamRecvWindow(6 * 1024 * 1024).selectors(numberOfNIOselectors);
             }
             default: {
                 throw new IllegalArgumentException("unsupported transport " + schema);
@@ -266,8 +303,8 @@ public class TestExecutor implements Runnable {
     private void displayGlobalSummaryListener(GlobalSummaryListener globalSummaryListener) {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss z");
         CollectorInformations latencyTimeSummary =
-                new CollectorInformations(globalSummaryListener.getLatencyTimeHistogram() //
-                        .getIntervalHistogram());
+            new CollectorInformations(globalSummaryListener.getLatencyTimeHistogram() //
+                .getIntervalHistogram());
 
         long totalRequestCommitted = globalSummaryListener.getRequestCommitTotal();
         long start = latencyTimeSummary.getStartTimeStamp();
@@ -280,22 +317,22 @@ public class TestExecutor implements Runnable {
         LOGGER.info("----------------------------------------------------");
         LOGGER.info("total count:" + latencyTimeSummary.getTotalCount());
         LOGGER.info("maxLatency:" //
-                + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getMaxValue()));
+            + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getMaxValue()));
         LOGGER.info("minLatency:" //
-                + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getMinValue()));
+            + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getMinValue()));
         LOGGER.info("aveLatency:" //
-                + TimeUnit.NANOSECONDS.toMillis(Math.round(latencyTimeSummary.getMean())));
+            + TimeUnit.NANOSECONDS.toMillis(Math.round(latencyTimeSummary.getMean())));
         LOGGER.info("50Latency:" //
-                + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getValue50()));
+            + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getValue50()));
         LOGGER.info("90Latency:" //
-                + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getValue90()));
+            + TimeUnit.NANOSECONDS.toMillis(latencyTimeSummary.getValue90()));
         LOGGER.info("stdDeviation:" //
-                + TimeUnit.NANOSECONDS.toMillis(Math.round(latencyTimeSummary.getStdDeviation())));
+            + TimeUnit.NANOSECONDS.toMillis(Math.round(latencyTimeSummary.getStdDeviation())));
         double timeInSeconds = (end - start) / 1_000.0;
         double rqs = timeInSeconds == 0.0 ? 0.0 : (totalRequestCommitted * 1.0) / timeInSeconds;
-        LOGGER.info("start: " + simpleDateFormat.format(latencyTimeSummary.getStartTimeStamp()) +
-                    " , end: " + simpleDateFormat.format(latencyTimeSummary.getEndTimeStamp()) +
-                    " [total: " + timeInSeconds + " secs]");
+        LOGGER.info("start: " + simpleDateFormat.format(latencyTimeSummary.getStartTimeStamp())
+            + " , end: " + simpleDateFormat.format(latencyTimeSummary.getEndTimeStamp())
+            + " [total: " + timeInSeconds + " secs]");
         LOGGER.info("----------------------------------------------------");
         LOGGER.info("-----------     Estimated RPS     ------------------");
         LOGGER.info("----------------------------------------------------");

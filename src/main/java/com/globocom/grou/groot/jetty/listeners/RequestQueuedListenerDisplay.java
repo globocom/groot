@@ -31,47 +31,39 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class RequestQueuedListenerDisplay
     extends Request.Listener.Adapter
-    implements LoadGenerator.EndListener
-{
+    implements LoadGenerator.EndListener {
 
     private static final Log LOGGER = LogFactory.getLog(RequestQueuedListenerDisplay.class);
 
-    private AtomicLong requestsQueued = new AtomicLong( 0 );
+    private AtomicLong requestsQueued = new AtomicLong(0);
 
     private ScheduledExecutorService scheduledExecutorService;
 
-    public RequestQueuedListenerDisplay()
-    {
-        this( 10, 30, TimeUnit.SECONDS );
+    public RequestQueuedListenerDisplay() {
+        this(10, 30, TimeUnit.SECONDS);
     }
 
-    public RequestQueuedListenerDisplay( long initial, long delay, TimeUnit timeUnit )
-    {
-        scheduledExecutorService = Executors.newScheduledThreadPool( 1 );
-        scheduledExecutorService.scheduleWithFixedDelay( () ->
-            {
-                LOGGER.info( "----------------------------------------" );
-                LOGGER.info( "  Requests in queue: " + requestsQueued.get() );
-                LOGGER.info( "----------------------------------------" );
-            },//
-            initial, delay, timeUnit );
+    public RequestQueuedListenerDisplay(long initial, long delay, TimeUnit timeUnit) {
+        scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        scheduledExecutorService.scheduleWithFixedDelay(() -> {
+            LOGGER.info("----------------------------------------");
+            LOGGER.info("  Requests in queue: " + requestsQueued.get());
+            LOGGER.info("----------------------------------------");
+        }, initial, delay, timeUnit);
     }
 
     @Override
-    public void onQueued( Request request )
-    {
+    public void onQueued(Request request) {
         requestsQueued.incrementAndGet();
     }
 
     @Override
-    public void onBegin( Request request )
-    {
+    public void onBegin(Request request) {
         requestsQueued.decrementAndGet();
     }
 
     @Override
-    public void onEnd( LoadGenerator generator )
-    {
+    public void onEnd(LoadGenerator generator) {
         this.scheduledExecutorService.shutdownNow();
     }
 

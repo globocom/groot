@@ -19,13 +19,11 @@ package com.globocom.grou.groot.jetty.listeners;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-public class Utils
-{
+public class Utils {
 
-    public static String toString(Throwable t)
-    {
+    public static String toString(Throwable t) {
         StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter( sw);
+        PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
         return sw.getBuffer().toString();
     }

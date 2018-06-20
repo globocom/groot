@@ -13,13 +13,14 @@ public interface PropertiesUtils {
     Log LOGGER = LogFactory.getLog(PropertiesUtils.class);
 
     @SuppressWarnings("unchecked")
-    static HashMap<String, Object>[] extractAllRequestPropertiesOrdered(final Map<String, Object> properties) throws IllegalArgumentException {
+    static HashMap<String, Object>[] extractAllRequestPropertiesOrdered(final Map<String, Object> properties)
+        throws IllegalArgumentException {
         HashMap[] allproperties;
         try {
             Object requestsObj = properties.get(REQUESTS);
             if (requestsObj instanceof List) {
-                return  ((List<Map<String, Object>>) requestsObj).stream().filter(r -> r.containsKey(ORDER))
-                        .sorted(Comparator.comparingInt(r -> (Integer) r.get(ORDER))).toArray(HashMap[]::new);
+                return ((List<Map<String, Object>>) requestsObj).stream().filter(r -> r.containsKey(ORDER))
+                    .sorted(Comparator.comparingInt(r -> (Integer) r.get(ORDER))).toArray(HashMap[]::new);
             } else {
                 allproperties = new HashMap[1];
                 allproperties[0] = new HashMap<>(properties);
@@ -34,8 +35,11 @@ public interface PropertiesUtils {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     static void check(final Map<String, Object> testProperties) throws IllegalArgumentException {
         HashMap[] allproperties = extractAllRequestPropertiesOrdered(testProperties);
-        if (allproperties.length == 0) throw new IllegalArgumentException("Request properties is empty or invalid (is \"order\" property missing?)");
-        for (HashMap properties: allproperties) {
+        if (allproperties.length == 0) {
+            throw new IllegalArgumentException(
+                "Request properties is empty or invalid (is \"order\" property missing?)");
+        }
+        for (HashMap properties : allproperties) {
             Object uri = properties.get(URI_REQUEST);
             if (uri == null || ((String) uri).isEmpty()) {
                 throw new IllegalArgumentException(URI_REQUEST + " property undefined");
@@ -43,12 +47,16 @@ public interface PropertiesUtils {
             URI uriTested = URI.create((String) uri);
             String schema = uriTested.getScheme();
             if (!schema.matches("(http[s]?|ws[s]?|h2[c]?)")) {
-                throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", must be equal (ignoring case) to ‘http’, ‘https’, ’h2’, ’h2c’, ‘ws’, or ‘wss’");
+                throw new IllegalArgumentException("The URI scheme, of the URI " + uri
+                    + ", must be equal (ignoring case) to ‘http’, ‘https’, ’h2’, ’h2c’, ‘ws’, or ‘wss’");
             }
             String method = (String) properties.get(METHOD);
             if (method != null && method.matches("(POST|PUT|PATCH)")) {
-                String body = Optional.ofNullable((String) properties.get(BODY)).orElseThrow(() -> new IllegalArgumentException(BODY + " property undefined"));
-                if (body.isEmpty()) throw new IllegalArgumentException("body is empty");
+                String body = Optional.ofNullable((String) properties.get(BODY))
+                    .orElseThrow(() -> new IllegalArgumentException(BODY + " property undefined"));
+                if (body.isEmpty()) {
+                    throw new IllegalArgumentException("body is empty");
+                }
             }
         }
     }

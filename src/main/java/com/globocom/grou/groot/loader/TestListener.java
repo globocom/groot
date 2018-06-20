@@ -6,7 +6,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
 
-public class TestListener extends Request.Listener.Adapter implements Resource.NodeListener, Resource.OnContentListener {
+public class TestListener extends Request.Listener.Adapter implements Resource.NodeListener,
+    Resource.OnContentListener {
 
     private static final Log LOGGER = LogFactory.getLog(TestListener.class);
 
@@ -34,7 +35,9 @@ public class TestListener extends Request.Listener.Adapter implements Resource.N
     @Override
     public void onFailure(Request request, Throwable failure) {
         try {
-            if (failure != null) monitorService.fail(failure, start);
+            if (failure != null) {
+                monitorService.fail(failure, start);
+            }
         } catch (NullPointerException ignore) {
             // ignored
         } catch (Exception e) {

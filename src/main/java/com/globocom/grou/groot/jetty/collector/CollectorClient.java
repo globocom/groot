@@ -56,73 +56,65 @@ public class CollectorClient {
     private List<CollectorResultHandler> collectorResultHandlers;
 
     public CollectorClient(List<String> addresses, long scheduleDelayInMillis,
-                           List<CollectorResultHandler> collectorResultHandlers) {
+        List<CollectorResultHandler> collectorResultHandlers) {
         this.addresses = addresses;
         this.scheduleDelayInMillis = scheduleDelayInMillis;
-        this.httpClients = new CopyOnWriteArrayList<>( );
-        this.collectorResultHandlers = collectorResultHandlers == null ? Collections.emptyList() : collectorResultHandlers;
+        this.httpClients = new CopyOnWriteArrayList<>();
+        this.collectorResultHandlers =
+            collectorResultHandlers == null ? Collections.emptyList() : collectorResultHandlers;
     }
 
 
     public CollectorClient start() {
 
         // at least a default one
-        if (this.collectorResultHandlers.isEmpty())
-        {
+        if (this.collectorResultHandlers.isEmpty()) {
             this.collectorResultHandlers = Collections.singletonList(new LoggerCollectorResultHandler());
         }
 
-        this.scheduledExecutorService = Executors.newScheduledThreadPool( addresses.size() );
+        this.scheduledExecutorService = Executors.newScheduledThreadPool(addresses.size());
 
-        for ( String address : this.addresses )
-        {
-            this.scheduledExecutorService.scheduleWithFixedDelay( () ->
-                {
+        for (String address : this.addresses) {
+            this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
 
-                    try
-                    {
-                        HttpClient httpClient = new HttpClient();
-                        httpClient.start();
-                        httpClients.add( httpClient );
+                try {
+                    HttpClient httpClient = new HttpClient();
+                    httpClient.start();
+                    httpClients.add(httpClient);
 
-                        ObjectMapper objectMapper = new ObjectMapper();
+                    ObjectMapper objectMapper = new ObjectMapper();
 
+                    // response time per path informations
+                    ContentResponse contentResponse = httpClient //
+                        .newRequest("http://" + address + "/collector/response-times") //
+                        .send();
 
-                        // response time per path informations
-                        ContentResponse contentResponse = httpClient //
-                            .newRequest( "http://" + address + "/collector/response-times" ) //
-                            .send();
+                    LOGGER.debug(format("response time per path status: {}, response: {}", //
+                        contentResponse.getStatus(), //
+                        contentResponse.getContentAsString()));
 
-                        LOGGER.debug(format("response time per path status: {}, response: {}", //
-                                      contentResponse.getStatus(), //
-                                      contentResponse.getContentAsString()));
+                    TypeReference<Map<String, CollectorInformations>> typeRef = new TypeReference<>() {
+                    };
 
-                        TypeReference<Map<String, CollectorInformations>> typeRef = new TypeReference<>() {};
+                    Map<String, CollectorInformations> responseTimePerPath =
+                        objectMapper.readValue(contentResponse.getContentAsString(), typeRef);
 
-                        Map<String, CollectorInformations> responseTimePerPath =
-                            objectMapper.readValue( contentResponse.getContentAsString(), typeRef );
-
-
-                        for (CollectorResultHandler collectorResultHandler: collectorResultHandlers)
-                        {
-                            collectorResultHandler.handleResponseTime( responseTimePerPath );
-                        }
-
-                    }
-                    catch ( Throwable e )
-                    {
-                        LOGGER.warn( e );
+                    for (CollectorResultHandler collectorResultHandler : collectorResultHandlers) {
+                        collectorResultHandler.handleResponseTime(responseTimePerPath);
                     }
 
-                }, 1, this.scheduleDelayInMillis, TimeUnit.MILLISECONDS );
+                } catch (Throwable e) {
+                    LOGGER.warn(e);
+                }
+
+            }, 1, this.scheduleDelayInMillis, TimeUnit.MILLISECONDS);
         }
 
         return this;
     }
 
     public CollectorClient stop() throws Exception {
-        for ( HttpClient httpClient : httpClients )
-        {
+        for (HttpClient httpClient : httpClients) {
             httpClient.stop();
         }
         this.scheduledExecutorService.shutdown();
@@ -134,49 +126,48 @@ public class CollectorClient {
     //--------------------------------------------------------------
 
     public static class Builder {
+
         private List<String> addresses = new ArrayList<>();
 
         private long scheduleDelayInMillis = 5000;
 
         private List<CollectorResultHandler> collectorResultHandlers;
 
-        public Builder addAddress( String address ) {
-            this.addresses.add( address );
+        public Builder addAddress(String address) {
+            this.addresses.add(address);
             return this;
         }
 
-        public Builder addAddresses( String... addresses ) {
-            this.addresses.addAll( Arrays.asList( addresses ) );
+        public Builder addAddresses(String... addresses) {
+            this.addresses.addAll(Arrays.asList(addresses));
             return this;
         }
 
-        public Builder addAddresses( List<String> addresses ) {
-            this.addresses.addAll( addresses );
+        public Builder addAddresses(List<String> addresses) {
+            this.addresses.addAll(addresses);
             return this;
         }
 
 
-        public Builder scheduleDelayInMillis( long scheduleDelayInMillis ) {
+        public Builder scheduleDelayInMillis(long scheduleDelayInMillis) {
             this.scheduleDelayInMillis = scheduleDelayInMillis;
             return this;
         }
 
-        public Builder collectorResultHandlers( List<CollectorResultHandler> collectorResultHandlers ) {
+        public Builder collectorResultHandlers(List<CollectorResultHandler> collectorResultHandlers) {
             this.collectorResultHandlers = collectorResultHandlers;
             return this;
         }
 
 
         public CollectorClient build() {
-            if ( this.addresses.isEmpty() )
-            {
-                throw new IllegalArgumentException( "addresses are mandatory" );
+            if (this.addresses.isEmpty()) {
+                throw new IllegalArgumentException("addresses are mandatory");
             }
-            if ( this.scheduleDelayInMillis < 1 )
-            {
-                throw new IllegalArgumentException( "scheduleDelayInMillis must be higher than 0" );
+            if (this.scheduleDelayInMillis < 1) {
+                throw new IllegalArgumentException("scheduleDelayInMillis must be higher than 0");
             }
-            return new CollectorClient( this.addresses, this.scheduleDelayInMillis, this.collectorResultHandlers );
+            return new CollectorClient(this.addresses, this.scheduleDelayInMillis, this.collectorResultHandlers);
         }
 
 

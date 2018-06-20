@@ -21,7 +21,8 @@ import java.util.Optional;
 /**
  * The enum System environments.
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "checkstyle:MethodParamPad"})
+//@formatter:off
 public enum SystemEnv {
 
     /**
@@ -134,3 +135,4 @@ public enum SystemEnv {
         this.value = Optional.ofNullable(System.getenv(env)).orElse(String.valueOf(def));
     }
 }
+//@formatter:off

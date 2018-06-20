@@ -26,13 +26,13 @@ import java.util.*;
 /**
  * <p>A resource node to be fetched by the load generator.</p>
  * <p>Resources are organized in a tree, and the load generator
- * fetches parent resources before children resources, while sibling
- * resources are sent in parallel.</p>
+ * fetches parent resources before children resources, while sibling resources are sent in parallel.</p>
  * <p>A Resource without a path is a <em>group</em> resource,
- * only meant to group resources together (for example to fetch all
- * JavaScript resources as a group before fetching the image resources).</p>
+ * only meant to group resources together (for example to fetch all JavaScript resources as a group before fetching the
+ * image resources).</p>
  */
 public class Resource {
+
     public static final String RESPONSE_LENGTH = "JLG-Response-Length";
 
     private final List<Resource> resources = new ArrayList<>();
@@ -83,7 +83,9 @@ public class Resource {
     }
 
     public String getPath() {
-        if (uri == null) return null;
+        if (uri == null) {
+            return null;
+        }
         final String path = uri.getPath();
         return path == null || path.isEmpty() ? "/" : path;
     }
@@ -105,7 +107,7 @@ public class Resource {
      * @return this Resource
      */
     public Resource requestHeader(String name, String value) {
-        this.requestHeaders.add( name, value);
+        this.requestHeaders.add(name, value);
         return this;
     }
 
@@ -116,7 +118,7 @@ public class Resource {
      * @return this Resource
      */
     public Resource requestHeaders(HttpFields headers) {
-        this.requestHeaders.addAll( headers);
+        this.requestHeaders.addAll(headers);
         return this;
     }
 
@@ -208,16 +210,17 @@ public class Resource {
     @Override
     public String toString() {
         return String.format("%s@%h{%s %s}",
-                getClass().getSimpleName(),
-                hashCode(),
-                getMethod(),
-                getPath());
+            getClass().getSimpleName(),
+            hashCode(),
+            getMethod(),
+            getPath());
     }
 
     /**
      * Value class containing information per-resource and per-request.
      */
     public static class Info {
+
         private final Resource resource;
         private long requestTime;
         private long latencyTime;
@@ -333,6 +336,7 @@ public class Resource {
     }
 
     public interface Listener extends EventListener {
+
     }
 
     /**
@@ -340,6 +344,7 @@ public class Resource {
      * <p>Node events are emitted for non-warmup resource requests that completed successfully.</p>
      */
     public interface NodeListener extends Listener {
+
         void onResourceNode(Info info);
     }
 
@@ -348,10 +353,12 @@ public class Resource {
      * <p>Tree node events are emitted for the non-warmup root resource.</p>
      */
     public interface TreeListener extends Listener {
+
         void onResourceTree(Info info);
     }
 
     public interface OnContentListener extends Listener {
+
         void onContent(int remaining);
     }
 }

@@ -1,5 +1,6 @@
 package com.globocom.grou.groot.entities.properties;
 
+//@formatter:off
 public interface GrootProperties {
 
     /**
@@ -142,3 +143,4 @@ public interface GrootProperties {
      */
     String IDLE_TIMEOUT         = "idleTimeout";
 }
+//@formatter:on

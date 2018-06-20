@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class HTTP2LoadGeneratorTest {
+
     private Server server;
     private ServerConnector connector;
 
@@ -56,14 +57,15 @@ public class HTTP2LoadGeneratorTest {
     public void testPush() throws Exception {
         prepare(new TestHandler() {
             @Override
-            public void handle(String target, org.eclipse.jetty.server.Request jettyRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+            public void handle(String target, org.eclipse.jetty.server.Request jettyRequest, HttpServletRequest request,
+                HttpServletResponse response) throws IOException, ServletException {
                 if ("/".equals(target)) {
                     jettyRequest.getPushBuilder()
-                            .path("/1")
-                            .push();
+                        .path("/1")
+                        .push();
                     jettyRequest.getPushBuilder()
-                            .path("/2")
-                            .push();
+                        .path("/2")
+                        .push();
                 }
                 super.handle(target, jettyRequest, request, response);
             }
@@ -74,24 +76,24 @@ public class HTTP2LoadGeneratorTest {
         AtomicLong pushed = new AtomicLong();
         int localPort = connector.getLocalPort();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(new HTTP2ClientTransportBuilder())
-                .resource(new Resource("http://localhost:" + localPort + "/",
-                        new Resource("http://localhost:" + localPort + "/1"),
-                        new Resource("http://localhost:" + localPort + "/2")))
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        requests.incrementAndGet();
-                    }
-                })
-                .resourceListener((Resource.NodeListener)info -> {
-                    if (info.isPushed()) {
-                        pushed.incrementAndGet();
-                    } else {
-                        sent.incrementAndGet();
-                    }
-                })
-                .build();
+            .httpClientTransportBuilder(new Http2ClientTransportBuilder())
+            .resource(new Resource("http://localhost:" + localPort + "/",
+                new Resource("http://localhost:" + localPort + "/1"),
+                new Resource("http://localhost:" + localPort + "/2")))
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    requests.incrementAndGet();
+                }
+            })
+            .resourceListener((Resource.NodeListener) info -> {
+                if (info.isPushed()) {
+                    pushed.incrementAndGet();
+                } else {
+                    sent.incrementAndGet();
+                }
+            })
+            .build();
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
 
         Assert.assertEquals(1, requests.get());

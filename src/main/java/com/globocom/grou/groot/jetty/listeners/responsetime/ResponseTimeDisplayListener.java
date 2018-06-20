@@ -37,8 +37,7 @@ import static com.globocom.grou.groot.LogUtils.format;
  *
  */
 public class ResponseTimeDisplayListener
-    implements Resource.NodeListener, LoadGenerator.BeginListener, LoadGenerator.EndListener
-{
+    implements Resource.NodeListener, LoadGenerator.BeginListener, LoadGenerator.EndListener {
 
     private static final Log LOGGER = LogFactory.getLog(ResponseTimeDisplayListener.class);
 
@@ -56,140 +55,122 @@ public class ResponseTimeDisplayListener
 
     private List<ValueListener> valueListeners = new ArrayList<>();
 
-    public ResponseTimeDisplayListener( long initial, long delay, TimeUnit timeUnit )
-    {
-        this( HistogramConstants.LOWEST_DISCERNIBLE_VALUE, //
-              HistogramConstants.HIGHEST_TRACKABLE_VALUE,  //
-              HistogramConstants.NUMBER_OF_SIGNIFICANT_VALUE_DIGITS,  //
-              initial, //
-              delay,  //
-              timeUnit, //
-                Collections.singletonList(new PrintValueListener()));
+    public ResponseTimeDisplayListener(long initial, long delay, TimeUnit timeUnit) {
+        this(HistogramConstants.LOWEST_DISCERNIBLE_VALUE, //
+            HistogramConstants.HIGHEST_TRACKABLE_VALUE,  //
+            HistogramConstants.NUMBER_OF_SIGNIFICANT_VALUE_DIGITS,  //
+            initial, //
+            delay,  //
+            timeUnit, //
+            Collections.singletonList(new PrintValueListener()));
     }
 
-    public ResponseTimeDisplayListener( long lowestDiscernibleValue, long highestTrackableValue,
-                                        int numberOfSignificantValueDigits, long initial, long delay, TimeUnit timeUnit,
-                                        List<ValueListener> valueListeners )
-    {
-        this.valueListeners.addAll( valueListeners );
+    public ResponseTimeDisplayListener(long lowestDiscernibleValue, long highestTrackableValue,
+        int numberOfSignificantValueDigits, long initial, long delay, TimeUnit timeUnit,
+        List<ValueListener> valueListeners) {
+        this.valueListeners.addAll(valueListeners);
         this.recorderPerPath = new ConcurrentHashMap<>();
-        this.runnable = new ValueListenerRunnable( recorderPerPath, this.valueListeners );
+        this.runnable = new ValueListenerRunnable(recorderPerPath, this.valueListeners);
         // FIXME configurable or using a shared one
-        scheduledExecutorService = Executors.newScheduledThreadPool( 1 );
-        scheduledExecutorService.scheduleWithFixedDelay( runnable, initial, delay, timeUnit );
+        scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        scheduledExecutorService.scheduleWithFixedDelay(runnable, initial, delay, timeUnit);
         this.lowestDiscernibleValue = lowestDiscernibleValue;
         this.highestTrackableValue = highestTrackableValue;
         this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
     }
 
     @Override
-    public void onBegin( LoadGenerator loadGenerator )
-    {
+    public void onBegin(LoadGenerator loadGenerator) {
         // we initialize Maps to avoid concurrent issues
         recorderPerPath = new ConcurrentHashMap<>();
-        initializeMap( recorderPerPath, loadGenerator.getConfig().getResource().getResources() );
+        initializeMap(recorderPerPath, loadGenerator.getConfig().getResource().getResources());
     }
 
-    private void initializeMap( Map<String, Recorder> recorderMap, List<Resource> resources )
-    {
-        for ( Resource resource : resources )
-        {
-            Recorder recorder = recorderMap.get( resource.getPath() );
-            if ( recorder == null )
-            {
-                recorder = new Recorder( lowestDiscernibleValue, //
-                                         highestTrackableValue, //
-                                         numberOfSignificantValueDigits );
-                recorderMap.put( resource.getPath(), recorder );
+    private void initializeMap(Map<String, Recorder> recorderMap, List<Resource> resources) {
+        for (Resource resource : resources) {
+            Recorder recorder = recorderMap.get(resource.getPath());
+            if (recorder == null) {
+                recorder = new Recorder(lowestDiscernibleValue, //
+                    highestTrackableValue, //
+                    numberOfSignificantValueDigits);
+                recorderMap.put(resource.getPath(), recorder);
             }
-            initializeMap( recorderMap, resource.getResources() );
+            initializeMap(recorderMap, resource.getResources());
         }
     }
 
-    public ResponseTimeDisplayListener()
-    {
-        this( 0, 5, TimeUnit.SECONDS );
+    public ResponseTimeDisplayListener() {
+        this(0, 5, TimeUnit.SECONDS);
     }
 
     private static class ValueListenerRunnable
-        implements Runnable
-    {
+        implements Runnable {
+
         private final Map<String, Recorder> recorderPerPath;
 
         private final List<ValueListener> valueListeners;
 
-        private ValueListenerRunnable( Map<String, Recorder> recorderPerPath, List<ValueListener> valueListeners )
-        {
+        private ValueListenerRunnable(Map<String, Recorder> recorderPerPath, List<ValueListener> valueListeners) {
             this.recorderPerPath = recorderPerPath;
             this.valueListeners = valueListeners;
         }
 
         @Override
-        public void run()
-        {
-            for ( Map.Entry<String, Recorder> entry : recorderPerPath.entrySet() )
-            {
+        public void run() {
+            for (Map.Entry<String, Recorder> entry : recorderPerPath.entrySet()) {
                 String path = entry.getKey();
                 Histogram histogram = entry.getValue().getIntervalHistogram();
-                for ( ValueListener valueListener : valueListeners )
-                {
-                    valueListener.onValue( path, histogram );
+                for (ValueListener valueListener : valueListeners) {
+                    valueListener.onValue(path, histogram);
                 }
             }
         }
     }
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
+    public void onResourceNode(Resource.Info info) {
         String path = info.getResource().getPath();
 
-        Recorder recorder = recorderPerPath.get( path );
-        if ( recorder == null )
-        {
-            recorder = new Recorder( lowestDiscernibleValue, //
-                                     highestTrackableValue, //
-                                     numberOfSignificantValueDigits );
-            recorderPerPath.put( path, recorder );
+        Recorder recorder = recorderPerPath.get(path);
+        if (recorder == null) {
+            recorder = new Recorder(lowestDiscernibleValue, //
+                highestTrackableValue, //
+                numberOfSignificantValueDigits);
+            recorderPerPath.put(path, recorder);
         }
 
         long time = info.getResponseTime() - info.getRequestTime();
-        try
-        {
-            recorder.recordValue( time );
-        }
-        catch ( ArrayIndexOutOfBoundsException e )
-        {
+        try {
+            recorder.recordValue(time);
+        } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
 
     }
 
     @Override
-    public void onEnd( LoadGenerator generator )
-    {
+    public void onEnd(LoadGenerator generator) {
         scheduledExecutorService.shutdown();
         // last run
         runnable.run();
     }
 
 
-    interface ValueListener
-    {
+    interface ValueListener {
+
         void onValue(String path, Histogram histogram);
     }
 
     public static class PrintValueListener
-        implements ValueListener
-    {
+        implements ValueListener {
+
         @Override
-        public void onValue( String path, Histogram histogram )
-        {
-            StringBuilder message = new StringBuilder( "Path:" ).append( path ).append( System.lineSeparator() );
-            message.append( new CollectorInformations( histogram ) //
-                                .toStringInNanos( true ) ) //
-                .append( System.lineSeparator() );
-            LOGGER.info( message.toString() );
+        public void onValue(String path, Histogram histogram) {
+            StringBuilder message = new StringBuilder("Path:").append(path).append(System.lineSeparator());
+            message.append(new CollectorInformations(histogram) //
+                .toStringInNanos(true)) //
+                .append(System.lineSeparator());
+            LOGGER.info(message.toString());
         }
     }
 }

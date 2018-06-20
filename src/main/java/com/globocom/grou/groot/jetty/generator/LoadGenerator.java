@@ -134,7 +134,8 @@ public class LoadGenerator extends ContainerLifeCycle {
         return proceed().thenCompose(x -> {
             CompletableFuture[] futures = new CompletableFuture[config.getThreads()];
             for (int i = 0; i < futures.length; ++i) {
-                futures[i] = CompletableFuture.supplyAsync(this::process, executorService).thenCompose(Function.identity());
+                futures[i] = CompletableFuture.supplyAsync(this::process, executorService)
+                    .thenCompose(Function.identity());
             }
             return CompletableFuture.allOf(futures);
         }).thenComposeAsync(x -> halt(), executorService);
@@ -215,7 +216,7 @@ public class LoadGenerator extends ContainerLifeCycle {
                     TimeUnit.NANOSECONDS.sleep(period);
                     // We need to compensate for oversleeping.
                     long elapsed = System.nanoTime() - begin;
-                    long expected = Math.round((double)elapsed / period);
+                    long expected = Math.round((double) elapsed / period);
                     if (rateRampUpPeriod > 0 && elapsed < rateRampUpPeriod) {
                         long send = Math.round(0.5D * elapsed * elapsed / rateRampUpPeriod / period);
                         unsent = expected - send;
@@ -239,7 +240,8 @@ public class LoadGenerator extends ContainerLifeCycle {
                     }
                     // Sends the resource one more time after the time expired,
                     // but guarantees that the callback is notified correctly.
-                    boolean ranEnough = runFor > 0 && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - begin) >= runFor;
+                    boolean ranEnough =
+                        runFor > 0 && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - begin) >= runFor;
                     Callback c = lastIteration || ranEnough ? processCallback : callback;
 
                     sendResourceTree(client, config.getResource(), warmup, c);
@@ -248,10 +250,10 @@ public class LoadGenerator extends ContainerLifeCycle {
                     if (interrupt || lastIteration || ranEnough || process.isCompletedExceptionally()) {
                         break send;
                     }
-//                    if (interrupt) {
-//                        callback.failed(new InterruptedException());
-//                        break send;
-//                    }
+                    //if (interrupt) {
+                    //    callback.failed(new InterruptedException());
+                    //    break send;
+                    //}
 
                     if (++clientIndex == clients.length) {
                         clientIndex = 0;
@@ -268,7 +270,8 @@ public class LoadGenerator extends ContainerLifeCycle {
     }
 
     protected HttpClient newHttpClient(Config config) {
-        HttpClient httpClient = new HttpClient(config.getHttpClientTransportBuilder().build(), config.getSslContextFactory());
+        HttpClient httpClient = new HttpClient(config.getHttpClientTransportBuilder().build(),
+            config.getSslContextFactory());
         httpClient.setExecutor(config.getExecutor());
         httpClient.setScheduler(config.getScheduler());
         httpClient.setMaxConnectionsPerDestination(config.getChannelsPerUser());
@@ -287,6 +290,7 @@ public class LoadGenerator extends ContainerLifeCycle {
         return httpClient;
     }
 
+    @SuppressWarnings("checkstyle:EmptyCatchBlock")
     private void stopHttpClient(HttpClient client) {
         try {
             if (client != null) {
@@ -309,9 +313,13 @@ public class LoadGenerator extends ContainerLifeCycle {
                 if (client.getAuthenticationStore() != authenticationStore) {
                     client.setAuthenticationStore(authenticationStore);
                     if (authPreemptive) {
-                        authenticationStore.addAuthenticationResult(new BasicAuthentication.BasicResult(request.getURI(), config.getPassword(), config.getPassword()));
+                        authenticationStore.addAuthenticationResult(
+                            new BasicAuthentication.BasicResult(request.getURI(), config.getPassword(),
+                                config.getPassword()));
                     } else {
-                        authenticationStore.addAuthentication(new BasicAuthentication(request.getURI(), "Realm", config.getUsername(), config.getPassword()));
+                        authenticationStore.addAuthentication(
+                            new BasicAuthentication(request.getURI(), "Realm", config.getUsername(),
+                                config.getPassword()));
                     }
                 }
             }
@@ -362,40 +370,41 @@ public class LoadGenerator extends ContainerLifeCycle {
 
     private void fireBeginEvent(LoadGenerator generator) {
         config.getListeners().stream()
-                .filter(l -> l instanceof BeginListener)
-                .map(l -> (BeginListener)l)
-                .forEach(l -> l.onBegin(generator));
+            .filter(l -> l instanceof BeginListener)
+            .map(l -> (BeginListener) l)
+            .forEach(l -> l.onBegin(generator));
     }
 
     private void fireEndEvent(LoadGenerator generator) {
         config.getListeners().stream()
-                .filter(l -> l instanceof EndListener)
-                .map(l -> (EndListener)l)
-                .forEach(l -> l.onEnd(generator));
+            .filter(l -> l instanceof EndListener)
+            .map(l -> (EndListener) l)
+            .forEach(l -> l.onEnd(generator));
     }
 
     private void fireResourceNodeEvent(Resource.Info info) {
         config.getResourceListeners().stream()
-                .filter(l -> l instanceof Resource.NodeListener)
-                .map(l -> (Resource.NodeListener)l)
-                .forEach(l -> l.onResourceNode(info));
+            .filter(l -> l instanceof Resource.NodeListener)
+            .map(l -> (Resource.NodeListener) l)
+            .forEach(l -> l.onResourceNode(info));
     }
 
     private void fireOnContent(int remaining) {
         config.getResourceListeners().stream()
-                .filter(l -> l instanceof Resource.OnContentListener)
-                .map(l -> (Resource.OnContentListener)l)
-                .forEach(l -> l.onContent(remaining));
+            .filter(l -> l instanceof Resource.OnContentListener)
+            .map(l -> (Resource.OnContentListener) l)
+            .forEach(l -> l.onContent(remaining));
     }
 
     private void fireResourceTreeEvent(Resource.Info info) {
         config.getResourceListeners().stream()
-                .filter(l -> l instanceof Resource.TreeListener)
-                .map(l -> (Resource.TreeListener)l)
-                .forEach(l -> l.onResourceTree(info));
+            .filter(l -> l instanceof Resource.TreeListener)
+            .map(l -> (Resource.TreeListener) l)
+            .forEach(l -> l.onResourceTree(info));
     }
 
     private class Sender {
+
         private final Queue<Resource.Info> queue = new ArrayDeque<>();
         private final Set<URI> pushCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
         private final HttpClient client;
@@ -444,7 +453,7 @@ public class LoadGenerator extends ContainerLifeCycle {
                 Resource resource = info.getResource();
                 info.setRequestTime(System.nanoTime());
                 if (resource.getPath() != null) {
-                    HttpRequest httpRequest = (HttpRequest)newRequest(client, config, resource);
+                    HttpRequest httpRequest = (HttpRequest) newRequest(client, config, resource);
 
                     if (pushCache.contains(httpRequest.getURI())) {
                         if (LOGGER.isDebugEnabled()) {
@@ -456,6 +465,7 @@ public class LoadGenerator extends ContainerLifeCycle {
                         }
 
                         httpRequest.pushListener((request, pushed) -> {
+                            @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
                             URI pushedURI = pushed.getURI();
                             Resource child = resource.findDescendant(pushedURI);
                             if (LOGGER.isDebugEnabled()) {
@@ -472,7 +482,7 @@ public class LoadGenerator extends ContainerLifeCycle {
                         });
 
                         Request request = config.getRequestListeners().stream()
-                                .reduce(httpRequest, Request::listener, (r1, r2) -> r1);
+                            .reduce(httpRequest, Request::listener, (r1, r2) -> r1);
                         request.send(new ResponseHandler(info));
                     }
                 } else {
@@ -487,12 +497,14 @@ public class LoadGenerator extends ContainerLifeCycle {
         private void sendChildren(Resource resource) {
             List<Resource> children = resource.getResources();
             if (!children.isEmpty()) {
-                offer(children.stream().sorted(Comparator.comparingInt(Resource::getOrder)).map(Resource::newInfo).collect(Collectors.toList()));
+                offer(children.stream().sorted(Comparator.comparingInt(Resource::getOrder)).map(Resource::newInfo)
+                    .collect(Collectors.toList()));
                 send();
             }
         }
 
         private class ResponseHandler extends Response.Listener.Adapter {
+
             private final Resource.Info info;
 
             private ResponseHandler(Resource.Info info) {
@@ -542,6 +554,7 @@ public class LoadGenerator extends ContainerLifeCycle {
      */
     @ManagedObject("LoadGenerator Configuration")
     public static class Config {
+
         protected int threads = 1;
         protected int warmupIterationsPerThread = 0;
         protected int iterationsPerThread = 1;
@@ -550,7 +563,7 @@ public class LoadGenerator extends ContainerLifeCycle {
         protected int channelsPerUser = 1024;
         protected int resourceRate = 1;
         protected long rateRampUpPeriod = 0;
-        protected HTTPClientTransportBuilder httpClientTransportBuilder;
+        protected HttpClientTransportBuilder httpClientTransportBuilder;
         protected SslContextFactory sslContextFactory;
         protected Scheduler scheduler;
         protected Executor executor;
@@ -634,7 +647,7 @@ public class LoadGenerator extends ContainerLifeCycle {
             return userAgent;
         }
 
-        public HTTPClientTransportBuilder getHttpClientTransportBuilder() {
+        public HttpClientTransportBuilder getHttpClientTransportBuilder() {
             return httpClientTransportBuilder;
         }
 
@@ -693,17 +706,18 @@ public class LoadGenerator extends ContainerLifeCycle {
         @Override
         public String toString() {
             return String.format("%s[t=%d,i=%d,u=%d,c=%d,r=%d,rf=%ds]",
-                    Config.class.getSimpleName(),
-                    threads,
-                    runFor > 0 ? -1 : iterationsPerThread,
-                    usersPerThread,
-                    channelsPerUser,
-                    resourceRate,
-                    runFor > 0 ? runFor : -1);
+                Config.class.getSimpleName(),
+                threads,
+                runFor > 0 ? -1 : iterationsPerThread,
+                usersPerThread,
+                channelsPerUser,
+                resourceRate,
+                runFor > 0 ? runFor : -1);
         }
     }
 
     public static class Builder extends Config {
+
         /**
          * @param threads the number of sender threads
          * @return this Builder
@@ -828,7 +842,7 @@ public class LoadGenerator extends ContainerLifeCycle {
          * @param httpClientTransportBuilder the HttpClient transport builder
          * @return this Builder
          */
-        public Builder httpClientTransportBuilder(HTTPClientTransportBuilder httpClientTransportBuilder) {
+        public Builder httpClientTransportBuilder(HttpClientTransportBuilder httpClientTransportBuilder) {
             this.httpClientTransportBuilder = Objects.requireNonNull(httpClientTransportBuilder);
             return this;
         }
@@ -852,8 +866,8 @@ public class LoadGenerator extends ContainerLifeCycle {
         }
 
         /**
-         * @param executor the shared executor between all HttpClient instances
-         *                 if {@code null} each HttpClient will use its own
+         * @param executor the shared executor between all HttpClient instances if {@code null} each HttpClient will use
+         *     its own
          * @return this Builder
          */
         public Builder executor(Executor executor) {
@@ -916,20 +930,23 @@ public class LoadGenerator extends ContainerLifeCycle {
 
         public LoadGenerator build() {
             if (httpClientTransportBuilder == null) {
-                httpClientTransportBuilder = new HTTP1ClientTransportBuilder();
+                httpClientTransportBuilder = new Http1ClientTransportBuilder();
             }
             return new LoadGenerator(this);
         }
     }
 
     public interface Listener extends EventListener {
+
     }
 
     public interface BeginListener extends Listener {
+
         void onBegin(LoadGenerator generator);
     }
 
     public interface EndListener extends Listener {
+
         void onEnd(LoadGenerator generator);
     }
 }

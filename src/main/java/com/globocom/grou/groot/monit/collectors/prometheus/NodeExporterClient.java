@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 public class NodeExporterClient {
 
+    @SuppressWarnings("checkstyle:OperatorWrap")
     private static final String PB_ACCEPT_HEADER =
             "application/vnd.google.protobuf;" +
             "proto=io.prometheus.client.MetricFamily;" +
@@ -45,20 +46,21 @@ public class NodeExporterClient {
     private static final Log LOGGER = LogFactory.getLog(NodeExporterClient.class);
 
     private static final AsyncHttpClient CLIENT;
+
     static {
         AsyncHttpClientConfig config = new AsyncHttpClientConfig.Builder()
-                .setAllowPoolingConnections(true)
-                .setFollowRedirect(false)
-                .setCompressionEnforced(false)
-                .setConnectTimeout(2000)
-                .setMaxConnectionsPerHost(100)
-                .setMaxConnections(100)
-                .setAcceptAnyCertificate(true)
-                .setUserAgent(Application.GROOT_USERAGENT).build();
+            .setAllowPoolingConnections(true)
+            .setFollowRedirect(false)
+            .setCompressionEnforced(false)
+            .setConnectTimeout(2000)
+            .setMaxConnectionsPerHost(100)
+            .setMaxConnections(100)
+            .setAcceptAnyCertificate(true)
+            .setUserAgent(Application.GROOT_USERAGENT).build();
         CLIENT = new AsyncHttpClient(config);
     }
 
-    public Map<String, Double> get(String url)  {
+    public Map<String, Double> get(String url) {
         Map<String, Double> result = new HashMap<>();
         try {
             Response response = CLIENT.prepareGet(url).setHeader("Accept", PB_ACCEPT_HEADER).execute().get();
@@ -88,14 +90,22 @@ public class NodeExporterClient {
 
             while (buf.remaining() > 0) {
                 Metrics.MetricFamily metrics = Metrics.MetricFamily.parseDelimitedFrom(body);
-                if (metrics.getType() == Metrics.MetricType.SUMMARY) continue;
+                if (metrics.getType() == Metrics.MetricType.SUMMARY) {
+                    continue;
+                }
                 metrics.getMetricList().forEach(metric -> {
-                    String labels = metric.getLabelList().stream().map(l -> l.getName() + "=\"" + l.getValue() + "\"").collect(Collectors.joining(","));
-                    if (!labels.isEmpty()) labels = "{" + labels + "}";
+                    String labels = metric.getLabelList().stream().map(l -> l.getName() + "=\"" + l.getValue() + "\"")
+                        .collect(Collectors.joining(","));
+                    if (!labels.isEmpty()) {
+                        labels = "{" + labels + "}";
+                    }
                     String key = metrics.getName() + labels;
-                    double value = (metric.hasCounter()) ? metric.getCounter().getValue() : ((metric.hasGauge()) ? metric.getGauge().getValue() : -1);
+                    double value = (metric.hasCounter()) ? metric.getCounter().getValue()
+                        : ((metric.hasGauge()) ? metric.getGauge().getValue() : -1);
 
-                    if (LOGGER.isDebugEnabled()) LOGGER.debug(key + " " + value);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(key + " " + value);
+                    }
                     result.put(key, value);
                 });
             }

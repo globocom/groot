@@ -23,12 +23,10 @@ import java.util.Map;
 /**
  *
  */
-public interface CollectorResultHandler
-{
+public interface CollectorResultHandler {
 
     /**
-     *
-     * @param responseTimePerPath  key is the http path, value is the reponse time information
+     * @param responseTimePerPath key is the http path, value is the reponse time information
      */
     void handleResponseTime(Map<String, CollectorInformations> responseTimePerPath);
 

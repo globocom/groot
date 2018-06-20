@@ -140,7 +140,9 @@ public class Test implements Serializable {
     }
 
     public void setNotify(Set<String> notify) {
-        if (notify != null) this.notify = new HashSet<>(notify);
+        if (notify != null) {
+            this.notify = new HashSet<>(notify);
+        }
     }
 
     public String getDashboard() {

@@ -48,7 +48,7 @@ public class LoadGeneratorTest {
     }
 
     private final ConnectionFactory connectionFactory;
-    private final HTTPClientTransportBuilder clientTransportBuilder;
+    private final HttpClientTransportBuilder clientTransportBuilder;
     private Server server;
     private ServerConnector connector;
 
@@ -56,11 +56,11 @@ public class LoadGeneratorTest {
         switch (transportType) {
             case H1C:
                 connectionFactory = new HttpConnectionFactory();
-                clientTransportBuilder = new HTTP1ClientTransportBuilder();
+                clientTransportBuilder = new Http1ClientTransportBuilder();
                 break;
             case H2C:
                 connectionFactory = new HTTP2CServerConnectionFactory(new HttpConfiguration());
-                clientTransportBuilder = new HTTP2ClientTransportBuilder();
+                clientTransportBuilder = new Http2ClientTransportBuilder();
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -87,9 +87,9 @@ public class LoadGeneratorTest {
         prepare(new TestHandler());
         int port = connector.getLocalPort();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
     }
 
@@ -99,17 +99,17 @@ public class LoadGeneratorTest {
         int port = connector.getLocalPort();
         Set<String> threads = Collections.newSetFromMap(new ConcurrentHashMap<>());
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .threads(2)
-                .iterationsPerThread(1)
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        threads.add(Thread.currentThread().getName());
-                    }
-                })
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .threads(2)
+            .iterationsPerThread(1)
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    threads.add(Thread.currentThread().getName());
+                }
+            })
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
         Assert.assertEquals(2, threads.size());
     }
@@ -121,12 +121,12 @@ public class LoadGeneratorTest {
         prepare(new TestHandler());
         int port = connector.getLocalPort();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                // Iterate forever.
-                .iterationsPerThread(0)
-                .resourceRate(5)
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            // Iterate forever.
+            .iterationsPerThread(0)
+            .resourceRate(5)
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
         CompletableFuture<Void> cf = loadGenerator.begin();
 
         Thread.sleep(1000);
@@ -135,7 +135,9 @@ public class LoadGeneratorTest {
 
         cf.handle((r, x) -> {
             Throwable cause;
-            if (x == null || (cause = x.getCause()) == null) return null;
+            if (x == null || (cause = x.getCause()) == null) {
+                return null;
+            }
             if (cause instanceof InterruptedException) {
                 return null;
             } else {
@@ -151,11 +153,11 @@ public class LoadGeneratorTest {
         long time = 2;
         TimeUnit unit = TimeUnit.SECONDS;
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .runFor(time, unit)
-                .resourceRate(5)
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .runFor(time, unit)
+            .resourceRate(5)
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
         loadGenerator.begin().get(2 * time, unit);
     }
 
@@ -166,16 +168,16 @@ public class LoadGeneratorTest {
         Queue<String> resources = new ConcurrentLinkedDeque<>();
         List<Resource.Info> infos = new ArrayList<>();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .resource(new Resource("http://localhost:" + port + "/",
-                            new Resource("http://localhost:" + port + "/1",
-                                new Resource("http://localhost:" + port + "/11"))))
-                .resourceListener((Resource.NodeListener)info -> {
-                    resources.offer(info.getResource().getPath());
-                    infos.add(info);
-                })
-                .resourceListener((Resource.TreeListener)info -> resources.offer(info.getResource().getPath()))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .resource(new Resource("http://localhost:" + port + "/",
+                new Resource("http://localhost:" + port + "/1",
+                    new Resource("http://localhost:" + port + "/11"))))
+            .resourceListener((Resource.NodeListener) info -> {
+                resources.offer(info.getResource().getPath());
+                infos.add(info);
+            })
+            .resourceListener((Resource.TreeListener) info -> resources.offer(info.getResource().getPath()))
+            .build();
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
 
         Assert.assertEquals("/,/1,/11,/", resources.stream().collect(Collectors.joining(",")));
@@ -188,17 +190,17 @@ public class LoadGeneratorTest {
         int port = connector.getLocalPort();
         Queue<String> resources = new ConcurrentLinkedDeque<>();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .resource(new Resource(new Resource("http://localhost:" + port + "/1")))
-                .resourceListener((Resource.NodeListener)info -> resources.offer(info.getResource().getPath()))
-                .resourceListener((Resource.TreeListener)info -> {
-                    if (info.getResource().getPath() == null) {
-                        if (resources.size() == 1) {
-                            resources.offer("<group>");
-                        }
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .resource(new Resource(new Resource("http://localhost:" + port + "/1")))
+            .resourceListener((Resource.NodeListener) info -> resources.offer(info.getResource().getPath()))
+            .resourceListener((Resource.TreeListener) info -> {
+                if (info.getResource().getPath() == null) {
+                    if (resources.size() == 1) {
+                        resources.offer("<group>");
                     }
-                })
-                .build();
+                }
+            })
+            .build();
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
 
         Assert.assertEquals("/1,<group>", resources.stream().collect(Collectors.joining(",")));
@@ -211,19 +213,19 @@ public class LoadGeneratorTest {
         AtomicLong requests = new AtomicLong();
         AtomicLong resources = new AtomicLong();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .warmupIterationsPerThread(2)
-                .iterationsPerThread(3)
-                .resourceRate(5)
-                .resource(new Resource("http://localhost:" + port + "/").method("POST"))
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        requests.incrementAndGet();
-                    }
-                })
-                .resourceListener((Resource.NodeListener)info -> resources.incrementAndGet())
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .warmupIterationsPerThread(2)
+            .iterationsPerThread(3)
+            .resourceRate(5)
+            .resource(new Resource("http://localhost:" + port + "/").method("POST"))
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    requests.incrementAndGet();
+                }
+            })
+            .resourceListener((Resource.NodeListener) info -> resources.incrementAndGet())
+            .build();
 
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
 
@@ -238,18 +240,18 @@ public class LoadGeneratorTest {
         AtomicLong requests = new AtomicLong();
         AtomicLong resources = new AtomicLong();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .iterationsPerThread(3)
-                .resourceRate(5)
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        requests.incrementAndGet();
-                    }
-                })
-                .resourceListener((Resource.NodeListener)info -> resources.incrementAndGet())
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .iterationsPerThread(3)
+            .resourceRate(5)
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    requests.incrementAndGet();
+                }
+            })
+            .resourceListener((Resource.NodeListener) info -> resources.incrementAndGet())
+            .build();
 
         loadGenerator.begin().get(5, TimeUnit.SECONDS);
 
@@ -270,12 +272,12 @@ public class LoadGeneratorTest {
         prepare(new TestHandler());
         int port = connector.getLocalPort();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                // Iterate forever.
-                .iterationsPerThread(0)
-                .resourceRate(5)
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            // Iterate forever.
+            .iterationsPerThread(0)
+            .resourceRate(5)
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
 
         MBeanContainer mbeanContainer = new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
         loadGenerator.addBean(mbeanContainer);
@@ -284,8 +286,8 @@ public class LoadGeneratorTest {
         Set<ObjectName> objectNames = mbeanContainer.getMBeanServer().queryNames(pattern, null);
         Assert.assertTrue(objectNames.size() > 0);
         Optional<ObjectName> objectNameOpt = objectNames.stream()
-                .filter(o -> o.getKeyProperty("type").equalsIgnoreCase(LoadGenerator.class.getSimpleName()))
-                .findAny();
+            .filter(o -> o.getKeyProperty("type").equalsIgnoreCase(LoadGenerator.class.getSimpleName()))
+            .findAny();
         Assert.assertTrue(objectNameOpt.isPresent());
         ObjectName objectName = objectNameOpt.get();
 
@@ -311,25 +313,25 @@ public class LoadGeneratorTest {
         // sleep compensation works correctly.
         int rate = 2000;
         if (connectionFactory instanceof HTTP2CServerConnectionFactory) {
-            ((HTTP2CServerConnectionFactory)connectionFactory).setMaxConcurrentStreams(rate);
+            ((HTTP2CServerConnectionFactory) connectionFactory).setMaxConcurrentStreams(rate);
         }
         prepare(new TestHandler());
         int port = connector.getLocalPort();
         int iterations = 5 * rate;
         AtomicLong requests = new AtomicLong();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .iterationsPerThread(iterations)
-                .resourceRate(rate)
-                .socketAddressResolver(new SocketAddressResolver.Sync())
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        requests.incrementAndGet();
-                    }
-                })
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .iterationsPerThread(iterations)
+            .resourceRate(rate)
+            .socketAddressResolver(new SocketAddressResolver.Sync())
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    requests.incrementAndGet();
+                }
+            })
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
 
         long start = System.nanoTime();
         loadGenerator.begin().get(10 * rate, TimeUnit.MILLISECONDS);
@@ -349,18 +351,18 @@ public class LoadGeneratorTest {
         long ramp = 5;
         AtomicLong requests = new AtomicLong();
         LoadGenerator loadGenerator = new LoadGenerator.Builder()
-                .httpClientTransportBuilder(clientTransportBuilder)
-                .resourceRate(rate)
-                .rateRampUpPeriod(ramp)
-                .requestListener(new Request.Listener.Adapter() {
-                    @Override
-                    public void onBegin(Request request) {
-                        requests.incrementAndGet();
-                    }
-                })
-                .runFor(ramp, TimeUnit.SECONDS)
-                .resource(new Resource("http://localhost:" + port + "/"))
-                .build();
+            .httpClientTransportBuilder(clientTransportBuilder)
+            .resourceRate(rate)
+            .rateRampUpPeriod(ramp)
+            .requestListener(new Request.Listener.Adapter() {
+                @Override
+                public void onBegin(Request request) {
+                    requests.incrementAndGet();
+                }
+            })
+            .runFor(ramp, TimeUnit.SECONDS)
+            .resource(new Resource("http://localhost:" + port + "/"))
+            .build();
 
         loadGenerator.begin().get();
 

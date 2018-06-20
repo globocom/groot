@@ -46,8 +46,9 @@ import static com.globocom.grou.groot.SystemEnv.GROUP_NAME;
 @Service
 public class LoaderService {
 
-    private static final String GROU_LOADER_REDIS_KEY = "grou:loader:" + GROUP_NAME.getValue() + ":" + SystemInfo.hostname();
-    private static final int    MAX_TEST_DURATION     = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
+    private static final String GROU_LOADER_REDIS_KEY =
+        "grou:loader:" + GROUP_NAME.getValue() + ":" + SystemInfo.hostname();
+    private static final int MAX_TEST_DURATION = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
@@ -65,10 +66,10 @@ public class LoaderService {
 
     @Autowired
     public LoaderService(final AbortService abortService,
-                         final MonitorService monitorService,
-                         StringRedisTemplate template,
-                         @Value("${build.version}") String buildVersion,
-                         @Value("${build.timestamp}") String buildTimestamp) {
+        final MonitorService monitorService,
+        StringRedisTemplate template,
+        @Value("${build.version}") String buildVersion,
+        @Value("${build.timestamp}") String buildTimestamp) {
         this.abortService = abortService;
         this.monitorService = monitorService;
         this.template = template;
@@ -102,13 +103,18 @@ public class LoaderService {
             LOGGER.error(e.getMessage(), e);
         } finally {
             testExecutor.interrupt();
-            if (!(executorService.isShutdown() || executorService.isTerminated())) abortService.stop();
+            if (!(executorService.isShutdown() || executorService.isTerminated())) {
+                abortService.stop();
+            }
         }
         return stopMonitorAndReset(projectDotTest);
     }
 
+    @SuppressWarnings("checkstyle:EmptyCatchBlock")
     private void sleep(long durationTimeMillis) {
-        try { TimeUnit.MILLISECONDS.sleep(durationTimeMillis); } catch (InterruptedException ignore) { }
+        try {
+            TimeUnit.MILLISECONDS.sleep(durationTimeMillis);
+        } catch (InterruptedException ignore) { }
     }
 
     private void startMonitor(Test test) {
@@ -128,7 +134,7 @@ public class LoaderService {
     }
 
     private Loader stopMonitorAndReset(String projectDotTest) {
-        Loader myselfBeforeStop = cloneMySelf();
+        final Loader myselfBeforeStop = cloneMySelf();
 
         monitorService.reset();
         updateStatus(Status.IDLE);

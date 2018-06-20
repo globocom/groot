@@ -25,8 +25,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class TestHandler extends AbstractHandler {
+
     @Override
-    public void handle(String target, org.eclipse.jetty.server.Request jettyRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    public void handle(String target, org.eclipse.jetty.server.Request jettyRequest, HttpServletRequest request,
+        HttpServletResponse response) throws IOException, ServletException {
         jettyRequest.setHandled(true);
         String header = request.getHeader(Resource.RESPONSE_LENGTH);
         if (header != null) {

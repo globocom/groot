@@ -34,13 +34,12 @@ import static com.globocom.grou.groot.LogUtils.format;
 /**
  * <p>Use {@link AtomicHistogram} to tracker response/latency time per path</p>
  * <p>
- * Print out general statistics when stopping.
- * To prevent that and only get the values simply use the constructor with <code>false</code>
+ * Print out general statistics when stopping. To prevent that and only get the values simply use the constructor with
+ * <code>false</code>
  * </p>
  */
 public class TimePerPathListener
-    implements Resource.NodeListener, LoadGenerator.EndListener, LoadGenerator.BeginListener, Serializable
-{
+    implements Resource.NodeListener, LoadGenerator.EndListener, LoadGenerator.BeginListener, Serializable {
 
     private static final Log LOGGER = LogFactory.getLog(TimePerPathListener.class);
 
@@ -58,168 +57,143 @@ public class TimePerPathListener
 
     private boolean nanoDisplay = true;
 
-    public TimePerPathListener( boolean printOnEnd, long lowestDiscernibleValue, long highestTrackableValue,
-                                int numberOfSignificantValueDigits )
-    {
-        this( printOnEnd );
+    public TimePerPathListener(boolean printOnEnd, long lowestDiscernibleValue, long highestTrackableValue,
+        int numberOfSignificantValueDigits) {
+        this(printOnEnd);
         this.lowestDiscernibleValue = lowestDiscernibleValue;
         this.highestTrackableValue = highestTrackableValue;
         this.numberOfSignificantValueDigits = numberOfSignificantValueDigits;
     }
 
 
-    public TimePerPathListener( boolean printOnEnd, boolean nanoDisplay )
-    {
+    public TimePerPathListener(boolean printOnEnd, boolean nanoDisplay) {
         this.printOnEnd = printOnEnd;
         this.nanoDisplay = nanoDisplay;
     }
 
-    public TimePerPathListener( boolean printOnEnd )
-    {
+    public TimePerPathListener(boolean printOnEnd) {
         this.printOnEnd = printOnEnd;
     }
 
 
-    public TimePerPathListener()
-    {
-        this( true );
+    public TimePerPathListener() {
+        this(true);
     }
 
     @Override
-    public void onBegin( LoadGenerator loadGenerator )
-    {
+    public void onBegin(LoadGenerator loadGenerator) {
         // we initialize Maps to avoid concurrent issues
         responseTimePerPath = new ConcurrentHashMap<>();
-        initializeMap( responseTimePerPath, loadGenerator.getConfig().getResource().getResources() );
+        initializeMap(responseTimePerPath, loadGenerator.getConfig().getResource().getResources());
         latencyTimePerPath = new ConcurrentHashMap<>();
-        initializeMap( latencyTimePerPath, loadGenerator.getConfig().getResource().getResources() );
+        initializeMap(latencyTimePerPath, loadGenerator.getConfig().getResource().getResources());
     }
 
-    private void initializeMap( Map<String, AtomicHistogram> histogramMap, List<Resource> resources )
-    {
-        for ( Resource resource : resources )
-        {
-            AtomicHistogram atomicHistogram = histogramMap.get( resource.getPath() );
-            if ( atomicHistogram == null )
-            {
-                atomicHistogram = new AtomicHistogram( lowestDiscernibleValue, //
-                                         highestTrackableValue, //
-                                         numberOfSignificantValueDigits );
-                histogramMap.put( resource.getPath(), atomicHistogram );
+    private void initializeMap(Map<String, AtomicHistogram> histogramMap, List<Resource> resources) {
+        for (Resource resource : resources) {
+            AtomicHistogram atomicHistogram = histogramMap.get(resource.getPath());
+            if (atomicHistogram == null) {
+                atomicHistogram = new AtomicHistogram(lowestDiscernibleValue, //
+                    highestTrackableValue, //
+                    numberOfSignificantValueDigits);
+                histogramMap.put(resource.getPath(), atomicHistogram);
             }
-            initializeMap( histogramMap, resource.getResources() );
+            initializeMap(histogramMap, resource.getResources());
         }
     }
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
+    public void onResourceNode(Resource.Info info) {
         String path = info.getResource().getPath();
         long responseTime = info.getResponseTime() - info.getRequestTime();
-        AtomicHistogram atomicHistogram = responseTimePerPath.get( path );
-        if ( atomicHistogram == null )
-        {
-            atomicHistogram = new AtomicHistogram( lowestDiscernibleValue, //
-                                     highestTrackableValue, //
-                                     numberOfSignificantValueDigits );
-            responseTimePerPath.put( path, atomicHistogram );
+        AtomicHistogram atomicHistogram = responseTimePerPath.get(path);
+        if (atomicHistogram == null) {
+            atomicHistogram = new AtomicHistogram(lowestDiscernibleValue, //
+                highestTrackableValue, //
+                numberOfSignificantValueDigits);
+            responseTimePerPath.put(path, atomicHistogram);
         }
-        try
-        {
-            atomicHistogram.recordValue( responseTime );
-        }
-        catch ( ArrayIndexOutOfBoundsException e )
-        {
+        try {
+            atomicHistogram.recordValue(responseTime);
+        } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.warn(format("skip error recording time {}, {}", responseTime, e.getMessage()));
         }
 
         long time = info.getLatencyTime() - info.getRequestTime();
-        atomicHistogram = latencyTimePerPath.get( path );
-        if ( atomicHistogram == null )
-        {
-            atomicHistogram = new AtomicHistogram( lowestDiscernibleValue, //
-                                     highestTrackableValue, //
-                                     numberOfSignificantValueDigits );
-            latencyTimePerPath.put( path, atomicHistogram );
+        atomicHistogram = latencyTimePerPath.get(path);
+        if (atomicHistogram == null) {
+            atomicHistogram = new AtomicHistogram(lowestDiscernibleValue, //
+                highestTrackableValue, //
+                numberOfSignificantValueDigits);
+            latencyTimePerPath.put(path, atomicHistogram);
         }
-        try
-        {
-            atomicHistogram.recordValue( time );
-        }
-        catch ( ArrayIndexOutOfBoundsException e )
-        {
+        try {
+            atomicHistogram.recordValue(time);
+        } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
     }
 
     @Override
-    public void onEnd( LoadGenerator generator )
-    {
-        if ( printOnEnd )
-        {
+    public void onEnd(LoadGenerator generator) {
+        if (printOnEnd) {
             StringBuilder reportMessage = new StringBuilder();
-            if ( !latencyTimePerPath.isEmpty() )
-            {
-                StringBuilder latencyTimeMessage = new StringBuilder( "--------------------------------------" ) //
-                    .append( System.lineSeparator() ) //
-                    .append( "   Latency Time Summary               " ).append( System.lineSeparator() ) //
-                    .append( "--------------------------------------" ).append( System.lineSeparator() ); //
+            if (!latencyTimePerPath.isEmpty()) {
+                StringBuilder latencyTimeMessage = new StringBuilder("--------------------------------------") //
+                    .append(System.lineSeparator()) //
+                    .append("   Latency Time Summary               ").append(System.lineSeparator()) //
+                    .append("--------------------------------------").append(System.lineSeparator()); //
 
-                for ( Map.Entry<String, AtomicHistogram> entry : latencyTimePerPath.entrySet() )
-                {
-                    latencyTimeMessage.append( "Path:" ).append( entry.getKey() ).append( System.lineSeparator() );
+                for (Map.Entry<String, AtomicHistogram> entry : latencyTimePerPath.entrySet()) {
+                    latencyTimeMessage.append("Path:").append(entry.getKey()).append(System.lineSeparator());
                     CollectorInformations collectorInformations =
-                        new CollectorInformations( entry.getValue() );
-                    latencyTimeMessage.append( nanoDisplay
-                                                   ? collectorInformations.toStringInNanos( true )
-                                                   : collectorInformations.toString( true ) ) //
-                        .append( System.lineSeparator() );
+                        new CollectorInformations(entry.getValue());
+                    latencyTimeMessage.append(nanoDisplay
+                        ? collectorInformations.toStringInNanos(true)
+                        : collectorInformations.toString(true)) //
+                        .append(System.lineSeparator());
 
                 }
 
-                latencyTimeMessage.append( System.lineSeparator() );
+                latencyTimeMessage.append(System.lineSeparator());
 
-                reportMessage.append( latencyTimeMessage );
+                reportMessage.append(latencyTimeMessage);
             }
 
-            if ( !responseTimePerPath.isEmpty() )
-            {
+            if (!responseTimePerPath.isEmpty()) {
 
                 StringBuilder responseTimeMessage =  //
-                    new StringBuilder( System.lineSeparator() ) //
-                        .append( "--------------------------------------" ).append( System.lineSeparator() ) //
-                        .append( "   Response Time Summary              " ).append( System.lineSeparator() ) //
-                        .append( "--------------------------------------" ).append( System.lineSeparator() ); //
+                    new StringBuilder(System.lineSeparator()) //
+                        .append("--------------------------------------").append(System.lineSeparator()) //
+                        .append("   Response Time Summary              ").append(System.lineSeparator()) //
+                        .append("--------------------------------------").append(System.lineSeparator()); //
 
-                for ( Map.Entry<String, AtomicHistogram> entry : responseTimePerPath.entrySet() )
-                {
-                    responseTimeMessage.append( "Path:" ).append( entry.getKey() ).append( System.lineSeparator() );
+                for (Map.Entry<String, AtomicHistogram> entry : responseTimePerPath.entrySet()) {
+                    responseTimeMessage.append("Path:").append(entry.getKey()).append(System.lineSeparator());
                     CollectorInformations collectorInformations =
-                        new CollectorInformations( entry.getValue() );
+                        new CollectorInformations(entry.getValue());
 
-                    responseTimeMessage.append( nanoDisplay
-                                                    ? collectorInformations.toStringInNanos( true )
-                                                    : collectorInformations.toString( true ) ) //
-                        .append( System.lineSeparator() );
+                    responseTimeMessage.append(nanoDisplay
+                        ? collectorInformations.toStringInNanos(true)
+                        : collectorInformations.toString(true)) //
+                        .append(System.lineSeparator());
 
                 }
 
-                responseTimeMessage.append( System.lineSeparator() );
-                reportMessage.append( responseTimeMessage );
+                responseTimeMessage.append(System.lineSeparator());
+                reportMessage.append(responseTimeMessage);
             }
-            System.out.println( reportMessage );
+            System.out.println(reportMessage);
         }
 
     }
 
-    public Map<String, AtomicHistogram> getResponseTimePerPath()
-    {
+    public Map<String, AtomicHistogram> getResponseTimePerPath() {
         return responseTimePerPath;
     }
 
 
-    public Map<String, AtomicHistogram> getLatencyTimePerPath()
-    {
+    public Map<String, AtomicHistogram> getLatencyTimePerPath() {
         return latencyTimePerPath;
     }
 }

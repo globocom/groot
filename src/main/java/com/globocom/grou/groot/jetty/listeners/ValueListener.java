@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.globocom.grou.groot.jetty.listeners;
 
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
@@ -22,43 +23,42 @@ import java.io.Serializable;
 /**
  *
  */
-public interface ValueListener
-{
+public interface ValueListener {
 
     /**
      * triggered when building {@link LoadGenerator} instance
+     *
      * @since 0.3
      */
-    default void onLoadGeneratorStart(LoadGenerator loadGenerator)
-    {
+    default void onLoadGeneratorStart(LoadGenerator loadGenerator) {
         //no op
     }
 
     /**
      * triggered before starting a {@link LoadGenerator} run
+     *
      * @since 0.3
      */
-    default void beforeRun(LoadGenerator loadGenerator)
-    {
+    default void beforeRun(LoadGenerator loadGenerator) {
         // no op
     }
 
     /**
      * triggered after finishing a {@link LoadGenerator} run
+     *
      * @since 0.3
      */
-    default void afterRun(LoadGenerator loadGenerator)
-    {
+    default void afterRun(LoadGenerator loadGenerator) {
         // no op
     }
 
     /**
      * can be called
+     *
      * @param loadGenerator can be <code>null</code>
      * @since 0.3
      */
-    default void reset(LoadGenerator loadGenerator)
-    {
+    default void reset(LoadGenerator loadGenerator) {
         // no op
     }
 
@@ -69,8 +69,7 @@ public interface ValueListener
 
 
     class Values
-        implements Serializable
-    {
+        implements Serializable {
 
         /**
          * the timestamp in millis seconds
@@ -90,110 +89,90 @@ public interface ValueListener
 
         private int status;
 
-        public Values()
-        {
+        public Values() {
             // no op
         }
 
-        public String getPath()
-        {
+        public String getPath() {
             return path;
         }
 
-        public void setPath( String path )
-        {
+        public void setPath(String path) {
             this.path = path;
         }
 
-        public Values path( String path )
-        {
+        public Values path(String path) {
             this.path = path;
             return this;
         }
 
-        public long getTime()
-        {
+        public long getTime() {
             return time;
         }
 
-        public void setTime( long time )
-        {
+        public void setTime(long time) {
             this.time = time;
         }
 
-        public Values time( long time )
-        {
+        public Values time(long time) {
             this.time = time;
             return this;
         }
 
-        public String getMethod()
-        {
+        public String getMethod() {
             return method;
         }
 
-        public void setMethod( String method )
-        {
+        public void setMethod(String method) {
             this.method = method;
         }
 
-        public Values method( String method )
-        {
+        public Values method(String method) {
             this.method = method;
             return this;
         }
 
-        public long getSize()
-        {
+        public long getSize() {
             return size;
         }
 
-        public void setSize( long size )
-        {
+        public void setSize(long size) {
             this.size = size;
         }
 
-        public Values size( long size )
-        {
+        public Values size(long size) {
             this.size = size;
             return this;
         }
 
-        public int getStatus()
-        {
+        public int getStatus() {
             return status;
         }
 
-        public void setStatus( int status )
-        {
+        public void setStatus(int status) {
             this.status = status;
         }
 
-        public Values status( int status )
-        {
+        public Values status(int status) {
             this.status = status;
             return this;
         }
 
-        public long getEventTimestamp()
-        {
+        public long getEventTimestamp() {
             return eventTimestamp;
         }
 
-        public void setEventTimestamp( long eventTimestamp )
-        {
+        public void setEventTimestamp(long eventTimestamp) {
             this.eventTimestamp = eventTimestamp;
         }
 
-        public Values eventTimestamp( long eventTimestamp )
-        {
+        public Values eventTimestamp(long eventTimestamp) {
             this.eventTimestamp = eventTimestamp;
             return this;
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             return "Values{" + "eventTimestamp=" + eventTimestamp + ", path='" + path + '\'' + ", time=" + time
                 + ", method='" + method + '\'' + ", size=" + size + ", status=" + status + '}';
         }

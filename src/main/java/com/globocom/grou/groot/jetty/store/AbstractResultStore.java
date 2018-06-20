@@ -20,31 +20,25 @@ import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
-public abstract class AbstractResultStore
-    implements ResultStore
-{
+public abstract class AbstractResultStore implements ResultStore {
 
     /**
      * default implementation checking if fqcn is a sys prop with true.
-     *
-     * @return
      */
-    public boolean isActive( Map<String, String> setupData )
-    {
-        return Boolean.getBoolean( getClass().getName() ) || Boolean.parseBoolean(
-            setupData.get( getClass().getName() ) );
+    @Override
+    public boolean isActive(Map<String, String> setupData) {
+        return Boolean.getBoolean(getClass().getName()) || Boolean.parseBoolean(
+            setupData.get(getClass().getName()));
     }
 
-    protected String getSetupValue( Map<String, String> setupData, String key, String defaultValue )
-    {
-        String value = setupData.get( key );
-        return !StringUtils.isEmpty( value ) ? value : System.getProperty( key, defaultValue );
+    protected String getSetupValue(Map<String, String> setupData, String key, String defaultValue) {
+        String value = setupData.get(key);
+        return !StringUtils.isEmpty(value) ? value : System.getProperty(key, defaultValue);
     }
 
-    protected Integer getSetupValue( Map<String, String> setupData, String key, int defaultValue )
-    {
-        String value = setupData.get( key );
-        return !StringUtils.isEmpty( value ) ? Integer.valueOf( value ) : Integer.getInteger( key, defaultValue );
+    protected Integer getSetupValue(Map<String, String> setupData, String key, int defaultValue) {
+        String value = setupData.get(key);
+        return !StringUtils.isEmpty(value) ? Integer.valueOf(value) : Integer.getInteger(key, defaultValue);
     }
 
 }

@@ -18,17 +18,16 @@ package com.globocom.grou.groot;
 
 public class LogUtils {
 
-    private final static boolean __escape = Boolean.parseBoolean(System.getProperty("om.globocom.grou.groot.logutils.ESCAPE","false"));
+    private static final String ENABLE_ESCAPE_PROP = "com.globocom.grou.groot.logutils.escape";
+    private static final boolean ENABLE_ESCAPE = Boolean.parseBoolean(System.getProperty(ENABLE_ESCAPE_PROP, "false"));
 
     private LogUtils() {
         //
     }
 
-    public static String format(String msg, Object... args)
-    {
+    public static String format(String msg, Object... args) {
         StringBuilder builder = new StringBuilder(64);
-        if (msg == null)
-        {
+        if (msg == null) {
             StringBuilder msgBuilder = new StringBuilder();
             for (Object arg : args) {
                 msgBuilder.append("{} ");
@@ -37,56 +36,41 @@ public class LogUtils {
         }
         String braces = "{}";
         int start = 0;
-        for (Object arg : args)
-        {
-            int bracesIndex = msg.indexOf(braces,start);
-            if (bracesIndex < 0)
-            {
-                escape(builder,msg.substring(start));
+        for (Object arg : args) {
+            int bracesIndex = msg.indexOf(braces, start);
+            if (bracesIndex < 0) {
+                escape(builder, msg.substring(start));
                 builder.append(" ");
                 builder.append(arg);
                 start = msg.length();
-            }
-            else
-            {
-                escape(builder,msg.substring(start,bracesIndex));
+            } else {
+                escape(builder, msg.substring(start, bracesIndex));
                 builder.append(String.valueOf(arg));
                 start = bracesIndex + braces.length();
             }
         }
-        escape(builder,msg.substring(start));
+        escape(builder, msg.substring(start));
         return builder.toString();
     }
 
-    private static void escape(StringBuilder builder, String string)
-    {
-        if (__escape)
-        {
-            for (int i = 0; i < string.length(); ++i)
-            {
+    private static void escape(StringBuilder builder, String string) {
+        if (ENABLE_ESCAPE) {
+            for (int i = 0; i < string.length(); ++i) {
                 char c = string.charAt(i);
-                if (Character.isISOControl(c))
-                {
-                    if (c == '\n')
-                    {
+                if (Character.isISOControl(c)) {
+                    if (c == '\n') {
                         builder.append('|');
-                    }
-                    else if (c == '\r')
-                    {
+                    } else if (c == '\r') {
                         builder.append('<');
-                    }
-                    else
-                    {
+                    } else {
                         builder.append('?');
                     }
-                }
-                else
-                {
+                } else {
                     builder.append(c);
                 }
             }
-        }
-        else
+        } else {
             builder.append(string);
+        }
     }
 }

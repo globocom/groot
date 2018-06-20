@@ -27,35 +27,29 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  */
 public class ResponseNumberPerPath
-    implements Resource.NodeListener, Serializable
-{
+    implements Resource.NodeListener, Serializable {
 
     private final Map<String, AtomicInteger> responseNumberPerPath = new ConcurrentHashMap<>();
 
     @Override
-    public void onResourceNode( Resource.Info info )
-    {
+    public void onResourceNode(Resource.Info info) {
         String path = info.getResource().getPath();
 
         // response number record
         {
 
-            AtomicInteger number = responseNumberPerPath.get( path );
-            if ( number == null )
-            {
-                number = new AtomicInteger( 1 );
-                responseNumberPerPath.put( path, number );
-            }
-            else
-            {
+            AtomicInteger number = responseNumberPerPath.get(path);
+            if (number == null) {
+                number = new AtomicInteger(1);
+                responseNumberPerPath.put(path, number);
+            } else {
                 number.incrementAndGet();
             }
 
         }
     }
 
-    public Map<String, AtomicInteger> getResponseNumberPerPath()
-    {
+    public Map<String, AtomicInteger> getResponseNumberPerPath() {
         return responseNumberPerPath;
     }
 

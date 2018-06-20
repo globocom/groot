@@ -18,8 +18,7 @@ package com.globocom.grou.groot.jetty.listeners;
 
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
 
-public class LoadConfig
-{
+public class LoadConfig {
 
     private int threads;
 
@@ -52,13 +51,11 @@ public class LoadConfig
         PROBE
     }
 
-    public LoadConfig()
-    {
+    public LoadConfig() {
         //
     }
 
-    public LoadConfig( LoadGenerator.Config config )
-    {
+    public LoadConfig(LoadGenerator.Config config) {
         this.threads = config.getThreads();
         this.warmupIterationsPerThread = config.getWarmupIterationsPerThread();
         this.iterationsPerThread = config.getIterationsPerThread();
@@ -69,10 +66,9 @@ public class LoadConfig
         this.maxRequestsQueued = config.getMaxRequestsQueued();
     }
 
-    public LoadConfig( int threads, int warmupIterationsPerThread, int iterationsPerThread, long runFor,
-                       int usersPerThread, int channelsPerUser, int resourceRate, String scheme, String host, int port,
-                       int maxRequestsQueued )
-    {
+    public LoadConfig(int threads, int warmupIterationsPerThread, int iterationsPerThread, long runFor,
+        int usersPerThread, int channelsPerUser, int resourceRate, String scheme, String host, int port,
+        int maxRequestsQueued) {
         this.threads = threads;
         this.warmupIterationsPerThread = warmupIterationsPerThread;
         this.iterationsPerThread = iterationsPerThread;
@@ -83,137 +79,111 @@ public class LoadConfig
         this.maxRequestsQueued = maxRequestsQueued;
     }
 
-    public int getThreads()
-    {
+    public int getThreads() {
         return threads;
     }
 
-    public void setThreads( int threads )
-    {
+    public void setThreads(int threads) {
         this.threads = threads;
     }
 
-    public int getWarmupIterationsPerThread()
-    {
+    public int getWarmupIterationsPerThread() {
         return warmupIterationsPerThread;
     }
 
-    public void setWarmupIterationsPerThread( int warmupIterationsPerThread )
-    {
+    public void setWarmupIterationsPerThread(int warmupIterationsPerThread) {
         this.warmupIterationsPerThread = warmupIterationsPerThread;
     }
 
-    public int getIterationsPerThread()
-    {
+    public int getIterationsPerThread() {
         return iterationsPerThread;
     }
 
-    public void setIterationsPerThread( int iterationsPerThread )
-    {
+    public void setIterationsPerThread(int iterationsPerThread) {
         this.iterationsPerThread = iterationsPerThread;
     }
 
-    public long getRunFor()
-    {
+    public long getRunFor() {
         return runFor;
     }
 
-    public void setRunFor( long runFor )
-    {
+    public void setRunFor(long runFor) {
         this.runFor = runFor;
     }
 
-    public int getUsersPerThread()
-    {
+    public int getUsersPerThread() {
         return usersPerThread;
     }
 
-    public void setUsersPerThread( int usersPerThread )
-    {
+    public void setUsersPerThread(int usersPerThread) {
         this.usersPerThread = usersPerThread;
     }
 
-    public int getChannelsPerUser()
-    {
+    public int getChannelsPerUser() {
         return channelsPerUser;
     }
 
-    public void setChannelsPerUser( int channelsPerUser )
-    {
+    public void setChannelsPerUser(int channelsPerUser) {
         this.channelsPerUser = channelsPerUser;
     }
 
-    public int getResourceRate()
-    {
+    public int getResourceRate() {
         return resourceRate;
     }
 
-    public void setResourceRate( int resourceRate )
-    {
+    public void setResourceRate(int resourceRate) {
         this.resourceRate = resourceRate;
     }
 
-    public int getMaxRequestsQueued()
-    {
+    public int getMaxRequestsQueued() {
         return maxRequestsQueued;
     }
 
-    public void setMaxRequestsQueued( int maxRequestsQueued )
-    {
+    public void setMaxRequestsQueued(int maxRequestsQueued) {
         this.maxRequestsQueued = maxRequestsQueued;
     }
 
-    public Type getType()
-    {
+    public Type getType() {
         return type;
     }
 
-    public void setType( Type type )
-    {
+    public void setType(Type type) {
         this.type = type;
     }
 
-    public LoadConfig type( Type type )
-    {
+    public LoadConfig type(Type type) {
         this.type = type;
         return this;
     }
 
-    public int getResourceNumber()
-    {
+    public int getResourceNumber() {
         return resourceNumber;
     }
 
-    public void setResourceNumber( int resourceNumber )
-    {
+    public void setResourceNumber(int resourceNumber) {
         this.resourceNumber = resourceNumber;
     }
 
-    public LoadConfig resourceNumber( int resourceNumber )
-    {
+    public LoadConfig resourceNumber(int resourceNumber) {
         this.resourceNumber = resourceNumber;
         return this;
     }
 
-    public int getInstanceNumber()
-    {
+    public int getInstanceNumber() {
         return instanceNumber;
     }
 
-    public void setInstanceNumber( int instanceNumber )
-    {
+    public void setInstanceNumber(int instanceNumber) {
         this.instanceNumber = instanceNumber;
     }
 
-    public LoadConfig instanceNumber( int instanceNumber )
-    {
+    public LoadConfig instanceNumber(int instanceNumber) {
         this.instanceNumber = instanceNumber;
         return this;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "LoadConfig{" + "threads=" + threads + ", warmupIterationsPerThread=" + warmupIterationsPerThread
             + ", iterationsPerThread=" + iterationsPerThread + ", runFor=" + runFor + ", usersPerThread="
             + usersPerThread + ", channelsPerUser=" + channelsPerUser + ", resourceRate=" + resourceRate

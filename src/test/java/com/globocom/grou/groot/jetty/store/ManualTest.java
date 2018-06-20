@@ -29,45 +29,43 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class ManualTest
-{
-    public static void main(String[] args) throws Exception
-    {
+public class ManualTest {
+
+    public static void main(String[] args) throws Exception {
         ElasticResultStore elasticResultStore = new ElasticResultStore();
         Map<String, String> setupData = new HashMap<>();
-        setupData.put( ElasticResultStore.HOST_KEY, "localhost" );
-        setupData.put( ElasticResultStore.PORT_KEY, "9200" );
-        setupData.put( ElasticResultStore.SCHEME_KEY, "http" );
-        elasticResultStore.initialize( setupData );
+        setupData.put(ElasticResultStore.HOST_KEY, "localhost");
+        setupData.put(ElasticResultStore.PORT_KEY, "9200");
+        setupData.put(ElasticResultStore.SCHEME_KEY, "http");
+        elasticResultStore.initialize(setupData);
 
         LoadResult loadResult = new LoadResult() //
-            .uuid( UUID.randomUUID().toString() ) //
-            .comment( "comment foo" ) //
-            .timestamp( Instant.now().toString() );
-        loadResult.getServerInfo().setJettyVersion( "9.1" );
-        elasticResultStore.save( loadResult );
+            .uuid(UUID.randomUUID().toString()) //
+            .comment("comment foo") //
+            .timestamp(Instant.now().toString());
+        loadResult.getServerInfo().setJettyVersion("9.1");
+        elasticResultStore.save(loadResult);
 
         List<LoadResult> results = elasticResultStore.findAll();
-        System.out.println( results );
+        System.out.println(results);
 
+        results = elasticResultStore.searchResultsByExternalId("98");
+        System.out.println(results);
 
-        results =  elasticResultStore.searchResultsByExternalId( "98" );
-        System.out.println( results );
+        try (InputStream inputStream = Thread.currentThread().getContextClassLoader()
+            .getResourceAsStream("distinctJettyVersion.json")) {
+            String distinctSearchQuery = IOUtils.toString(inputStream, Charset.defaultCharset());
 
+            String distinctResult = elasticResultStore.search(distinctSearchQuery);
 
-        try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream( "distinctJettyVersion.json" ))
-        {
-            String distinctSearchQuery = IOUtils.toString( inputStream, Charset.defaultCharset() );
+            System.out.println(distinctResult);
 
-            String distinctResult = elasticResultStore.search( distinctSearchQuery );
+            List<Map<String, String>> versionsListMap = JsonPath.parse(distinctResult)
+                .read("$.aggregations.version.buckets");
 
-            System.out.println( distinctResult );
-
-            List<Map<String,String>> versionsListMap = JsonPath.parse( distinctResult ).read( "$.aggregations.version.buckets");
-
-            Map<String, String> versions = versionsListMap.stream().collect( Collectors.toMap( m -> m.get( "key" ),
-                                                                                                m -> String.valueOf( m.get("doc_count") ) ) );
-            System.out.println( versions );
+            Map<String, String> versions = versionsListMap.stream().collect(Collectors.toMap(m -> m.get("key"),
+                m -> String.valueOf(m.get("doc_count"))));
+            System.out.println(versions);
         }
     }
 

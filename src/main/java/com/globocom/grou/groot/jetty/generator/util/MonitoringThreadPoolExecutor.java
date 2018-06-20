@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MonitoringThreadPoolExecutor extends ThreadPoolExecutor {
+
     private final AtomicLong tasks = new AtomicLong();
     private final AtomicLong maxTaskLatency = new AtomicLong();
     private final AtomicLong totalTaskLatency = new AtomicLong();
@@ -39,9 +40,10 @@ public class MonitoringThreadPoolExecutor extends ThreadPoolExecutor {
         this(maximumPoolSize, keepAliveTime, unit, new AbortPolicy());
     }
 
-    public MonitoringThreadPoolExecutor(int maximumPoolSize, long keepAliveTime, TimeUnit unit, RejectedExecutionHandler handler) {
+    public MonitoringThreadPoolExecutor(int maximumPoolSize, long keepAliveTime, TimeUnit unit,
+        RejectedExecutionHandler handler) {
         super(maximumPoolSize, maximumPoolSize, keepAliveTime, unit, new MonitoringLinkedBlockingQueue(), handler);
-        queue = (MonitoringLinkedBlockingQueue)getQueue();
+        queue = (MonitoringLinkedBlockingQueue) getQueue();
     }
 
     public void reset() {
@@ -107,6 +109,7 @@ public class MonitoringThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     private static class MonitoringLinkedBlockingQueue extends LinkedBlockingQueue<Runnable> {
+
         private final AtomicInteger size = new AtomicInteger();
         private final AtomicInteger maxSize = new AtomicInteger();
 

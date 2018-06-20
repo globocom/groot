@@ -53,35 +53,33 @@ public class CollectorServer implements Resource.NodeListener {
 
     private ServerConnector connector;
 
-    private final Map<String, Recorder> recorderPerPath = new ConcurrentHashMap<>(  );
+    private final Map<String, Recorder> recorderPerPath = new ConcurrentHashMap<>();
 
-    public CollectorServer( int port )
-    {
+    public CollectorServer(int port) {
         this.port = port;
     }
 
-    public int getPort()
-    {
+    public int getPort() {
         return port;
     }
 
     public CollectorServer start() throws Exception {
 
         QueuedThreadPool serverThreads = new QueuedThreadPool();
-        serverThreads.setName( "server" );
-        server = new Server( serverThreads );
+        serverThreads.setName("server");
+        server = new Server(serverThreads);
 
-        connector = newServerConnector( server );
-        server.addConnector( connector );
+        connector = newServerConnector(server);
+        server.addConnector(connector);
 
-        ServletContextHandler context = new ServletContextHandler( ServletContextHandler.SESSIONS );
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 
-        server.setHandler( context );
+        server.setHandler(context);
 
-        CollectorServlet collectorServlet = new CollectorServlet( recorderPerPath );
+        CollectorServlet collectorServlet = new CollectorServlet(recorderPerPath);
 
         // TODO path configurable?
-        context.addServlet( new ServletHolder( collectorServlet ), "/collector/*" );
+        context.addServlet(new ServletHolder(collectorServlet), "/collector/*");
 
         server.start();
 
@@ -93,10 +91,10 @@ public class CollectorServer implements Resource.NodeListener {
 
     }
 
-    protected ServerConnector newServerConnector( Server server ) {
+    protected ServerConnector newServerConnector(Server server) {
         // FIXME support more protcols!!
-        ConnectionFactory connectionFactory = new HttpConnectionFactory( new HttpConfiguration() );
-        return new ServerConnector( server, connectionFactory );
+        ConnectionFactory connectionFactory = new HttpConnectionFactory(new HttpConfiguration());
+        return new ServerConnector(server, connectionFactory);
     }
 
     public void stop() throws Exception {
@@ -110,52 +108,44 @@ public class CollectorServer implements Resource.NodeListener {
 
         private Map<String, Recorder> recorderPerPath;
 
-        public CollectorServlet(  Map<String, Recorder> recorderPerPath )
-        {
+        public CollectorServlet(Map<String, Recorder> recorderPerPath) {
             this.recorderPerPath = recorderPerPath;
         }
 
         @Override
-        protected void doGet( HttpServletRequest req, HttpServletResponse resp ) throws IOException {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             String pathInfo = req.getPathInfo();
             LOGGER.debug(format("doGet: {}", pathInfo));
 
             ObjectMapper mapper = new ObjectMapper();
 
-            if ( StringUtil.endsWithIgnoreCase( pathInfo, "response-times" ) )
-            {
-                Map<String, CollectorInformations> infos = new HashMap<>( recorderPerPath.size() );
-                for ( Map.Entry<String, Recorder> entry : recorderPerPath.entrySet() )
-                {
-                    infos.put( entry.getKey(), new CollectorInformations( entry.getValue().getIntervalHistogram()) );
+            if (StringUtil.endsWithIgnoreCase(pathInfo, "response-times")) {
+                Map<String, CollectorInformations> infos = new HashMap<>(recorderPerPath.size());
+                for (Map.Entry<String, Recorder> entry : recorderPerPath.entrySet()) {
+                    infos.put(entry.getKey(), new CollectorInformations(entry.getValue().getIntervalHistogram()));
                 }
-                mapper.writeValue( resp.getOutputStream(), infos );
+                mapper.writeValue(resp.getOutputStream(), infos);
             }
 
         }
     }
 
     @Override
-    public void onResourceNode( Resource.Info info ) {
+    public void onResourceNode(Resource.Info info) {
         String path = info.getResource().getPath();
 
-        Recorder recorder = recorderPerPath.get( path );
-        if ( recorder == null )
-        {
-            recorder = new Recorder( TimeUnit.MICROSECONDS.toNanos( 1 ), //
-                                     TimeUnit.MINUTES.toNanos( 1 ), //
-                                     3 );
-            recorderPerPath.put( path, recorder );
+        Recorder recorder = recorderPerPath.get(path);
+        if (recorder == null) {
+            recorder = new Recorder(TimeUnit.MICROSECONDS.toNanos(1), //
+                TimeUnit.MINUTES.toNanos(1), //
+                3);
+            recorderPerPath.put(path, recorder);
         }
-
 
         long time = info.getResponseTime() - info.getRequestTime();
-        try
-        {
-            recorder.recordValue( time );
-        }
-        catch ( ArrayIndexOutOfBoundsException e )
-        {
+        try {
+            recorder.recordValue(time);
+        } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.warn(format("skip error recording time {}, {}", time, e.getMessage()));
         }
 

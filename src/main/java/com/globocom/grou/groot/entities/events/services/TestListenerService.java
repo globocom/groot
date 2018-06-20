@@ -79,7 +79,8 @@ public class TestListenerService {
                 String maxTestDuration = SystemEnv.MAX_TEST_DURATION.getValue();
                 int durationTimeMillis = test.getDurationTimeMillis();
                 if (durationTimeMillis > Integer.parseInt(maxTestDuration)) {
-                    throw new IllegalArgumentException(durationTimeMillis + " is greater than MAX_TEST_DURATION: " + maxTestDuration);
+                    throw new IllegalArgumentException(
+                        durationTimeMillis + " is greater than MAX_TEST_DURATION: " + maxTestDuration);
                 }
                 sendRunningToCallback(test);
                 myself = loaderService.start(test);
@@ -121,6 +122,8 @@ public class TestListenerService {
         }
         test.setLoaders(Collections.singleton(loader));
         template.convertAndSend(CALLBACK_QUEUE, mapper.writeValueAsString(test));
-        LOGGER.info(String.format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(), loader.getStatus(), CALLBACK_QUEUE));
+        LOGGER.info(String
+            .format("CallbackEvent (test: %s.%s, status: %s) sent to queue %s", test.getProject(), test.getName(),
+                loader.getStatus(), CALLBACK_QUEUE));
     }
 }

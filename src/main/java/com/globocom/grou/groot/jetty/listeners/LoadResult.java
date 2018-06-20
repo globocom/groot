@@ -21,8 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LoadResult
-{
+public class LoadResult {
 
     private ServerInfo serverInfo;
 
@@ -44,138 +43,114 @@ public class LoadResult
     /**
      * timestamp using format
      */
-    private String timestamp = ZonedDateTime.now().format( DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm.ssZ" ) );
+    private String timestamp = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm.ssZ"));
 
-    public LoadResult()
-    {
+    public LoadResult() {
         // no op
     }
 
-    public LoadResult( ServerInfo serverInfo, CollectorInformations collectorInformations, LoadConfig loadConfig )
-    {
+    public LoadResult(ServerInfo serverInfo, CollectorInformations collectorInformations, LoadConfig loadConfig) {
         this.serverInfo = serverInfo;
         this.collectorInformations = collectorInformations;
-        this.loadConfigs.add( loadConfig );
+        this.loadConfigs.add(loadConfig);
     }
 
-    public ServerInfo getServerInfo()
-    {
+    public ServerInfo getServerInfo() {
         return serverInfo == null ? serverInfo = new ServerInfo() : serverInfo;
     }
 
-    public CollectorInformations getCollectorInformations()
-    {
-        return collectorInformations == null ? collectorInformations = new CollectorInformations() : collectorInformations;
+    public CollectorInformations getCollectorInformations() {
+        return collectorInformations == null ? collectorInformations = new CollectorInformations()
+            : collectorInformations;
     }
 
-    public void setServerInfo( ServerInfo serverInfo )
-    {
+    public void setServerInfo(ServerInfo serverInfo) {
         this.serverInfo = serverInfo;
     }
 
-    public void setCollectorInformations( CollectorInformations collectorInformations )
-    {
+    public void setCollectorInformations(CollectorInformations collectorInformations) {
         this.collectorInformations = collectorInformations;
     }
 
-    public List<LoadConfig> getLoadConfigs()
-    {
+    public List<LoadConfig> getLoadConfigs() {
         return loadConfigs;
     }
 
-    public void setLoadConfigs( List<LoadConfig> loadConfigs )
-    {
+    public void setLoadConfigs(List<LoadConfig> loadConfigs) {
         this.loadConfigs = loadConfigs;
     }
 
-    public void addLoadConfig( LoadConfig loadConfig )
-    {
-        this.loadConfigs.add( loadConfig );
+    public void addLoadConfig(LoadConfig loadConfig) {
+        this.loadConfigs.add(loadConfig);
     }
 
-    public String getUuid()
-    {
+    public String getUuid() {
         return uuid;
     }
 
-    public void setUuid( String uuid )
-    {
+    public void setUuid(String uuid) {
         this.uuid = uuid;
     }
 
-    public LoadResult uuid( String uuid )
-    {
+    public LoadResult uuid(String uuid) {
         this.uuid = uuid;
         return this;
     }
 
-    public String getComment()
-    {
+    public String getComment() {
         return comment;
     }
 
-    public void setComment( String comment )
-    {
+    public void setComment(String comment) {
         this.comment = comment;
     }
 
-    public LoadResult comment( String comment )
-    {
+    public LoadResult comment(String comment) {
         this.comment = comment;
         return this;
     }
 
-    public String getTimestamp()
-    {
+    public String getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp( String timestamp )
-    {
+    public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
 
-    public LoadResult timestamp( String timestamp )
-    {
+    public LoadResult timestamp(String timestamp) {
         this.timestamp = timestamp;
         return this;
     }
 
-    public String getUuidPrefix()
-    {
+    public String getUuidPrefix() {
         return uuidPrefix;
     }
 
-    public void setUuidPrefix( String uuidPrefix )
-    {
+    public void setUuidPrefix(String uuidPrefix) {
         this.uuidPrefix = uuidPrefix;
     }
 
-    public LoadResult uuidPrefix( String uuidPrefix )
-    {
+    public LoadResult uuidPrefix(String uuidPrefix) {
         this.uuidPrefix = uuidPrefix;
         return this;
     }
 
-    public String getExternalId()
-    {
+    public String getExternalId() {
         return externalId;
     }
 
-    public void setExternalId( String externalId )
-    {
+    public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
 
-    public LoadResult externalId( String externalId )
-    {
+    public LoadResult externalId(String externalId) {
         this.externalId = externalId;
         return this;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "LoadResult{" + "serverInfo=" + serverInfo + ", collectorInformations=" + collectorInformations
             + ", loadConfigs=" + loadConfigs + ", uuid='" + uuid + '\'' + ", externalId='" + externalId + '\''
             + ", comment='" + comment + '\'' + ", uuidPrefix='" + uuidPrefix + '\'' + ", timestamp='" + timestamp + '\''

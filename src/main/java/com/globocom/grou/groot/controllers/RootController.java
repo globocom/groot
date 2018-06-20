@@ -39,7 +39,8 @@ public class RootController {
 
     @GetMapping("/version")
     public String getVersion() {
-        return String.format("{\"name\":\"%s\", \"version\":\"%s\", \"build\":\"%s\"}", buildProject, buildVersion, buildTimestamp);
+        return String.format("{\"name\":\"%s\", \"version\":\"%s\", \"build\":\"%s\"}", buildProject, buildVersion,
+            buildTimestamp);
     }
 
 }
