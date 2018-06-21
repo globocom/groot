@@ -16,14 +16,21 @@
 
 package com.globocom.grou.groot.loader;
 
+import static com.globocom.grou.groot.SystemEnv.GROUP_NAME;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.entities.Loader;
 import com.globocom.grou.groot.entities.Loader.Status;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
+import java.sql.Date;
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,23 +39,12 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PreDestroy;
-import java.sql.Date;
-import java.time.Instant;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static com.globocom.grou.groot.SystemEnv.GROUP_NAME;
-
 @SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
 public class LoaderService {
 
     private static final String GROU_LOADER_REDIS_KEY =
         "grou:loader:" + GROUP_NAME.getValue() + ":" + SystemInfo.hostname();
-    private static final int MAX_TEST_DURATION = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
@@ -85,19 +81,14 @@ public class LoaderService {
     public Loader start(final Test test) {
         final String testName = test.getName();
         final String projectName = test.getProject();
-        final long durationTimeMillis = Math.min(MAX_TEST_DURATION, test.getDurationTimeMillis());
         String projectDotTest = projectName + "." + testName;
         myself.setStatusDetailed(projectDotTest);
         myself.setLastExecAt(Date.from(Instant.now()));
 
         startMonitor(test);
-        final TestExecutor testExecutor = new TestExecutor(test, durationTimeMillis, monitorService);
+        final TestExecutor testExecutor = new TestExecutor(test, monitorService);
         abortService.start(abortNow, testExecutor);
         try {
-            Executors.newSingleThreadExecutor().submit(() -> {
-                sleep(durationTimeMillis);
-                testExecutor.interrupt();
-            });
             executorService.submit(testExecutor).get();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
@@ -108,13 +99,6 @@ public class LoaderService {
             }
         }
         return stopMonitorAndReset(projectDotTest);
-    }
-
-    @SuppressWarnings("checkstyle:EmptyCatchBlock")
-    private void sleep(long durationTimeMillis) {
-        try {
-            TimeUnit.MILLISECONDS.sleep(durationTimeMillis);
-        } catch (InterruptedException ignore) { }
     }
 
     private void startMonitor(Test test) {
@@ -189,11 +173,6 @@ public class LoaderService {
             template.expire(abortKey, 10, TimeUnit.MILLISECONDS);
             LOGGER.warn("TEST ABORTED: " + currentTest);
         }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        template.delete(GROU_LOADER_REDIS_KEY);
     }
 
 }

@@ -142,5 +142,10 @@ public interface GrootProperties {
      * Idle timeout (in ms)
      */
     String IDLE_TIMEOUT         = "idleTimeout";
+
+    /**
+     * Duration time (in ms)
+     */
+    String DURATION_TIME_MILLIS = "durationTimeMillis";
 }
 //@formatter:on

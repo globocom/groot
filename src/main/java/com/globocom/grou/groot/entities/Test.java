@@ -149,11 +149,20 @@ public class Test implements Serializable {
         return dashboard;
     }
 
+    /**
+     * @deprecated Replaced by properties.durationTimeMillis
+     */
+    @Deprecated
     public int getDurationTimeMillis() {
         return durationTimeMillis;
     }
 
+    /**
+     * @deprecated Replaced by properties.durationTimeMillis
+     */
+    @Deprecated
     public void setDurationTimeMillis(int durationTimeMillis) {
         this.durationTimeMillis = durationTimeMillis;
     }
+
 }

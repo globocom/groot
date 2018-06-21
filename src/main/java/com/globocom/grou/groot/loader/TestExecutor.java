@@ -20,12 +20,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.globocom.grou.groot.Application;
+import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.jetty.generator.*;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.report.GlobalSummaryListener;
 import com.globocom.grou.groot.entities.Test;
 import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.monit.MonitorService;
+import java.util.concurrent.Executors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.http.HttpFields;
@@ -46,20 +48,26 @@ public class TestExecutor implements Runnable {
 
     private static final Log LOGGER = LogFactory.getLog(TestExecutor.class);
     private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
+    private static final int MAX_TEST_DURATION = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
 
-    private final ObjectMapper mapper = new ObjectMapper()
-        .configure(SerializationFeature.INDENT_OUTPUT, true)
-        .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     private final GlobalSummaryListener globalSummaryListener = new GlobalSummaryListener();
     private final LoadGenerator.Builder builder;
+    private final long durationTimeMillis;
 
     private LoadGenerator loadGenerator = null;
 
-    @SuppressWarnings("unchecked")
-    public TestExecutor(final Test test, long durationTimeMillis, final MonitorService monitorService) {
+    @SuppressWarnings({"unchecked", "checkstyle:RightCurlyAlone", "checkstyle:Indentation"})
+    public TestExecutor(final Test test, final MonitorService monitorService) {
         long start = System.currentTimeMillis();
-        final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
-        @SuppressWarnings({"checkstyle:RightCurlyAlone", "checkstyle:Indentation"})
+        final Map<String, Object> properties = Optional.ofNullable(test.getProperties()).orElse(new HashMap<>());
+
+        // TODO: Deprecated (it will be removed)
+        addDurationTimeMillisPropIfAbsent(properties, test);
+
+        this.durationTimeMillis = Math.min(MAX_TEST_DURATION,
+            (long) properties.get(GrootProperties.DURATION_TIME_MILLIS));
+
+        //@formatter:off
         final List<Map<String, Object>> requestsProp =
             (List<Map<String, Object>>) Optional.ofNullable(properties.get(GrootProperties.REQUESTS))
                 .orElse(Collections.singletonList(new HashMap<>() {{
@@ -73,6 +81,7 @@ public class TestExecutor implements Runnable {
                             put(GrootProperties.CREDENTIALS, properties.get(GrootProperties.CREDENTIALS));
                             put(GrootProperties.PREEMPTIVE, properties.get(GrootProperties.PREEMPTIVE));
                         }}));
+        //@formatter:on
 
         int users = (int) Optional.ofNullable(properties.get(GrootProperties.USERS))
             .orElse(0);
@@ -145,6 +154,9 @@ public class TestExecutor implements Runnable {
                 resourceBuild(requestProp, httpClientTransportBuilder, scheme, host, port, numberOfNIOselectors))
         );
         try {
+            final ObjectMapper mapper = new ObjectMapper()
+                .configure(SerializationFeature.INDENT_OUTPUT, true)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
             LOGGER.info(mapper.writeValueAsString(resource));
         } catch (JsonProcessingException e) {
             LOGGER.error(e.getMessage(), e);
@@ -179,13 +191,30 @@ public class TestExecutor implements Runnable {
             .requestListener(globalSummaryListener);
     }
 
+    // TODO: Deprecated (it will be removed)
+    @SuppressWarnings("deprecation")
+    private void addDurationTimeMillisPropIfAbsent(final Map<String, Object> properties, final Test test) {
+        if (!properties.containsKey(GrootProperties.DURATION_TIME_MILLIS)) {
+            properties.put(GrootProperties.DURATION_TIME_MILLIS, test.getDurationTimeMillis());
+        }
+    }
+
+    @SuppressWarnings("checkstyle:EmptyCatchBlock")
+    private void sleep(long durationTimeMillis) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(durationTimeMillis);
+        } catch (InterruptedException ignore) {
+        }
+    }
+
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     private Resource resourceBuild(
         final Map<String, Object> requestProp,
         final AtomicReference<HttpClientTransportBuilder> httpClientTransportBuilder,
         final AtomicReference<String> scheme,
         final AtomicReference<String> host,
         final AtomicInteger port,
-        @SuppressWarnings("checkstyle:AbbreviationAsWordInName") int numberOfNIOselectors) {
+        int numberOfNIOselectors) {
         final URI uri = URI.create(String.valueOf(Optional.ofNullable(requestProp.get(GrootProperties.URI_REQUEST))
             .orElse("https://127.0.0.1:8443")));
         String localScheme = uri.getScheme();
@@ -227,6 +256,10 @@ public class TestExecutor implements Runnable {
 
     @Override
     public void run() {
+        Executors.newSingleThreadExecutor().submit(() -> {
+            sleep(durationTimeMillis);
+            interrupt();
+        });
         try {
             loadGenerator = builder.build();
             LOGGER.info("load generator config: " + loadGenerator.getConfig().toString());
@@ -273,7 +306,7 @@ public class TestExecutor implements Runnable {
     }
 
     public void interrupt() {
-        if (loadGenerator != null) {
+        if (loadGenerator != null && loadGenerator.isRunning()) {
             loadGenerator.interrupt();
         }
     }
