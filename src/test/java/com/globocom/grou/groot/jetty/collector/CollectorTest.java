@@ -16,9 +16,9 @@
 
 package com.globocom.grou.groot.jetty.collector;
 
-import com.globocom.grou.groot.jetty.generator.Http1ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.builders.Http1ClientTransportBuilder;
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
-import com.globocom.grou.groot.jetty.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorServer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

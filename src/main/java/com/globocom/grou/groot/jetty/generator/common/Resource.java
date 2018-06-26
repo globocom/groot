@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.jetty.generator;
+package com.globocom.grou.groot.jetty.generator.common;
 
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpMethod;

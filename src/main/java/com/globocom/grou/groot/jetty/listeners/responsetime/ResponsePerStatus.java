@@ -16,7 +16,7 @@
 
 package com.globocom.grou.groot.jetty.listeners.responsetime;
 
-import com.globocom.grou.groot.jetty.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 
 import java.util.concurrent.atomic.LongAdder;
 

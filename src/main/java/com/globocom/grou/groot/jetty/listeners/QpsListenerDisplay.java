@@ -17,6 +17,7 @@
 package com.globocom.grou.groot.jetty.listeners;
 
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
+import com.globocom.grou.groot.jetty.generator.common.Listener.EndListener;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
 import org.apache.commons.logging.Log;
@@ -37,7 +38,7 @@ import static com.globocom.grou.groot.LogUtils.format;
  */
 public class QpsListenerDisplay
     extends Request.Listener.Adapter
-    implements Request.Listener, LoadGenerator.EndListener {
+    implements Request.Listener, EndListener {
 
     private static final Log LOGGER = LogFactory.getLog(QpsListenerDisplay.class);
 

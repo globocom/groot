@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import javax.servlet.ServletException;

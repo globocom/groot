@@ -16,7 +16,7 @@
 
 package com.globocom.grou.groot.jetty.listeners;
 
-import com.globocom.grou.groot.jetty.generator.LoadGenerator;
+import com.globocom.grou.groot.jetty.generator.common.Config;
 
 public class LoadConfig {
 
@@ -55,7 +55,7 @@ public class LoadConfig {
         //
     }
 
-    public LoadConfig(LoadGenerator.Config config) {
+    public LoadConfig(Config config) {
         this.threads = config.getThreads();
         this.warmupIterationsPerThread = config.getWarmupIterationsPerThread();
         this.iterationsPerThread = config.getIterationsPerThread();

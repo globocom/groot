@@ -1,4 +1,4 @@
-import com.globocom.grou.groot.jetty.generator.Resource
+import com.globocom.grou.groot.jetty.generator.common.Resource
 
 return new Resource("http://localhost/index.html",
         new Resource("http://localhost/css/bootstrap.css",

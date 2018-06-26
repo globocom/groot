@@ -17,6 +17,7 @@
 package com.globocom.grou.groot.jetty.listeners;
 
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
+import com.globocom.grou.groot.jetty.generator.common.Listener.EndListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class RequestQueuedListenerDisplay
     extends Request.Listener.Adapter
-    implements LoadGenerator.EndListener {
+    implements EndListener {
 
     private static final Log LOGGER = LogFactory.getLog(RequestQueuedListenerDisplay.class);
 

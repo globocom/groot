@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import groovy.lang.GroovyShell;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.eclipse.jetty.http.HttpMethod;

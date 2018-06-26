@@ -1,6 +1,6 @@
 package com.globocom.grou.groot.loader;
 
-import com.globocom.grou.groot.jetty.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.monit.MonitorService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

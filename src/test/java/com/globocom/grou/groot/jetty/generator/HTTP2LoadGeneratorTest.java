@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.builders.Http2ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
 import org.eclipse.jetty.server.Handler;

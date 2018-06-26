@@ -17,7 +17,9 @@
 package com.globocom.grou.groot.jetty.listeners.latency;
 
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
-import com.globocom.grou.groot.jetty.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Listener.BeginListener;
+import com.globocom.grou.groot.jetty.generator.common.Listener.EndListener;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.HistogramConstants;
 import org.HdrHistogram.Histogram;
@@ -37,7 +39,7 @@ import static com.globocom.grou.groot.LogUtils.format;
  *
  */
 public class PerPathLatencyTimeDisplayListener
-    implements Resource.NodeListener, LoadGenerator.BeginListener, LoadGenerator.EndListener {
+    implements Resource.NodeListener, BeginListener, EndListener {
 
     private static final Log LOGGER = LogFactory.getLog(PerPathLatencyTimeDisplayListener.class);
 

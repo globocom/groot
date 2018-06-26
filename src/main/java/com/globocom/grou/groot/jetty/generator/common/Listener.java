@@ -14,11 +14,20 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.jetty.generator;
+package com.globocom.grou.groot.jetty.generator.common;
 
-import org.eclipse.jetty.client.HttpClientTransport;
+import com.globocom.grou.groot.jetty.generator.LoadGenerator;
+import java.util.EventListener;
 
-public interface HttpClientTransportBuilder {
+public interface Listener extends EventListener {
 
-    HttpClientTransport build();
+    interface BeginListener extends Listener {
+
+        void onBegin(LoadGenerator generator);
+    }
+
+    interface EndListener extends Listener {
+
+        void onEnd(LoadGenerator generator);
+    }
 }

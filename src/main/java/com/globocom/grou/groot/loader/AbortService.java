@@ -39,6 +39,7 @@ public class AbortService {
     }
 
     public synchronized void stop() {
+        if (abort == null) return;
         try {
             started.set(false);
             abort.set(false);

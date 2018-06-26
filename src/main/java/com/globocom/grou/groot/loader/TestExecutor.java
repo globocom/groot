@@ -22,6 +22,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.jetty.generator.*;
+import com.globocom.grou.groot.jetty.generator.builders.Http1ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.builders.Http2ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.builders.HttpClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.report.GlobalSummaryListener;
 import com.globocom.grou.groot.entities.Test;
@@ -57,7 +61,7 @@ public class TestExecutor implements Runnable {
     private LoadGenerator loadGenerator = null;
 
     @SuppressWarnings({"unchecked", "checkstyle:RightCurlyAlone", "checkstyle:Indentation"})
-    public TestExecutor(final Test test, final MonitorService monitorService) {
+    public TestExecutor(final Test test, final MonitorService monitorService) throws Exception {
         long start = System.currentTimeMillis();
         final Map<String, Object> properties = Optional.ofNullable(test.getProperties()).orElse(new HashMap<>());
 
@@ -65,7 +69,7 @@ public class TestExecutor implements Runnable {
         addDurationTimeMillisPropIfAbsent(properties, test);
 
         this.durationTimeMillis = Math.min(MAX_TEST_DURATION,
-            (long) properties.get(GrootProperties.DURATION_TIME_MILLIS));
+            (int) properties.get(GrootProperties.DURATION_TIME_MILLIS));
 
         //@formatter:off
         final List<Map<String, Object>> requestsProp =
@@ -105,8 +109,8 @@ public class TestExecutor implements Runnable {
 
         final int resourceRate = (int) Optional.ofNullable(properties.get(GrootProperties.RESOURCE_RATE))
             .orElse(0);
-        final long rateRampUpPeriod = (long) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD))
-            .orElse(0L);
+        final long rateRampUpPeriod = (int) Optional.ofNullable(properties.get(GrootProperties.RATE_RAMPUP_PERIOD))
+            .orElse(0);
         @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
         int numberOfNIOselectors = (int) Optional.ofNullable(properties.get(GrootProperties.NIO_SELECTORS))
             .orElse(1);
@@ -114,10 +118,10 @@ public class TestExecutor implements Runnable {
             .orElse(128 * threads * 1024);
         final boolean connectionBlocking = (boolean) Optional.ofNullable(properties.get(GrootProperties.BLOCKING))
             .orElse(true);
-        final long connectionTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT))
-            .orElse(2000L);
-        final long idleTimeout = (long) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT))
-            .orElse(5000L);
+        final long connectionTimeout = (int) Optional.ofNullable(properties.get(GrootProperties.CONNECTION_TIMEOUT))
+            .orElse(2000);
+        final long idleTimeout = (int) Optional.ofNullable(properties.get(GrootProperties.IDLE_TIMEOUT))
+            .orElse(5000);
 
         final AtomicReference<HttpClientTransportBuilder> httpClientTransportBuilder = new AtomicReference<>(null);
         final AtomicReference<String> scheme = new AtomicReference<>(null);
@@ -305,10 +309,8 @@ public class TestExecutor implements Runnable {
         }
     }
 
-    public void interrupt() {
-        if (loadGenerator != null && loadGenerator.isRunning()) {
-            loadGenerator.interrupt();
-        }
+    void interrupt() {
+        loadGenerator.interrupt();
     }
 
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")

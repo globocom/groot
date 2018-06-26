@@ -18,7 +18,7 @@
 package com.globocom.grou.groot.jetty.listeners;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.globocom.grou.groot.jetty.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import org.HdrHistogram.Recorder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,7 +28,6 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

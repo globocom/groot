@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;

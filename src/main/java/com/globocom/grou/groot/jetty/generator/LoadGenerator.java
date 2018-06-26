@@ -16,12 +16,29 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import static com.globocom.grou.groot.LogUtils.format;
+
+import com.globocom.grou.groot.jetty.generator.common.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Resource.Info;
+import com.globocom.grou.groot.jetty.generator.common.Config;
+import com.globocom.grou.groot.jetty.generator.builders.Http1ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.builders.HttpClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.common.Listener;
+import com.globocom.grou.groot.jetty.generator.common.Listener.BeginListener;
+import com.globocom.grou.groot.jetty.generator.common.Listener.EndListener;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.HttpAuthenticationStore;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpRequest;
-import org.eclipse.jetty.client.api.*;
+import org.eclipse.jetty.client.api.AuthenticationStore;
+import org.eclipse.jetty.client.api.ContentProvider;
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.api.Response;
+import org.eclipse.jetty.client.api.Result;
 import org.eclipse.jetty.client.util.BasicAuthentication;
 import org.eclipse.jetty.client.util.BytesContentProvider;
 import org.eclipse.jetty.http.HttpField;
@@ -31,26 +48,16 @@ import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.CountingCallback;
 import org.eclipse.jetty.util.HttpCookieStore;
 import org.eclipse.jetty.util.SocketAddressResolver;
-import org.eclipse.jetty.util.annotation.ManagedAttribute;
-import org.eclipse.jetty.util.annotation.ManagedObject;
-import org.eclipse.jetty.util.annotation.ManagedOperation;
-import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.Scheduler;
 
 import java.net.CookieStore;
-import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import static com.globocom.grou.groot.LogUtils.format;
-
-@ManagedObject("LoadGenerator")
-public class LoadGenerator extends ContainerLifeCycle {
+public class LoadGenerator {
 
     private static final Log LOGGER = LogFactory.getLog(LoadGenerator.class);
 
@@ -63,48 +70,35 @@ public class LoadGenerator extends ContainerLifeCycle {
 
     private LoadGenerator(Config config) {
         this.config = config;
-        this.barrier = new CyclicBarrier(config.threads);
+        this.barrier = new CyclicBarrier(config.getThreads());
         this.authenticationStore = new HttpAuthenticationStore();
         this.cookieStore = new AtomicReference<>(null);
-        addBean(config);
     }
 
     private CompletableFuture<Void> proceed() {
         CompletableFuture<Void> result = new CompletableFuture<>();
         try {
-            start();
+            executorService = Executors.newCachedThreadPool();
+            interrupt = false;
+            fireBeginEvent(this);
             result.complete(null);
         } catch (Throwable x) {
             result.completeExceptionally(x);
         }
         return result;
-    }
-
-    @Override
-    protected void doStart() throws Exception {
-        executorService = Executors.newCachedThreadPool();
-        interrupt = false;
-        super.doStart();
-        fireBeginEvent(this);
     }
 
     private CompletableFuture<Void> halt() {
         CompletableFuture<Void> result = new CompletableFuture<>();
         try {
-            stop();
+            fireEndEvent(this);
+            interrupt();
+            executorService.shutdown();
             result.complete(null);
         } catch (Throwable x) {
             result.completeExceptionally(x);
         }
         return result;
-    }
-
-    @Override
-    protected void doStop() throws Exception {
-        fireEndEvent(this);
-        super.doStop();
-        interrupt();
-        executorService.shutdown();
     }
 
     public Config getConfig() {
@@ -125,7 +119,6 @@ public class LoadGenerator extends ContainerLifeCycle {
         }).thenComposeAsync(x -> halt(), executorService);
     }
 
-    @ManagedOperation(value = "Interrupts this LoadGenerator", impact = "ACTION")
     public void interrupt() {
         interrupt = true;
     }
@@ -152,7 +145,6 @@ public class LoadGenerator extends ContainerLifeCycle {
             for (int i = 0; i < clients.length; ++i) {
                 HttpClient client = clients[i] = newHttpClient(getConfig());
                 client.start();
-                addBean(client, false);
             }
 
             Callback processCallback = new Callback() {
@@ -234,10 +226,6 @@ public class LoadGenerator extends ContainerLifeCycle {
                     if (interrupt || lastIteration || ranEnough || process.isCompletedExceptionally()) {
                         break send;
                     }
-                    //if (interrupt) {
-                    //    callback.failed(new InterruptedException());
-                    //    break send;
-                    //}
 
                     if (++clientIndex == clients.length) {
                         clientIndex = 0;
@@ -253,7 +241,7 @@ public class LoadGenerator extends ContainerLifeCycle {
         return result;
     }
 
-    protected HttpClient newHttpClient(Config config) {
+    private HttpClient newHttpClient(Config config) {
         HttpClient httpClient = new HttpClient(config.getHttpClientTransportBuilder().build(),
             config.getSslContextFactory());
         httpClient.setExecutor(config.getExecutor());
@@ -279,13 +267,12 @@ public class LoadGenerator extends ContainerLifeCycle {
         try {
             if (client != null) {
                 client.stop();
-                removeBean(client);
             }
         } catch (Throwable ignore) {
         }
     }
 
-    protected Request newRequest(HttpClient client, Config config, final Resource resource) {
+    private Request newRequest(HttpClient client, Config config, final Resource resource) {
         HttpFields requestHeaders = resource.getRequestHeaders();
         String contentType = requestHeaders.get(HttpHeader.CONTENT_TYPE.asString());
         requestHeaders.remove(HttpHeader.CONTENT_TYPE.asString());
@@ -348,7 +335,7 @@ public class LoadGenerator extends ContainerLifeCycle {
                 callback.failed(x);
             }
         }, nodes);
-        Sender sender = new Sender(client, warmup, treeCallback);
+        Sender sender = new Sender(this, client, warmup, treeCallback);
         sender.offer(Collections.singletonList(info));
         sender.send();
     }
@@ -386,319 +373,6 @@ public class LoadGenerator extends ContainerLifeCycle {
             .filter(l -> l instanceof Resource.TreeListener)
             .map(l -> (Resource.TreeListener) l)
             .forEach(l -> l.onResourceTree(info));
-    }
-
-    private class Sender {
-
-        private final Queue<Resource.Info> queue = new ArrayDeque<>();
-        private final Set<URI> pushCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
-        private final HttpClient client;
-        private final boolean warmup;
-        private final CountingCallback callback;
-        private boolean active;
-
-        private Sender(HttpClient client, boolean warmup, CountingCallback callback) {
-            this.client = client;
-            this.warmup = warmup;
-            this.callback = callback;
-        }
-
-        private void offer(List<Resource.Info> resources) {
-            synchronized (this) {
-                queue.addAll(resources);
-            }
-        }
-
-        private void send() {
-            synchronized (this) {
-                if (active) {
-                    return;
-                }
-                active = true;
-            }
-
-            List<Resource.Info> resources = new ArrayList<>();
-            while (true) {
-                synchronized (this) {
-                    if (queue.isEmpty()) {
-                        active = false;
-                        return;
-                    }
-                    resources.addAll(queue);
-                    queue.clear();
-                }
-
-                send(resources);
-                resources.clear();
-            }
-        }
-
-        private void send(List<Resource.Info> resources) {
-            for (Resource.Info info : resources) {
-                Resource resource = info.getResource();
-                info.setRequestTime(System.nanoTime());
-                if (resource.getPath() != null) {
-                    HttpRequest httpRequest = (HttpRequest) newRequest(client, config, resource);
-
-                    if (pushCache.contains(httpRequest.getURI())) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug(format("skip sending pushed {}", resource));
-                        }
-                    } else {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug(format("sending {}{}", warmup ? "warmup " : "", resource));
-                        }
-
-                        httpRequest.pushListener((request, pushed) -> {
-                            @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-                            URI pushedURI = pushed.getURI();
-                            Resource child = resource.findDescendant(pushedURI);
-                            if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug(format("pushed {}", child));
-                            }
-                            if (child != null && pushCache.add(pushedURI)) {
-                                Resource.Info pushedInfo = child.newInfo();
-                                pushedInfo.setRequestTime(System.nanoTime());
-                                pushedInfo.setPushed(true);
-                                return new ResponseHandler(pushedInfo);
-                            } else {
-                                return null;
-                            }
-                        });
-
-                        Request request = config.getRequestListeners().stream()
-                            .reduce(httpRequest, Request::listener, (r1, r2) -> r1);
-                        request.send(new ResponseHandler(info));
-                    }
-                } else {
-                    info.setResponseTime(System.nanoTime());
-                    // Don't fire the resource event for "group" resources.
-                    callback.succeeded();
-                    sendChildren(resource);
-                }
-            }
-        }
-
-        private void sendChildren(Resource resource) {
-            List<Resource> children = resource.getResources();
-            if (!children.isEmpty()) {
-                offer(children.stream().sorted(Comparator.comparingInt(Resource::getOrder)).map(Resource::newInfo)
-                    .collect(Collectors.toList()));
-                send();
-            }
-        }
-
-        private class ResponseHandler extends Response.Listener.Adapter {
-
-            private final Resource.Info info;
-
-            private ResponseHandler(Resource.Info info) {
-                this.info = info;
-            }
-
-            @Override
-            public void onBegin(Response response) {
-                // Record time to first byte.
-                info.setLatencyTime(System.nanoTime());
-                info.setVersion(response.getVersion());
-            }
-
-            @Override
-            public void onContent(Response response, ByteBuffer buffer) {
-                // Record content length.
-                int remaining = buffer.remaining();
-                info.addContent(remaining);
-                if (!warmup) {
-                    fireOnContent(remaining);
-                }
-            }
-
-            @Override
-            public void onComplete(Result result) {
-                Resource resource = info.getResource();
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug(format("completed {}: {}", resource, result));
-                }
-                if (result.isSucceeded()) {
-                    info.setResponseTime(System.nanoTime());
-                    info.setStatus(result.getResponse().getStatus());
-                    if (!warmup) {
-                        fireResourceNodeEvent(info);
-                    }
-                    callback.succeeded();
-                } else {
-                    callback.failed(result.getFailure());
-                }
-                sendChildren(resource);
-            }
-        }
-    }
-
-    /**
-     * Read-only configuration for the load generator.
-     */
-    @ManagedObject("LoadGenerator Configuration")
-    public static class Config {
-
-        protected int threads = 1;
-        protected int warmupIterationsPerThread = 0;
-        protected int iterationsPerThread = 1;
-        protected long runFor = 0;
-        protected int usersPerThread = 1;
-        protected int channelsPerUser = 1024;
-        protected int resourceRate = 1;
-        protected long rateRampUpPeriod = 0;
-        protected HttpClientTransportBuilder httpClientTransportBuilder;
-        protected SslContextFactory sslContextFactory;
-        protected Scheduler scheduler;
-        protected Executor executor;
-        protected SocketAddressResolver socketAddressResolver = new SocketAddressResolver.Sync();
-        protected Resource resource = new Resource("http://localhost/");
-        protected final List<Listener> listeners = new ArrayList<>();
-        protected final List<Request.Listener> requestListeners = new ArrayList<>();
-        protected final List<Resource.Listener> resourceListeners = new ArrayList<>();
-        protected int maxRequestsQueued = 128 * 1024;
-        protected boolean connectBlocking = true;
-        protected long connectTimeout = 5000;
-        protected long idleTimeout = 15000;
-        protected String username = null;
-        protected String password = null;
-        protected boolean saveCookies = false;
-        protected boolean authPreemptive = false;
-        protected String userAgent = "UNDEF";
-
-        @ManagedAttribute("Number of sender threads")
-        public int getThreads() {
-            return threads;
-        }
-
-        @ManagedAttribute("Number of warmup iterations per sender thread")
-        public int getWarmupIterationsPerThread() {
-            return warmupIterationsPerThread;
-        }
-
-        @ManagedAttribute("Number of iterations per sender thread")
-        public int getIterationsPerThread() {
-            return iterationsPerThread;
-        }
-
-        @ManagedAttribute("Time in seconds for how long to run")
-        public long getRunFor() {
-            return runFor;
-        }
-
-        @ManagedAttribute("Number of users per sender thread")
-        public int getUsersPerThread() {
-            return usersPerThread;
-        }
-
-        @ManagedAttribute("Number of concurrent request channels per user")
-        public int getChannelsPerUser() {
-            return channelsPerUser;
-        }
-
-        @ManagedAttribute("Send rate in resource trees per second")
-        public int getResourceRate() {
-            return resourceRate;
-        }
-
-        @ManagedAttribute("Rate ramp up period in seconds")
-        public long getRateRampUpPeriod() {
-            return rateRampUpPeriod;
-        }
-
-        @ManagedAttribute("Credential username")
-        public String getUsername() {
-            return username;
-        }
-
-        @ManagedAttribute("Credential password")
-        public String getPassword() {
-            return password;
-        }
-
-        @ManagedAttribute("Save Cookies")
-        public boolean isSaveCookies() {
-            return saveCookies;
-        }
-
-        @ManagedAttribute("Auth Preemptive")
-        public boolean isAuthPreemptive() {
-            return authPreemptive;
-        }
-
-        @ManagedAttribute("User Agent")
-        public String getUserAgent() {
-            return userAgent;
-        }
-
-        public HttpClientTransportBuilder getHttpClientTransportBuilder() {
-            return httpClientTransportBuilder;
-        }
-
-        public SslContextFactory getSslContextFactory() {
-            return sslContextFactory;
-        }
-
-        public Scheduler getScheduler() {
-            return scheduler;
-        }
-
-        public Executor getExecutor() {
-            return executor;
-        }
-
-        public SocketAddressResolver getSocketAddressResolver() {
-            return socketAddressResolver;
-        }
-
-        public Resource getResource() {
-            return resource;
-        }
-
-        @ManagedAttribute("Maximum number of queued requests")
-        public int getMaxRequestsQueued() {
-            return maxRequestsQueued;
-        }
-
-        public List<Listener> getListeners() {
-            return listeners;
-        }
-
-        public List<Request.Listener> getRequestListeners() {
-            return requestListeners;
-        }
-
-        public List<Resource.Listener> getResourceListeners() {
-            return resourceListeners;
-        }
-
-        @ManagedAttribute("Whether the connect operation is blocking")
-        public boolean isConnectBlocking() {
-            return connectBlocking;
-        }
-
-        @ManagedAttribute("Connect timeout in milliseconds")
-        public long getConnectTimeout() {
-            return connectTimeout;
-        }
-
-        @ManagedAttribute("Idle timeout in milliseconds")
-        public long getIdleTimeout() {
-            return idleTimeout;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s[t=%d,i=%d,u=%d,c=%d,r=%d,rf=%ds]",
-                Config.class.getSimpleName(),
-                threads,
-                runFor > 0 ? -1 : iterationsPerThread,
-                usersPerThread,
-                channelsPerUser,
-                resourceRate,
-                runFor > 0 ? runFor : -1);
-        }
     }
 
     public static class Builder extends Config {
@@ -795,7 +469,7 @@ public class LoadGenerator extends ContainerLifeCycle {
          * @return this Builder
          */
         public Builder username(String username) {
-            this.username = Objects.requireNonNull(username);
+            this.username = username;
             return this;
         }
 
@@ -804,7 +478,7 @@ public class LoadGenerator extends ContainerLifeCycle {
          * @return this Builder
          */
         public Builder password(String password) {
-            this.password = Objects.requireNonNull(password);
+            this.password = password;
             return this;
         }
 
@@ -819,7 +493,7 @@ public class LoadGenerator extends ContainerLifeCycle {
         }
 
         public Builder userAgent(String userAgent) {
-            this.userAgent = userAgent;
+            if (userAgent != null && !userAgent.isEmpty()) this.userAgent = userAgent;
             return this;
         }
 
@@ -852,7 +526,7 @@ public class LoadGenerator extends ContainerLifeCycle {
 
         /**
          * @param executor the shared executor between all HttpClient instances if {@code null} each HttpClient will use
-         *      its own
+         * its own
          * @return this Builder
          */
         public Builder executor(Executor executor) {
@@ -921,17 +595,154 @@ public class LoadGenerator extends ContainerLifeCycle {
         }
     }
 
-    public interface Listener extends EventListener {
+    public static class Sender {
 
-    }
+        private static final Log LOGGER = LogFactory.getLog(Sender.class);
 
-    public interface BeginListener extends Listener {
+        private LoadGenerator loadGenerator;
+        private final Queue<Info> queue = new ArrayDeque<>();
+        private final Set<URI> pushCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        private final HttpClient client;
+        private final boolean warmup;
+        private final CountingCallback callback;
+        private boolean active;
 
-        void onBegin(LoadGenerator generator);
-    }
+        public Sender(LoadGenerator loadGenerator, HttpClient client, boolean warmup, CountingCallback callback) {
+            this.loadGenerator = loadGenerator;
+            this.client = client;
+            this.warmup = warmup;
+            this.callback = callback;
+        }
 
-    public interface EndListener extends Listener {
+        void offer(List<Info> resources) {
+            synchronized (this) {
+                queue.addAll(resources);
+            }
+        }
 
-        void onEnd(LoadGenerator generator);
+        public void send() {
+            synchronized (this) {
+                if (active) {
+                    return;
+                }
+                active = true;
+            }
+
+            List<Info> resources = new ArrayList<>();
+            while (true) {
+                synchronized (this) {
+                    if (queue.isEmpty()) {
+                        active = false;
+                        return;
+                    }
+                    resources.addAll(queue);
+                    queue.clear();
+                }
+
+                send(resources);
+                resources.clear();
+            }
+        }
+
+        private void send(List<Info> resources) {
+            for (Info info : resources) {
+                Resource resource = info.getResource();
+                info.setRequestTime(System.nanoTime());
+                if (resource.getPath() != null) {
+                    HttpRequest httpRequest = (HttpRequest) loadGenerator
+                        .newRequest(client, loadGenerator.getConfig(), resource);
+
+                    if (pushCache.contains(httpRequest.getURI())) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(format("skip sending pushed {}", resource));
+                        }
+                    } else {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(format("sending {}{}", warmup ? "warmup " : "", resource));
+                        }
+
+                        httpRequest.pushListener((request, pushed) -> {
+                            @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+                            URI pushedURI = pushed.getURI();
+                            Resource child = resource.findDescendant(pushedURI);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(format("pushed {}", child));
+                            }
+                            if (child != null && pushCache.add(pushedURI)) {
+                                Info pushedInfo = child.newInfo();
+                                pushedInfo.setRequestTime(System.nanoTime());
+                                pushedInfo.setPushed(true);
+                                return new ResponseHandler(pushedInfo);
+                            } else {
+                                return null;
+                            }
+                        });
+
+                        Request request = loadGenerator.getConfig().getRequestListeners().stream()
+                            .reduce(httpRequest, Request::listener, (r1, r2) -> r1);
+                        request.send(new ResponseHandler(info));
+                    }
+                } else {
+                    info.setResponseTime(System.nanoTime());
+                    // Don't fire the resource event for "group" resources.
+                    callback.succeeded();
+                    sendChildren(resource);
+                }
+            }
+        }
+
+        private void sendChildren(Resource resource) {
+            List<Resource> children = resource.getResources();
+            if (!children.isEmpty()) {
+                offer(children.stream().sorted(Comparator.comparingInt(Resource::getOrder)).map(Resource::newInfo)
+                    .collect(Collectors.toList()));
+                send();
+            }
+        }
+
+        private class ResponseHandler extends Response.Listener.Adapter {
+
+            private final Info info;
+
+            private ResponseHandler(Info info) {
+                this.info = info;
+            }
+
+            @Override
+            public void onBegin(Response response) {
+                // Record time to first byte.
+                info.setLatencyTime(System.nanoTime());
+                info.setVersion(response.getVersion());
+            }
+
+            @Override
+            public void onContent(Response response, ByteBuffer buffer) {
+                // Record content length.
+                int remaining = buffer.remaining();
+                info.addContent(remaining);
+                if (!warmup) {
+                    loadGenerator.fireOnContent(remaining);
+                }
+            }
+
+            @Override
+            public void onComplete(Result result) {
+                Resource resource = info.getResource();
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(format("completed {}: {}", resource, result));
+                }
+                if (result.isSucceeded()) {
+                    info.setResponseTime(System.nanoTime());
+                    info.setStatus(result.getResponse().getStatus());
+                    if (!warmup) {
+                        loadGenerator.fireResourceNodeEvent(info);
+                    }
+                    callback.succeeded();
+                } else {
+                    callback.failed(result.getFailure());
+                }
+                sendChildren(resource);
+            }
+        }
     }
 }

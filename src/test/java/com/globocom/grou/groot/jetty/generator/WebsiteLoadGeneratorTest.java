@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.builders.HttpClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.RequestLogHandler;

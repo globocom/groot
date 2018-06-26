@@ -86,14 +86,17 @@ public class LoaderService {
         myself.setLastExecAt(Date.from(Instant.now()));
 
         startMonitor(test);
-        final TestExecutor testExecutor = new TestExecutor(test, monitorService);
-        abortService.start(abortNow, testExecutor);
+        TestExecutor testExecutor = null;
         try {
+            testExecutor = new TestExecutor(test, monitorService);
+            abortService.start(abortNow, testExecutor);
             executorService.submit(testExecutor).get();
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         } finally {
-            testExecutor.interrupt();
+            if (testExecutor != null) {
+                testExecutor.interrupt();
+            }
             if (!(executorService.isShutdown() || executorService.isTerminated())) {
                 abortService.stop();
             }

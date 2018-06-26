@@ -17,7 +17,9 @@
 package com.globocom.grou.groot.jetty.listeners.responsetime;
 
 import com.globocom.grou.groot.jetty.generator.LoadGenerator;
-import com.globocom.grou.groot.jetty.generator.Resource;
+import com.globocom.grou.groot.jetty.generator.common.Listener.BeginListener;
+import com.globocom.grou.groot.jetty.generator.common.Listener.EndListener;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.HistogramConstants;
 import org.HdrHistogram.AtomicHistogram;
@@ -39,7 +41,7 @@ import static com.globocom.grou.groot.LogUtils.format;
  * </p>
  */
 public class TimePerPathListener
-    implements Resource.NodeListener, LoadGenerator.EndListener, LoadGenerator.BeginListener, Serializable {
+    implements Resource.NodeListener, EndListener, BeginListener, Serializable {
 
     private static final Log LOGGER = LogFactory.getLog(TimePerPathListener.class);
 

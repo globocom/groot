@@ -16,6 +16,8 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.builders.Http2ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.jetty.generator.util.MonitoringThreadPoolExecutor;
 import org.HdrHistogram.AtomicHistogram;
 import org.HdrHistogram.Histogram;

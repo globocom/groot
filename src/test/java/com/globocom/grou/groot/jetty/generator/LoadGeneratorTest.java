@@ -16,6 +16,10 @@
 
 package com.globocom.grou.groot.jetty.generator;
 
+import com.globocom.grou.groot.jetty.generator.builders.Http1ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.builders.Http2ClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.builders.HttpClientTransportBuilder;
+import com.globocom.grou.groot.jetty.generator.common.Resource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.jetty.client.api.Request;
@@ -280,7 +284,6 @@ public class LoadGeneratorTest {
             .build();
 
         MBeanContainer mbeanContainer = new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
-        loadGenerator.addBean(mbeanContainer);
 
         ObjectName pattern = new ObjectName(LoadGenerator.class.getPackage().getName() + ":*");
         Set<ObjectName> objectNames = mbeanContainer.getMBeanServer().queryNames(pattern, null);
