@@ -56,33 +56,17 @@ public class LoadGenerator extends ContainerLifeCycle {
 
     private final Config config;
     private final CyclicBarrier barrier;
+    private final AuthenticationStore authenticationStore;
+    private final AtomicReference<CookieStore> cookieStore;
     private ExecutorService executorService;
     private volatile boolean interrupt;
-    private final AuthenticationStore authenticationStore = new HttpAuthenticationStore();
-    private final AtomicReference<CookieStore> cookieStore = new AtomicReference<>(null);
-    private boolean saveCookies = false;
-    private boolean authPreemptive = false;
-    private String userAgent = "UNDEF";
 
     private LoadGenerator(Config config) {
         this.config = config;
         this.barrier = new CyclicBarrier(config.threads);
+        this.authenticationStore = new HttpAuthenticationStore();
+        this.cookieStore = new AtomicReference<>(null);
         addBean(config);
-    }
-
-    public LoadGenerator saveCookies(boolean saveCookies) {
-        this.saveCookies = saveCookies;
-        return this;
-    }
-
-    public LoadGenerator authPreemptive(boolean authPreemptive) {
-        this.authPreemptive = authPreemptive;
-        return this;
-    }
-
-    public LoadGenerator userAgent(String userAgent) {
-        this.userAgent = userAgent;
-        return this;
     }
 
     private CompletableFuture<Void> proceed() {
@@ -280,8 +264,8 @@ public class LoadGenerator extends ContainerLifeCycle {
         httpClient.setConnectBlocking(config.isConnectBlocking());
         httpClient.setConnectTimeout(config.getConnectTimeout());
         httpClient.setIdleTimeout(config.getIdleTimeout());
-        httpClient.setUserAgentField(new HttpField(HttpHeader.USER_AGENT, userAgent));
-        if (saveCookies) {
+        httpClient.setUserAgentField(new HttpField(HttpHeader.USER_AGENT, config.getUserAgent()));
+        if (config.isSaveCookies()) {
             cookieStore.compareAndSet(null, new HttpCookieStore());
             httpClient.setCookieStore(cookieStore.get());
         } else {
@@ -297,7 +281,8 @@ public class LoadGenerator extends ContainerLifeCycle {
                 client.stop();
                 removeBean(client);
             }
-        } catch (Throwable ignore) { }
+        } catch (Throwable ignore) {
+        }
     }
 
     protected Request newRequest(HttpClient client, Config config, final Resource resource) {
@@ -312,7 +297,7 @@ public class LoadGenerator extends ContainerLifeCycle {
             synchronized (this) {
                 if (client.getAuthenticationStore() != authenticationStore) {
                     client.setAuthenticationStore(authenticationStore);
-                    if (authPreemptive) {
+                    if (config.isAuthPreemptive()) {
                         authenticationStore.addAuthenticationResult(
                             new BasicAuthentication.BasicResult(request.getURI(), config.getPassword(),
                                 config.getPassword()));
@@ -867,7 +852,7 @@ public class LoadGenerator extends ContainerLifeCycle {
 
         /**
          * @param executor the shared executor between all HttpClient instances if {@code null} each HttpClient will use
-         *     its own
+         *      its own
          * @return this Builder
          */
         public Builder executor(Executor executor) {
