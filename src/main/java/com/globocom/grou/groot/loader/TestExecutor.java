@@ -16,37 +16,45 @@
 
 package com.globocom.grou.groot.loader;
 
+import static io.netty.handler.codec.http.HttpScheme.HTTP;
+import static io.netty.handler.codec.http.HttpScheme.HTTPS;
+import static io.netty.handler.codec.http.websocketx.WebSocketScheme.WSS;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.globocom.grou.groot.Application;
 import com.globocom.grou.groot.SystemEnv;
-import com.globocom.grou.groot.jetty.generator.*;
+import com.globocom.grou.groot.entities.Test;
+import com.globocom.grou.groot.entities.properties.GrootProperties;
+import com.globocom.grou.groot.jetty.generator.LoadGenerator;
 import com.globocom.grou.groot.jetty.generator.builders.Http1ClientTransportBuilder;
 import com.globocom.grou.groot.jetty.generator.builders.Http2ClientTransportBuilder;
 import com.globocom.grou.groot.jetty.generator.builders.HttpClientTransportBuilder;
 import com.globocom.grou.groot.jetty.generator.common.Resource;
 import com.globocom.grou.groot.jetty.listeners.CollectorInformations;
 import com.globocom.grou.groot.jetty.listeners.report.GlobalSummaryListener;
-import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.entities.properties.GrootProperties;
 import com.globocom.grou.groot.monit.MonitorService;
-import java.util.concurrent.Executors;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.eclipse.jetty.http.HttpFields;
-import org.eclipse.jetty.http.HttpScheme;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 public class TestExecutor implements Runnable {
 
@@ -124,7 +132,6 @@ public class TestExecutor implements Runnable {
             .orElse(5000);
 
         final AtomicReference<HttpClientTransportBuilder> httpClientTransportBuilder = new AtomicReference<>(null);
-        final AtomicReference<String> scheme = new AtomicReference<>(null);
         final AtomicReference<String> host = new AtomicReference<>(null);
         final AtomicInteger port = new AtomicInteger(0);
         final SslContextFactory sslContextFactory = new SslContextFactory(true);
@@ -154,8 +161,13 @@ public class TestExecutor implements Runnable {
 
         final Resource resource = new Resource();
         requestsProp.forEach(requestProp ->
-            resource.addResource(
-                resourceBuild(requestProp, httpClientTransportBuilder, scheme, host, port, numberOfNIOselectors))
+            {
+                try {
+                    resource.addResource(resourceBuild(requestProp, httpClientTransportBuilder, host, port, numberOfNIOselectors));
+                } catch (URISyntaxException e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
+            }
         );
         try {
             final ObjectMapper mapper = new ObjectMapper()
@@ -215,10 +227,9 @@ public class TestExecutor implements Runnable {
     private Resource resourceBuild(
         final Map<String, Object> requestProp,
         final AtomicReference<HttpClientTransportBuilder> httpClientTransportBuilder,
-        final AtomicReference<String> scheme,
         final AtomicReference<String> host,
         final AtomicInteger port,
-        int numberOfNIOselectors) {
+        int numberOfNIOselectors) throws URISyntaxException {
         final URI uri = URI.create(String.valueOf(Optional.ofNullable(requestProp.get(GrootProperties.URI_REQUEST))
             .orElse("https://127.0.0.1:8443")));
         String localScheme = uri.getScheme();
@@ -226,16 +237,16 @@ public class TestExecutor implements Runnable {
             .compareAndExchange(null, getHttpClientTransportBuilder(localScheme, numberOfNIOselectors));
 
         if ("h2c".equals(localScheme)) {
-            localScheme = HttpScheme.HTTPS.asString();
+            localScheme = HTTPS.name().toString();
         }
         if ("h2".equals(localScheme)) {
-            localScheme = HttpScheme.HTTP.asString();
+            localScheme = HTTP.name().toString();
         }
 
-        scheme.compareAndSet(null, localScheme);
-        port.compareAndSet(0, uri.getPort() > 0 ? uri.getPort() : (localScheme.endsWith("s") ? 443 : 80));
+        boolean ssl = HTTPS.name().toString().equals(localScheme) || WSS.name().toString().equals(localScheme);
+        port.compareAndSet(0, uri.getPort() > 0 ? uri.getPort() : (ssl ? 443 : 80));
         host.compareAndSet(null, uri.getHost());
-
+        URI newUri = new URI(localScheme, uri.getUserInfo(), uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment());
         final String method = (String) Optional.ofNullable(requestProp.get(GrootProperties.METHOD))
             .orElse("GET");
         final HttpFields headers = getHttpFields(requestProp);
@@ -246,7 +257,7 @@ public class TestExecutor implements Runnable {
         if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
             body = String.valueOf(requestProp.get(GrootProperties.BODY));
         }
-        Resource resource = new Resource().method(method).setUri(uri).requestHeaders(headers).setOrder(order);
+        Resource resource = new Resource().method(method).setUri(newUri).requestHeaders(headers).setOrder(order);
         if (!(body == null || body.isEmpty())) {
             resource.setContent(body.getBytes(StandardCharsets.UTF_8));
         }
