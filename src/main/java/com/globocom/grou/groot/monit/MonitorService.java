@@ -31,8 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.exception.TooManyConnectionsException;
-import org.asynchttpclient.exception.TooManyConnectionsPerHostException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -177,7 +175,7 @@ public class MonitorService {
     }
 
     public void fail(final Throwable t, long start) {
-        boolean isInternalProblem = (t instanceof TooManyConnectionsException) || (t instanceof TooManyConnectionsPerHostException) || t.getMessage().contains("executor not accepting a task");
+        boolean isInternalProblem = t.getMessage().contains("executor not accepting a task");
         if (!isInternalProblem) {
             String messageException = t.getMessage();
             if (messageException.contains("connection timed out")) {
