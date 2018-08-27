@@ -16,13 +16,19 @@
 
 package com.globocom.grou.groot.monit;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.test.Test;
-import com.globocom.grou.groot.test.properties.GrootProperties;
+import com.globocom.grou.groot.test.properties.BaseProperty;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
 import io.galeb.statsd.StatsDClient;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.asynchttpclient.exception.TooManyConnectionsException;
@@ -49,30 +55,33 @@ public class MonitorService {
 
     private static final Pattern IS_INT = Pattern.compile("\\d+");
 
+    private static final ObjectMapper MAPPER = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
+
     private final String prefixTag = SystemEnv.PREFIX_TAG.getValue();
     private final AtomicReference<Test> test = new AtomicReference<>(null);
     private final String hostnameFormated = SystemInfo.hostname();
     private final Object lock = new Object();
 
     private final StatsDClient statsdClient;
-    private volatile int delta = 0;
     private List<MetricsCollector> targets = Collections.emptyList();
     private String prefixResponse = getStatsdPrefixResponse(null);
     private String prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
     private String prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
     private final Set<String> allStatus = new HashSet<>();
+    private AtomicInteger tcpConn = new AtomicInteger(0);
+    private final Map<String, Long> statusCounter = new ConcurrentHashMap<>();
+    private final AtomicLong sizeSum = new AtomicLong(0L);
 
     @Autowired
     public MonitorService(final StatsdService statsdService) {
         this.statsdClient = statsdService.client();
     }
 
-    public void monitoring(final Test test, int delta) {
+    public void monitoring(final Test test) {
         synchronized (lock) {
             if (!this.test.compareAndSet(null, test)) {
                 throw new IllegalStateException("Already monitoring other test");
             }
-            this.delta = delta;
             prefixStatsdLoaderKey = getPrefixStatsdLoader(test);
             prefixStatsdTargetsKey = getPrefixStatsdTargets(test);
             extractMonitTargets(test);
@@ -94,7 +103,7 @@ public class MonitorService {
             testTags = "".equals(testTags) ? "UNDEF" : testTags;
         }
         return String.format("%sproject.%s.%salltags.%s.%stest.%s.%s%s.%s.",
-                prefixTag, testProject, prefixTag, testTags, prefixTag, testName, prefixTag, SystemEnv.STATSD_LOADER_KEY.getValue(), sanitize(hostnameFormated, "_"));
+            prefixTag, testProject, prefixTag, testTags, prefixTag, testName, prefixTag, SystemEnv.STATSD_LOADER_KEY.getValue(), sanitize(hostnameFormated, "_"));
     }
 
     private String getPrefixStatsdTargets(final Test test) {
@@ -111,10 +120,10 @@ public class MonitorService {
 
     private void extractMonitTargets(final Test test) {
         this.prefixResponse = getStatsdPrefixResponse(test);
-        final Map<String, Object> properties = test.getProperties();
-        String monitTargets = (String) properties.get(GrootProperties.MONIT_TARGETS);
+        final BaseProperty properties = test.getProperties();
+        List<String> monitTargets = properties.getMonitTargets();
         if (monitTargets != null) {
-            targets = Arrays.stream(monitTargets.split(",")).map(String::trim).map(URI::create).map(mapUriToMetricsCollector()).collect(Collectors.toList());
+            targets = monitTargets.stream().map(String::trim).map(URI::create).map(mapUriToMetricsCollector()).collect(Collectors.toList());
         } else {
             targets = Collections.emptyList();
         }
@@ -137,6 +146,16 @@ public class MonitorService {
 
     public void reset() {
         synchronized (lock) {
+            try {
+                LOGGER.warn(MAPPER.writeValueAsString(new HashMap<String, Object>(){{
+                    put("statusCounter", statusCounter);
+                    put("sizeSum", sizeSum.get());
+                    long totalRequests = statusCounter.entrySet().stream().mapToLong(Entry::getValue).sum();
+                    put("statusTotal", totalRequests);
+                }}));
+            } catch (JsonProcessingException e) {
+                LOGGER.error(e.getMessage(), e);
+            }
             completeWithFakeEmptyResponse();
             this.test.set(null);
             this.targets = Collections.emptyList();
@@ -144,7 +163,7 @@ public class MonitorService {
             this.prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
             this.prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
             this.allStatus.clear();
-            delta = 0;
+            this.tcpConn.set(0);
         }
     }
 
@@ -185,19 +204,26 @@ public class MonitorService {
     }
 
     private void sendFakeResponseToStatsd(String statusCode, long start) {
-        sendStatus(statusCode, start);
+        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
         sendResponseTime(start);
         sendSize(0);
+
+        Long counter = statusCounter.get(statusCode);
+        statusCounter.put(statusCode, counter == null ? 1 : ++counter);
     }
 
     public void sendStatus(String statusCode, long start) {
-        String realStatus = (IS_INT.matcher(statusCode).matches()) ? "status_" + statusCode : statusCode;
+        String realStatus = IS_INT.matcher(statusCode).matches() ? "status_" + statusCode : statusCode;
         allStatus.add(String.valueOf(realStatus));
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - start);
+
+        Long counter = statusCounter.get(realStatus);
+        statusCounter.put(realStatus, counter == null ? 1 : ++counter);
     }
 
     public void sendSize(int bodySize) {
         statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
+        sizeSum.addAndGet(bodySize);
     }
 
     public void sendResponseTime(long start) {
@@ -208,8 +234,7 @@ public class MonitorService {
     public void sendMetrics() throws IOException {
         synchronized (lock) {
             if (test.get() != null) {
-                int tcpConn = SystemInfo.totalSocketsTcpEstablished();
-                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn - delta));
+                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn.get()));
                 statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "cpu", (long) (100 * SystemInfo.cpuLoad()));
                 statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree() / 1024 / 1024);
 
@@ -243,5 +268,13 @@ public class MonitorService {
                 });
             }
         }
+    }
+
+    public void incrementConnectionCount() {
+        tcpConn.incrementAndGet();
+    }
+
+    public void decrementConnectionCount() {
+        tcpConn.decrementAndGet();
     }
 }

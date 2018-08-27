@@ -35,11 +35,11 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.util.Assert;
 
 @JsonInclude(NON_NULL)
-public class RootProperty implements Serializable {
+public class BaseProperty implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Log LOGGER = LogFactory.getLog(RootProperty.class);
+    private static final Log LOGGER = LogFactory.getLog(BaseProperty.class);
 
     private static final ObjectMapper mapper = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -189,7 +189,7 @@ public class RootProperty implements Serializable {
         return uri;
     }
 
-    public RootProperty setUri(String uri) {
+    public BaseProperty setUri(String uri) {
         this.uri = uri;
         return this;
     }
@@ -198,7 +198,7 @@ public class RootProperty implements Serializable {
         return numConn;
     }
 
-    public RootProperty setNumConn(Integer numConn) {
+    public BaseProperty setNumConn(Integer numConn) {
         this.numConn = numConn;
         return this;
     }
@@ -207,7 +207,7 @@ public class RootProperty implements Serializable {
         return saveCookies;
     }
 
-    public RootProperty setSaveCookies(Boolean saveCookies) {
+    public BaseProperty setSaveCookies(Boolean saveCookies) {
         this.saveCookies = saveCookies;
         return this;
     }
@@ -216,7 +216,7 @@ public class RootProperty implements Serializable {
         return auth;
     }
 
-    public RootProperty setAuth(AuthProperty auth) {
+    public BaseProperty setAuth(AuthProperty auth) {
         this.auth = auth;
         return this;
     }
@@ -225,7 +225,7 @@ public class RootProperty implements Serializable {
         return body;
     }
 
-    public RootProperty setBody(String body) {
+    public BaseProperty setBody(String body) {
         this.body = body;
         return this;
     }
@@ -234,7 +234,7 @@ public class RootProperty implements Serializable {
         return headers;
     }
 
-    public RootProperty setHeaders(Map<String, String> headers) {
+    public BaseProperty setHeaders(Map<String, String> headers) {
         this.headers = headers;
         return this;
     }
@@ -243,7 +243,7 @@ public class RootProperty implements Serializable {
         return method;
     }
 
-    public RootProperty setMethod(String method) {
+    public BaseProperty setMethod(String method) {
         this.method = method;
         return this;
     }
@@ -252,7 +252,7 @@ public class RootProperty implements Serializable {
         return parallelLoaders;
     }
 
-    public RootProperty setParallelLoaders(Integer parallelLoaders) {
+    public BaseProperty setParallelLoaders(Integer parallelLoaders) {
         this.parallelLoaders = parallelLoaders;
         return this;
     }
@@ -261,7 +261,7 @@ public class RootProperty implements Serializable {
         return connectTimeout;
     }
 
-    public RootProperty setConnectTimeout(Integer connectTimeout) {
+    public BaseProperty setConnectTimeout(Integer connectTimeout) {
         this.connectTimeout = connectTimeout;
         return this;
     }
@@ -270,7 +270,7 @@ public class RootProperty implements Serializable {
         return keepAlive;
     }
 
-    public RootProperty setKeepAlive(Boolean keepAlive) {
+    public BaseProperty setKeepAlive(Boolean keepAlive) {
         this.keepAlive = keepAlive;
         return this;
     }
@@ -279,7 +279,7 @@ public class RootProperty implements Serializable {
         return followRedirect;
     }
 
-    public RootProperty setFollowRedirect(Boolean followRedirect) {
+    public BaseProperty setFollowRedirect(Boolean followRedirect) {
         this.followRedirect = followRedirect;
         return this;
     }
@@ -288,7 +288,7 @@ public class RootProperty implements Serializable {
         return fixedDelay;
     }
 
-    public RootProperty setFixedDelay(Integer fixedDelay) {
+    public BaseProperty setFixedDelay(Integer fixedDelay) {
         this.fixedDelay = fixedDelay;
         return this;
     }
@@ -297,7 +297,7 @@ public class RootProperty implements Serializable {
         return monitTargets;
     }
 
-    public RootProperty setMonitTargets(List<String> monitTargets) {
+    public BaseProperty setMonitTargets(List<String> monitTargets) {
         this.monitTargets = monitTargets;
         return this;
     }
@@ -306,7 +306,7 @@ public class RootProperty implements Serializable {
         return requests;
     }
 
-    public RootProperty setRequests(TreeSet<RequestProperty> requests) {
+    public BaseProperty setRequests(TreeSet<RequestProperty> requests) {
         this.requests = requests;
         return this;
     }
@@ -315,7 +315,7 @@ public class RootProperty implements Serializable {
         return threads;
     }
 
-    public RootProperty setThreads(Integer threads) {
+    public BaseProperty setThreads(Integer threads) {
         this.threads = threads;
         return this;
     }
@@ -324,7 +324,7 @@ public class RootProperty implements Serializable {
         return warmupIterations;
     }
 
-    public RootProperty setWarmupIterations(Integer warmupIterations) {
+    public BaseProperty setWarmupIterations(Integer warmupIterations) {
         this.warmupIterations = warmupIterations;
         return this;
     }
@@ -333,7 +333,7 @@ public class RootProperty implements Serializable {
         return iterations;
     }
 
-    public RootProperty setIterations(Integer iterations) {
+    public BaseProperty setIterations(Integer iterations) {
         this.iterations = iterations;
         return this;
     }
@@ -342,7 +342,7 @@ public class RootProperty implements Serializable {
         return users;
     }
 
-    public RootProperty setUsers(Integer users) {
+    public BaseProperty setUsers(Integer users) {
         Assert.notNull(users, "User property is NULL");
         Assert.isTrue(users > 0,  "User property is equal or less than zero");
         this.users = users;
@@ -353,7 +353,7 @@ public class RootProperty implements Serializable {
         return connsPerUser;
     }
 
-    public RootProperty setConnsPerUser(Integer connsPerUser) {
+    public BaseProperty setConnsPerUser(Integer connsPerUser) {
         this.connsPerUser = connsPerUser;
         return this;
     }
@@ -362,7 +362,7 @@ public class RootProperty implements Serializable {
         return resourceRate;
     }
 
-    public RootProperty setResourceRate(Integer resourceRate) {
+    public BaseProperty setResourceRate(Integer resourceRate) {
         this.resourceRate = resourceRate;
         return this;
     }
@@ -371,7 +371,7 @@ public class RootProperty implements Serializable {
         return rateRampUpPeriod;
     }
 
-    public RootProperty setRateRampUpPeriod(Integer rateRampUpPeriod) {
+    public BaseProperty setRateRampUpPeriod(Integer rateRampUpPeriod) {
         this.rateRampUpPeriod = rateRampUpPeriod;
         return this;
     }
@@ -380,7 +380,7 @@ public class RootProperty implements Serializable {
         return numberOfNIOselectors;
     }
 
-    public RootProperty setNumberOfNIOselectors(Integer numberOfNIOselectors) {
+    public BaseProperty setNumberOfNIOselectors(Integer numberOfNIOselectors) {
         this.numberOfNIOselectors = numberOfNIOselectors;
         return this;
     }
@@ -389,7 +389,7 @@ public class RootProperty implements Serializable {
         return maxRequestsQueued;
     }
 
-    public RootProperty setMaxRequestsQueued(Integer maxRequestsQueued) {
+    public BaseProperty setMaxRequestsQueued(Integer maxRequestsQueued) {
         this.maxRequestsQueued = maxRequestsQueued;
         return this;
     }
@@ -398,7 +398,7 @@ public class RootProperty implements Serializable {
         return blocking;
     }
 
-    public RootProperty setBlocking(Boolean blocking) {
+    public BaseProperty setBlocking(Boolean blocking) {
         this.blocking = blocking;
         return this;
     }
@@ -407,7 +407,7 @@ public class RootProperty implements Serializable {
         return idleTimeout;
     }
 
-    public RootProperty setIdleTimeout(Integer idleTimeout) {
+    public BaseProperty setIdleTimeout(Integer idleTimeout) {
         this.idleTimeout = idleTimeout;
         return this;
     }
@@ -418,7 +418,7 @@ public class RootProperty implements Serializable {
     }
 
     @Deprecated
-    public RootProperty setDurationTimeMillis(Integer durationTimeMillis) {
+    public BaseProperty setDurationTimeMillis(Integer durationTimeMillis) {
         this.durationTimeMillis = durationTimeMillis;
         return this;
     }
@@ -428,7 +428,7 @@ public class RootProperty implements Serializable {
         return durationTimeSec != null ? durationTimeSec : getDurationTimeMillis() / 1000;
     }
 
-    public RootProperty setDurationTimeSec(Integer durationTimeSec) {
+    public BaseProperty setDurationTimeSec(Integer durationTimeSec) {
         this.durationTimeSec = durationTimeSec;
         return this;
     }
@@ -437,7 +437,7 @@ public class RootProperty implements Serializable {
         return forceReconnect;
     }
 
-    public RootProperty setForceReconnect(Boolean forceReconnect) {
+    public BaseProperty setForceReconnect(Boolean forceReconnect) {
         this.forceReconnect = forceReconnect;
         return this;
     }

@@ -14,6 +14,7 @@
         <java.version>1.8</java.version>
         <timestamp>${maven.build.timestamp}</timestamp>
         <disruptor.version>3.3.6</disruptor.version>
+        <netty.version>4.1.29.Final</netty.version>
     </properties>
 
     <profiles>
@@ -59,17 +60,24 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.15.Final</version>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-epoll</artifactId>
+            <version>${netty.version}</version>
+            <classifier>linux-${os.detected.arch}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-kqueue</artifactId>
+            <version>${netty.version}</version>
+            <classifier>osx-${os.detected.arch}</classifier>
         </dependency>
         <dependency>
             <groupId>io.galeb</groupId>
             <artifactId>galeb-statsd</artifactId>
             <version>4.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.asynchttpclient</groupId>
-            <artifactId>async-http-client</artifactId>
-            <version>2.1.0-alpha24</version>
         </dependency>
         <dependency>
             <groupId>org.snmp4j</groupId>
@@ -137,6 +145,13 @@
                 </executions>
             </plugin>
         </plugins>
+        <extensions>
+          <extension>
+              <groupId>kr.motd.maven</groupId>
+              <artifactId>os-maven-plugin</artifactId>
+              <version>1.5.0.Final</version>
+          </extension>
+        </extensions>
     </build>
 
     <repositories>

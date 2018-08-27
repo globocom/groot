@@ -22,13 +22,11 @@ import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.test.Loader;
 import com.globocom.grou.groot.test.Loader.Status;
 import com.globocom.grou.groot.test.Test;
-import com.globocom.grou.groot.test.properties.GrootProperties;
-import com.globocom.grou.groot.httpclient.RequestExecutorService;
+import com.globocom.grou.groot.test.properties.BaseProperty;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.asynchttpclient.AsyncHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,13 +36,11 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PreDestroy;
 import java.sql.Date;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.globocom.grou.groot.SystemEnv.GROUP_NAME;
 
-@SuppressWarnings({"unchecked", "Convert2MethodRef"})
 @Service
 public class LoaderService {
 
@@ -52,7 +48,6 @@ public class LoaderService {
 
     private static final Log LOGGER = LogFactory.getLog(LoaderService.class);
 
-    private final RequestExecutorService requestExecutorService;
     private final MonitorService monitorService;
     private final StringRedisTemplate template;
     private final Loader myself;
@@ -63,12 +58,10 @@ public class LoaderService {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public LoaderService(final RequestExecutorService requestExecutorService,
-                         final MonitorService monitorService,
+    public LoaderService(final MonitorService monitorService,
                          StringRedisTemplate template,
                          @Value("${build.version}") String buildVersion,
                          @Value("${build.timestamp}") String buildTimestamp) {
-        this.requestExecutorService = requestExecutorService;
         this.monitorService = monitorService;
         this.template = template;
         this.buildVersion = buildVersion;
@@ -86,20 +79,20 @@ public class LoaderService {
         String projectDotTest = projectName + "." + testName;
         myself.setStatusDetailed(projectDotTest);
         myself.setLastExecAt(Date.from(Instant.now()));
-        final HashMap<String, Object> properties = new HashMap<>(test.getProperties());
+        final BaseProperty property = test.getProperties();
         updateStatus(Status.RUNNING);
 
         int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
         int durationTimeMillis = Math.min(maxTestDuration, test.getDurationTimeMillis());
-        Object connectTimeoutObj = properties.get(GrootProperties.CONNECTION_TIMEOUT);
-        int connectTimeout = connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
-        Object fixedDelayObj = properties.get(GrootProperties.FIXED_DELAY);
-        long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
+//        int connectTimeout = connectTimeoutObj instanceof Integer ? (int) connectTimeoutObj : 2000;
+//        long fixedDelay = fixedDelayObj != null && String.valueOf(fixedDelayObj).matches("\\d+") ? (long) fixedDelayObj : 0L;
 
         LOGGER.info("Starting test " + myself.getStatusDetailed());
 
-        Loader myselfClone;
+        Loader myselfClone = null;
         final long start = System.currentTimeMillis();
+
+        /**
         try (final AsyncHttpClient asyncHttpClient = requestExecutorService.newClient(properties, durationTimeMillis)) {
             monitorService.monitoring(test, SystemInfo.totalSocketsTcpEstablished());
             while (!abortNow.get() && (System.currentTimeMillis() - start < durationTimeMillis)) {
@@ -115,6 +108,11 @@ public class LoaderService {
                 stop(projectDotTest);
             }
         }
+         **/
+
+
+
+
         return myselfClone;
     }
 

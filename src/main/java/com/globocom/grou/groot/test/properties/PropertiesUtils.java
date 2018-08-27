@@ -1,59 +1,51 @@
 package com.globocom.grou.groot.test.properties;
 
+import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
-
-import static com.globocom.grou.groot.test.properties.GrootProperties.*;
 
 public interface PropertiesUtils {
 
     Logger LOGGER = LoggerFactory.getLogger(PropertiesUtils.class);
 
-    @SuppressWarnings("unchecked")
-    static HashMap<String, Object>[] extractAllRequestPropertiesOrdered(final Map<String, Object> properties) throws IllegalArgumentException {
-        HashMap[] allproperties;
-        try {
-            Object requestsObj = properties.get(REQUESTS);
-            if (requestsObj instanceof List) {
-                return  ((List<Map<String, Object>>) requestsObj).stream().filter(r -> r.containsKey(ORDER))
-                        .sorted(Comparator.comparingInt(r -> (Integer) r.get(ORDER))).toArray(HashMap[]::new);
-            } else {
-                allproperties = new HashMap[1];
-                allproperties[0] = new HashMap<>(properties);
-                return allproperties;
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    static void check(final BaseProperty properties) throws IllegalArgumentException {
+        Integer numConn = properties.getNumConn();
+        if (!(numConn != null && numConn > 0)) {
+            throw new IllegalArgumentException("numConn undefined or less than 1");
+        }
+        String uri = properties.getUri();
+        if (uri != null && !uri.isEmpty()) {
+            checkUri(uri);
+            checkBody(properties.getMethod(), properties.getBody());
+        } else {
+            if (properties.getRequests() == null || properties.getRequests().isEmpty()) {
+                throw new IllegalArgumentException("URI is Null and 'requests' is Empty");
             }
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
-            return new HashMap[0];
+            for (RequestProperty requestProperty: properties.getRequests()) {
+                checkUri(requestProperty.getUri());
+                checkBody(requestProperty.getMethod(), requestProperty.getBody());
+            }
         }
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    static void check(final Map<String, Object> testProperties) throws IllegalArgumentException {
-        Object numConn = testProperties.get(NUM_CONN);
-        if (!(numConn != null && numConn instanceof Integer && (Integer) numConn > 0)) {
-            throw new IllegalArgumentException(NUM_CONN + " property undefined or less than 1 conn");
+    static void checkBody(String method, String body) {
+        if (method != null && method.matches("(POST|PUT|PATCH)")) {
+            if (body == null || body.isEmpty()) {
+                throw new IllegalArgumentException("body is empty and mandatory (method: " + method + ")");
+            }
         }
-        HashMap[] allproperties = extractAllRequestPropertiesOrdered(testProperties);
-        if (allproperties.length == 0) throw new IllegalArgumentException("Request properties is empty or invalid (is \"order\" property missing?)");
-        for (HashMap properties: allproperties) {
-            Object uri = properties.get(URI_REQUEST);
-            if (uri == null || ((String) uri).isEmpty()) {
-                throw new IllegalArgumentException(URI_REQUEST + " property undefined");
-            }
-            URI uriTested = URI.create((String) uri);
-            String schema = uriTested.getScheme();
-            if (!schema.matches("(http[s]?|ws[s]?)")) {
-                throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", must be equal (ignoring case) to ‘http’, ‘https’, ‘ws’, or ‘wss’");
-            }
-            String method = (String) properties.get(METHOD);
-            if (method != null && method.matches("(POST|PUT|PATCH)")) {
-                String body = Optional.ofNullable((String) properties.get(BODY)).orElseThrow(() -> new IllegalArgumentException(BODY + " property undefined"));
-                if (body.isEmpty()) throw new IllegalArgumentException("body is empty");
-            }
+    }
+
+    static void checkUri(String uri) {
+        if (uri == null || uri.isEmpty()) {
+            throw new IllegalArgumentException("URI undefined");
+        }
+        URI uriTested = URI.create(uri);
+        String schema = uriTested.getScheme();
+        if (!schema.matches("(http[s]?|ws[s]?|h2[c]?)")) {
+            throw new IllegalArgumentException("The URI scheme, of the URI " + uri + ", "
+                + "must be equal (ignoring case) to ‘http’, ‘https’, 'h2', h2c', ‘ws’, or ‘wss’");
         }
     }
 }

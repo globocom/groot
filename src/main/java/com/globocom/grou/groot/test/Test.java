@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.test;
 
+import com.globocom.grou.groot.test.properties.BaseProperty;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -53,7 +54,7 @@ public class Test implements Serializable {
 
     private Set<Loader> loaders = new HashSet<>();
 
-    private Map<String, Object> properties = new HashMap<>();
+    private BaseProperty properties = new BaseProperty();
 
     private Set<String> tags = new HashSet<>();
 
@@ -95,7 +96,7 @@ public class Test implements Serializable {
         return project;
     }
 
-    public Map<String, Object> getProperties() {
+    public BaseProperty getProperties() {
         return properties;
     }
 
