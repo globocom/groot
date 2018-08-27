@@ -22,8 +22,12 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class RequestUtils {
+
+    private static final Log LOGGER = LogFactory.getLog(RequestUtils.class);
 
     public static FullHttpRequest[] convertPropertyToHttpRequest(final BaseProperty property, final AtomicReference<String> scheme) {
         final TreeSet<RequestProperty> requestsProperties = requestsProperty(property);
@@ -31,6 +35,8 @@ public class RequestUtils {
         property.setUri(null);
         property.setMethod(null);
         property.setHeaders(null);
+
+        LOGGER.info(property);
 
         final FullHttpRequest[] requests = new FullHttpRequest[requestsProperties.size()];
         int requestId = 0;
