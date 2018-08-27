@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.common;
+package com.globocom.grou.groot.loader;
 
 @SuppressWarnings("unused")
 public
