@@ -20,35 +20,32 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.globocom.grou.groot.SystemEnv;
-import com.globocom.grou.groot.test.Test;
-import com.globocom.grou.groot.test.properties.BaseProperty;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
+import com.globocom.grou.groot.test.Test;
+import com.globocom.grou.groot.test.properties.BaseProperty;
 import io.galeb.statsd.StatsDClient;
+import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class MonitorService {
@@ -73,15 +70,12 @@ public class MonitorService {
     private String prefixResponse = getStatsdPrefixResponse(null);
     private String prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
     private String prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
-    private final Set<String> allStatus = new HashSet<>();
-    private final AtomicInteger tcpConn = new AtomicInteger(0);
     private final Map<Integer, Long> statusCounter = new ConcurrentHashMap<>();
     private final Map<String, Long> failCounter = new ConcurrentHashMap<>();
     private final AtomicLong sizeSum = new AtomicLong(0L);
     private final AtomicInteger writeAsync = new AtomicInteger(0);
     private final AtomicInteger connCounter = new AtomicInteger(0);
     private final AtomicInteger connAccum = new AtomicInteger(0);
-    private final Map<String, Integer> failedCounter = new ConcurrentHashMap<>();
     private final Map<String, Object> results = new LinkedHashMap<>();
     private final AtomicLong testStart = new AtomicLong(System.currentTimeMillis());
 
@@ -162,31 +156,18 @@ public class MonitorService {
 
     public void reset() {
         synchronized (lock) {
-            try {
-                LOGGER.warn(MAPPER.writeValueAsString(new HashMap<String, Object>(){{
-                    put("statusCounter", statusCounter);
-                    put("sizeSum", sizeSum.get());
-                    long totalRequests = statusCounter.entrySet().stream().mapToLong(Entry::getValue).sum();
-                    put("statusTotal", totalRequests);
-                }}));
-            } catch (JsonProcessingException e) {
-                LOGGER.error(e.getMessage(), e);
-            }
             completeWithFakeEmptyResponse();
-            this.test.set(null);
-            this.targets = Collections.emptyList();
-            this.prefixResponse = getStatsdPrefixResponse(null);
-            this.prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
-            this.prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
-            this.allStatus.clear();
-            this.tcpConn.set(0);
-
+            test.set(null);
+            targets = Collections.emptyList();
+            prefixResponse = getStatsdPrefixResponse(null);
+            prefixStatsdLoaderKey = getPrefixStatsdLoader(null);
+            prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
             writeAsync.set(0);
             sizeSum.set(0);
             connCounter.set(0);
             connAccum.set(0);
             statusCounter.clear();
-            failedCounter.clear();
+            failCounter.clear();
             results.clear();
         }
     }
@@ -194,50 +175,54 @@ public class MonitorService {
     private void completeWithFakeEmptyResponse() {
         try {
             TimeUnit.SECONDS.sleep(1);
-            allStatus.forEach(this::sendFakeResponseToStatsd);
+            statusCounter.entrySet().stream()
+                .map(Entry::getKey).forEach(s -> sendFakeResponseToStatsd(String.valueOf(s)));
+            failCounter.entrySet().stream()
+                .map(Entry::getKey).forEach(this::sendFakeResponseToStatsd);
         } catch (InterruptedException ignore) {
             // ignored
         }
     }
 
     public void fail(final Throwable t) {
-        boolean isInternalProblem = t.getMessage().contains("executor not accepting a task");
-        if (!isInternalProblem) {
+        if (t != null && t.getMessage() != null) {
+            boolean isInternalProblem = t.getMessage().contains("executor not accepting a task");
             String messageException = t.getMessage();
-            if (messageException.contains("connection timed out")) {
-                messageException = "connection_timeout";
-            } else if (messageException.contains("request timeout")) {
-                messageException = "request_timeout";
-            } else if (t instanceof java.net.ConnectException) {
-                messageException = "conn_fail";
-            } else if (t instanceof java.net.UnknownHostException) {
-                messageException = "unknown_host";
-            } else if (t instanceof java.net.NoRouteToHostException) {
-                messageException = "no_route";
-            } else if (messageException.startsWith("defaultchannelpromise")) {
-                messageException = "channelpromise_incomplete";
-            } else if (messageException.startsWith("unable_to_create_channel_from")) {
-                messageException = "unable_to_create_channel";
-            } else {
-                messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
+            if (!isInternalProblem) {
+                if (messageException.contains("connection timed out")) {
+                    messageException = "connection_timeout";
+                } else if (messageException.contains("request timeout")) {
+                    messageException = "request_timeout";
+                } else if (t instanceof java.net.ConnectException) {
+                    messageException = "conn_fail";
+                } else if (t instanceof java.net.UnknownHostException) {
+                    messageException = "unknown_host";
+                } else if (t instanceof java.net.NoRouteToHostException) {
+                    messageException = "no_route";
+                } else if (messageException.startsWith("defaultchannelpromise")) {
+                    messageException = "channelpromise_incomplete";
+                } else if (messageException.startsWith("unable_to_create_channel_from")) {
+                    messageException = "unable_to_create_channel";
+                }
             }
-            sendFakeResponseToStatsd(messageException, testStart.get());
-            allStatus.add(messageException);
+            messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
+            sendFakeResponseToStatsd(messageException, testStart.get(), true);
             failedIncr(messageException);
             LOGGER.error(t);
         }
     }
 
     private void sendFakeResponseToStatsd(String statusCode) {
-        sendFakeResponseToStatsd(statusCode, System.currentTimeMillis());
+        sendFakeResponseToStatsd(statusCode, System.currentTimeMillis(), false);
     }
 
-    private void sendFakeResponseToStatsd(String statusCode, long start) {
+    private void sendFakeResponseToStatsd(String statusCode, long start, boolean needCount) {
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
         sendResponseTime();
         sendSize(0);
-
-        counterFromStatus(statusCode);
+        if (needCount) {
+            counterFromStatus(statusCode);
+        }
     }
 
     private String counterFromStatus(String statusCode) {
@@ -245,20 +230,16 @@ public class MonitorService {
         if (IS_INT.matcher(statusCode).matches()) {
             realStatus = "status_" + statusCode;
             int statusInt = Integer.parseInt(statusCode);
-            Long counter = statusCounter.get(statusInt);
-            statusCounter.put(statusInt, counter == null ? 1 : ++counter);
-
+            statusIncr(statusInt);
         } else {
             realStatus = statusCode;
-            Long counter = failCounter.get(realStatus);
-            failCounter.put(realStatus, counter == null ? 1 : ++counter);
+            failedIncr(statusCode);
         }
         return realStatus;
     }
 
     public void sendStatus(String statusCode) {
         String realStatus = counterFromStatus(statusCode);
-        allStatus.add(String.valueOf(realStatus));
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - testStart.get());
     }
 
@@ -277,7 +258,7 @@ public class MonitorService {
     public void sendMetrics() throws IOException {
         synchronized (lock) {
             if (test.get() != null) {
-                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "conns", Math.max(0, tcpConn.get()));
+                statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "conns", Math.max(0, connCounter.get()));
                 statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "cpu", (long) (100 * SystemInfo.cpuLoad()));
                 statsdClient.recordExecutionTime(prefixStatsdLoaderKey + "memFree", SystemInfo.memFree() / 1024 / 1024);
 
@@ -314,11 +295,12 @@ public class MonitorService {
     }
 
     public void incrementConnectionCount() {
-        tcpConn.incrementAndGet();
+        connCounter.incrementAndGet();
+        connAccum.incrementAndGet();
     }
 
     public void decrementConnectionCount() {
-        tcpConn.decrementAndGet();
+        connCounter.decrementAndGet();
     }
 
     public double lastPerformanceRate() {
@@ -340,7 +322,7 @@ public class MonitorService {
             status.put("total_" + k, v);
             status.put("rps_" + k, v / durationSec);
         });
-        failedCounter.forEach((k, v) -> {
+        failCounter.forEach((k, v) -> {
             status.put("total_" + k, v);
             status.put("rps_" + k, v / durationSec);
         });
@@ -350,7 +332,6 @@ public class MonitorService {
         results.put("rps", numResp / durationSec);
         results.put("size_total", sizeTotalKb);
         results.put("io_throughput", sizeTotalKb / durationSec);
-
 
         LOGGER.info("conns actives: " + connCounter.get());
         LOGGER.info("writes total: " + numWrites);
@@ -369,12 +350,12 @@ public class MonitorService {
 
     public void failedIncr(String msg) {
         //unable_to_create_channel_from_class_class_io_netty_channel_epoll_epollsocketchannel
-        final Integer oldValue;
+        final Long oldValue;
         if (PATTERNS_IGNORED.stream().map(p -> p.matcher(msg).matches()).count() > 0) {
             return;
         }
-        if ((oldValue = failedCounter.putIfAbsent(msg, 1)) != null) {
-            failedCounter.put(msg, oldValue + 1);
+        if ((oldValue = failCounter.putIfAbsent(msg, 1L)) != null) {
+            failCounter.put(msg, oldValue + 1L);
         }
     }
 
