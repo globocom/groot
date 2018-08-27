@@ -19,6 +19,7 @@ package com.globocom.grou.groot.test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.SystemEnv;
+import com.globocom.grou.groot.test.Loader.Status;
 import com.globocom.grou.groot.test.properties.PropertiesUtils;
 import com.globocom.grou.groot.loader.LoaderService;
 import com.globocom.grou.groot.monit.SystemInfo;
@@ -81,20 +82,22 @@ public class TestListenerService {
                 }
                 sendRunningToCallback(test);
                 myself = loaderService.start(test);
+                if (myself.getStatus() == Status.ERROR) {
+                    sendToCallback(test, Loader.Status.ERROR, myself.getStatusDetailed());
+                    return;
+                }
                 sendToCallback(test, myself);
             }
         } catch (Exception e) {
-            if (test != null) {
-                if (myself != null) {
-                    myself.setStatusDetailed(e.getMessage());
-                    sendToCallback(test, myself);
-                } else {
-                    sendToCallback(test, Loader.Status.ERROR, e.getMessage());
-                }
-                LOGGER.error(test.getProject() + "." + test.getName() + ": " + e.getMessage());
+            if (myself != null) {
+                myself.setStatusDetailed(e.getMessage());
+                sendToCallback(test, myself);
             } else {
-                LOGGER.error(testStr + ": " + e.getMessage());
+                sendToCallback(test, Loader.Status.ERROR, e.getMessage());
             }
+            String project = test != null ? test.getProject() : "UNDEF";
+            String testName = test != null ? test.getName() : "UNDEF";
+            LOGGER.error(project + "." + testName + ": " + e.getMessage());
         }
 
     }

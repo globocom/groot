@@ -16,12 +16,13 @@
 
 package com.globocom.grou.groot.test;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Date;
 
 @SuppressWarnings("unused")
-public class Loader implements Serializable {
+public class Loader implements Serializable, Cloneable {
 
     private static final long serialVersionUID = 1L;
 
@@ -93,5 +94,17 @@ public class Loader implements Serializable {
     @Override
     public int hashCode() {
         return name.hashCode();
+    }
+
+    @JsonIgnore
+    @Override
+    public Loader clone() {
+        Loader loader = new Loader();
+        loader.setName(this.getName());
+        loader.setStatus(this.getStatus());
+        loader.setStatusDetailed(this.getStatusDetailed());
+        loader.setVersion(this.getVersion());
+        loader.setLastExecAt(this.getLastExecAt());
+        return loader;
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.handler;
+package com.globocom.grou.groot.channel.handler;
 
 import com.globocom.grou.groot.monit.MonitorService;
 import io.netty.buffer.ByteBuf;
