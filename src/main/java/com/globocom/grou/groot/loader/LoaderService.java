@@ -88,6 +88,7 @@ public class LoaderService {
         Loader loaderClone;
         try {
             LOGGER.info(property);
+            monitorService.monitoring(test);
             channelManager.submit(property);
             loaderClone = loader.copy();
         } catch (Exception e) {
