@@ -25,7 +25,6 @@ import com.globocom.grou.groot.handler.Http2ClientInitializer;
 import com.globocom.grou.groot.test.CookieService;
 import com.globocom.grou.groot.test.Loader;
 import com.globocom.grou.groot.test.Loader.Status;
-import com.globocom.grou.groot.test.ReportService;
 import com.globocom.grou.groot.test.Test;
 import com.globocom.grou.groot.test.properties.AuthProperty;
 import com.globocom.grou.groot.test.properties.BaseProperty;
@@ -112,21 +111,19 @@ public class LoaderService {
     private final AtomicBoolean abortNow = new AtomicBoolean(false);
     private final ObjectMapper mapper = new ObjectMapper();
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+    private final AtomicLong now = new AtomicLong(System.currentTimeMillis());
 
-    private final ReportService reportService;
     private final CookieService cookieService;
 
     private long schedPeriod = 50L;
 
     @Autowired
     public LoaderService(final MonitorService monitorService,
-                         final ReportService reportService,
                          final CookieService cookieService,
                          StringRedisTemplate template,
                          @Value("${build.version}") String buildVersion,
                          @Value("${build.timestamp}") String buildTimestamp) {
         this.monitorService = monitorService;
-        this.reportService = reportService;
         this.cookieService = cookieService;
         this.template = template;
         this.buildVersion = buildVersion;
@@ -182,22 +179,21 @@ public class LoaderService {
             final Proto proto = Proto.valueOf(scheme.get().toUpperCase());
             final Bootstrap bootstrap = newBootstrap(group, property.getConnectTimeout());
             Channel[] channels = new Channel[numConn];
-            double lastPerformanceRate = reportService.lastPerformanceRate();
+            double lastPerformanceRate = monitorService.lastPerformanceRate();
             schedPeriod = Math.min(100, Math.max(10L, (long) (schedPeriod * lastPerformanceRate / 1.05)));
 
             LOGGER.info("Sched Period: " + schedPeriod + " us");
 
             activeChannels(numConn, proto, bootstrap, channels, requests, schedPeriod);
 
-            final AtomicLong start = new AtomicLong(System.currentTimeMillis());
+            now.set(System.currentTimeMillis());
             executor.schedule(() -> {
-                long now = System.currentTimeMillis();
+                long nowPreShut = System.currentTimeMillis();
 
                 closeChannels(channels, 10, TimeUnit.SECONDS);
                 group.shutdownGracefully(1L, 10L, TimeUnit.SECONDS);
 
-                reportService.showReport(start.get() - (System.currentTimeMillis() - now));
-                reportService.reset();
+                monitorService.showReport(now.get() - (System.currentTimeMillis() - nowPreShut));
                 cookieService.reset();
             }, durationSec, TimeUnit.SECONDS);
 
@@ -335,7 +331,7 @@ public class LoaderService {
                 channel.eventLoop().scheduleAtFixedRate(() -> {
                     if (channel.isActive()) {
                         for (FullHttpRequest request : requests) {
-                            reportService.writeCounterIncr();
+                            monitorService.writeCounterIncr();
                             cookieService.applyCookies(request.headers());
                             channel.writeAndFlush(request.copy());
                         }
@@ -344,7 +340,8 @@ public class LoaderService {
                 return channel;
             }
         } catch (Exception e) {
-            reportService.failedIncr(e);
+            monitorService.failedIncr(e);
+            monitorService.fail(e, now.get());
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(e.getMessage(), e);
             }
@@ -380,9 +377,9 @@ public class LoaderService {
 
     private ChannelInitializer initializer(Proto proto) {
         if (proto == Proto.H2 || proto == Proto.H2C) {
-            return new Http2ClientInitializer(sslContext(proto.isSsl()), Integer.MAX_VALUE, reportService, cookieService);
+            return new Http2ClientInitializer(sslContext(proto.isSsl()), Integer.MAX_VALUE, monitorService, cookieService);
         }
-        return new Http1ClientInitializer(sslContext(proto.isSsl()), reportService, cookieService);
+        return new Http1ClientInitializer(sslContext(proto.isSsl()), monitorService, cookieService);
     }
 
     private EventLoopGroup getEventLoopGroup(int numCores) {

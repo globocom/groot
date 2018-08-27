@@ -16,8 +16,8 @@
 
 package com.globocom.grou.groot.handler;
 
+import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.CookieService;
-import com.globocom.grou.groot.test.ReportService;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -34,23 +34,23 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
 
     private final SslContext sslContext;
     private final ChannelHandler handler;
-    private final ReportService reportService;
+    private final MonitorService monitorService;
 
     public Http1ClientInitializer(
         SslContext sslContext,
-        ReportService reportService,
+        MonitorService monitorService,
         CookieService cookieService) {
 
         this.sslContext = sslContext;
-        this.reportService = reportService;
-        this.handler = new Http1ClientHandler(reportService, cookieService);
+        this.monitorService = monitorService;
+        this.handler = new Http1ClientHandler(monitorService, cookieService);
     }
 
     @Override
     protected void initChannel(SocketChannel channel) throws Exception {
         final ChannelPipeline pipeline = channel.pipeline();
         pipeline.addLast(new IdleStateHandler(10, 10, 0, TimeUnit.SECONDS));
-        pipeline.addLast(new TrafficHandler(reportService));
+        pipeline.addLast(new TrafficHandler(monitorService));
         if (sslContext != null) {
             pipeline.addLast(sslContext.newHandler(channel.alloc()));
         }
@@ -60,7 +60,7 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
         pipeline.addLast(new ChannelInboundHandlerAdapter() {
             @Override
             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                reportService.failedIncr(cause);
+                monitorService.failedIncr(cause);
             }
         });
     }

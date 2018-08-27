@@ -16,8 +16,8 @@
 
 package com.globocom.grou.groot.handler;
 
+import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.CookieService;
-import com.globocom.grou.groot.test.ReportService;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpObject;
@@ -28,23 +28,23 @@ class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     private static final int MAX_RESPONSE_STATUS = 599;
 
-    private final ReportService reportService;
+    private final MonitorService monitorService;
     private final CookieService cookieService;
 
-    public Http1ClientHandler(ReportService reportService, CookieService cookieService) {
-        this.reportService = reportService;
+    public Http1ClientHandler(MonitorService monitorService, CookieService cookieService) {
+        this.monitorService = monitorService;
         this.cookieService = cookieService;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        reportService.connIncr();
+        monitorService.incrementConnectionCount();
         super.channelActive(ctx);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        reportService.connDecr();
+        monitorService.decrementConnectionCount();
         super.channelInactive(ctx);
     }
 
@@ -55,10 +55,10 @@ class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
             HttpResponse response = (HttpResponse) msg;
             final int statusCode = response.status().code();
             if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
-                reportService.statusIncr(statusCode);
+                monitorService.statusIncr(statusCode);
             }
             cookieService.loadCookies(response.headers());
-            reportService.bodySizeAccumulator(response.toString().length());
+            monitorService.bodySizeAccumulator(response.toString().length());
         }
     }
 

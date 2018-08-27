@@ -16,8 +16,8 @@
 
 package com.globocom.grou.groot.handler;
 
+import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.CookieService;
-import com.globocom.grou.groot.test.ReportService;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
@@ -46,7 +46,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
 
     private final SslContext sslCtx;
     private final int maxContentLength;
-    private final ReportService reportService;
+    private final MonitorService monitorService;
     private final CookieService cookieService;
     private HttpToHttp2ConnectionHandler connectionHandler;
     private Http2ClientHandler responseHandler;
@@ -54,12 +54,12 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
     public Http2ClientInitializer(
         SslContext sslCtx,
         int maxContentLength,
-        ReportService reportService,
+        MonitorService monitorService,
         CookieService cookieService) {
 
         this.sslCtx = sslCtx;
         this.maxContentLength = maxContentLength;
-        this.reportService = reportService;
+        this.monitorService = monitorService;
         this.cookieService = cookieService;
     }
 
@@ -75,7 +75,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
                                 .build()))
                 .connection(connection)
                 .build();
-        responseHandler = new Http2ClientHandler(reportService, cookieService);
+        responseHandler = new Http2ClientHandler(monitorService, cookieService);
         if (sslCtx != null) {
             configureSsl(ch);
         } else {
@@ -88,7 +88,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
      */
     private void configureSsl(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
-        pipeline.addLast(new TrafficHandler(reportService));
+        pipeline.addLast(new TrafficHandler(monitorService));
         pipeline.addLast(sslCtx.newHandler(ch.alloc()));
         // We must wait for the handshake to finish and the protocol to be negotiated before configuring
         // the HTTP/2 components of the pipeline.
@@ -102,7 +102,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
                     p.addLast(new ChannelInboundHandlerAdapter() {
                         @Override
                         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                            reportService.failedIncr(cause);
+                            monitorService.failedIncr(cause);
                         }
                     });
                     return;
@@ -113,13 +113,13 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
 
             @Override
             protected void handshakeFailure(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                reportService.failedIncr(cause);
+                monitorService.failedIncr(cause);
                 ctx.close();
             }
 
             @Override
             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                reportService.failedIncr(cause);
+                monitorService.failedIncr(cause);
                 ctx.close();
             }
         });
@@ -134,7 +134,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
         HttpClientUpgradeHandler upgradeHandler = new HttpClientUpgradeHandler(sourceCodec, upgradeCodec, 65536);
 
         ch.pipeline().addLast(
-                new TrafficHandler(reportService),
+                new TrafficHandler(monitorService),
                 sourceCodec,
                 upgradeHandler,
                 new UpgradeRequestHandler(),
@@ -159,7 +159,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             pipeline.addLast(new ChannelInboundHandlerAdapter() {
                 @Override
                 public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                    reportService.failedIncr(cause);
+                    monitorService.failedIncr(cause);
                 }
             });
         }

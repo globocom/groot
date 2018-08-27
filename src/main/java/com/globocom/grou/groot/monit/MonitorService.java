@@ -49,6 +49,8 @@ public class MonitorService {
 
     private static final Log LOGGER = LogFactory.getLog(MonitorService.class);
 
+    private static final List<Pattern> PATTERNS_IGNORED = Collections.emptyList();
+
     private static final String UNKNOWN = "UNKNOWN";
 
     private static final Pattern IS_INT = Pattern.compile("\\d+");
@@ -67,8 +69,18 @@ public class MonitorService {
     private String prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
     private final Set<String> allStatus = new HashSet<>();
     private AtomicInteger tcpConn = new AtomicInteger(0);
-    private final Map<String, Long> statusCounter = new ConcurrentHashMap<>();
+    private final Map<Integer, Long> statusCounter = new ConcurrentHashMap<>();
+    private final Map<String, Long> failCounter = new ConcurrentHashMap<>();
     private final AtomicLong sizeSum = new AtomicLong(0L);
+
+    private final AtomicLong sizeAccum = new AtomicLong(0L);
+    private final AtomicInteger writeAsync = new AtomicInteger(0);
+    private final AtomicInteger connCounter = new AtomicInteger(0);
+    private final AtomicInteger connAccum = new AtomicInteger(0);
+    private final Map<String, Integer> failedCounter = new ConcurrentHashMap<>();
+    private final Map<String, Object> results = new LinkedHashMap<>();
+
+    private double lastPerformanceRate = 1L;
 
     @Autowired
     public MonitorService(final StatsdService statsdService) {
@@ -162,6 +174,14 @@ public class MonitorService {
             this.prefixStatsdTargetsKey = getPrefixStatsdTargets(null);
             this.allStatus.clear();
             this.tcpConn.set(0);
+
+            writeAsync.set(0);
+            sizeAccum.set(0);
+            connCounter.set(0);
+            connAccum.set(0);
+            statusCounter.clear();
+            failedCounter.clear();
+            results.clear();
         }
     }
 
@@ -206,17 +226,29 @@ public class MonitorService {
         sendResponseTime(start);
         sendSize(0);
 
-        Long counter = statusCounter.get(statusCode);
-        statusCounter.put(statusCode, counter == null ? 1 : ++counter);
+        counterFromStatus(statusCode);
+    }
+
+    private String counterFromStatus(String statusCode) {
+        String realStatus;
+        if (IS_INT.matcher(statusCode).matches()) {
+            realStatus = "status_" + statusCode;
+            int statusInt = Integer.parseInt(statusCode);
+            Long counter = statusCounter.get(statusInt);
+            statusCounter.put(statusInt, counter == null ? 1 : ++counter);
+
+        } else {
+            realStatus = statusCode;
+            Long counter = failCounter.get(realStatus);
+            failCounter.put(realStatus, counter == null ? 1 : ++counter);
+        }
+        return realStatus;
     }
 
     public void sendStatus(String statusCode, long start) {
-        String realStatus = IS_INT.matcher(statusCode).matches() ? "status_" + statusCode : statusCode;
+        String realStatus = counterFromStatus(statusCode);
         allStatus.add(String.valueOf(realStatus));
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - start);
-
-        Long counter = statusCounter.get(realStatus);
-        statusCounter.put(realStatus, counter == null ? 1 : ++counter);
     }
 
     public void sendSize(int bodySize) {
@@ -275,4 +307,84 @@ public class MonitorService {
     public void decrementConnectionCount() {
         tcpConn.decrementAndGet();
     }
+
+    public double lastPerformanceRate() {
+        return lastPerformanceRate;
+    }
+
+    public synchronized void showReport(long start) {
+        long durationSec = (System.currentTimeMillis() - start) / 1_000L;
+        long numResp = statusCounter.entrySet().stream().mapToLong(Map.Entry::getValue).sum();
+        int numWrites = writeAsync.get();
+        long sizeTotalKb = sizeAccum.get() / 1024L;
+        lastPerformanceRate = (numWrites * 1.0) / (numResp * 1.0);
+
+        results.put("duration_sec", durationSec);
+        results.put("conns_rate", connAccum.get() / durationSec);
+
+        final Map<String, Object> status = new LinkedHashMap<>();
+        statusCounter.forEach((k, v) -> {
+            status.put("total_" + k, v);
+            status.put("rps_" + k, v / durationSec);
+        });
+        failedCounter.forEach((k, v) -> {
+            status.put("total_" + k, v);
+            status.put("rps_" + k, v / durationSec);
+        });
+        results.put("status", status);
+
+        results.put("total_responses", numResp);
+        results.put("rps", numResp / durationSec);
+        results.put("size_total", sizeTotalKb);
+        results.put("io_throughput", sizeTotalKb / durationSec);
+
+
+        LOGGER.info("conns actives: " + connCounter.get());
+        LOGGER.info("writes total: " + numWrites);
+        LOGGER.info("rate writes/resps: " + lastPerformanceRate);
+        try {
+            LOGGER.info(MAPPER.writeValueAsString(results));
+        } catch (JsonProcessingException e) {
+            LOGGER.error(e.getMessage());
+        }
+    }
+
+    public void failedIncr(Throwable throwable) {
+        //unable_to_create_channel_from_class_class_io_netty_channel_epoll_epollsocketchannel
+
+        final Integer oldValue;
+        final AtomicReference<String> key = new AtomicReference<>(
+            throwable.getMessage().replaceAll(".*Exception__", "")
+                .replaceAll("[@.:/\\s\\t\\\\\\(\\)\\[\\]]+", "_").toLowerCase());
+        if (key.get().startsWith("defaultchannelpromise")) {
+            key.set("failed_channelpromise_incomplete");
+        }
+        if (key.get().startsWith("unable_to_create_channel_from")) {
+            key.set("unable_to_create_channel");
+        }
+        if (PATTERNS_IGNORED.stream().map(p -> p.matcher(key.get()).matches()).count() > 0) {
+            return;
+        }
+        if ((oldValue = failedCounter.putIfAbsent(key.get(), 1)) != null) {
+            failedCounter.put(key.get(), oldValue + 1);
+        }
+    }
+
+    public void writeCounterIncr() {
+        writeAsync.incrementAndGet();
+    }
+
+    public void bodySizeAccumulator(long size) {
+        if (size > 0) {
+            sizeAccum.addAndGet(size);
+        }
+    }
+
+    public void statusIncr(int statusCode) {
+        final Long oldValue;
+        if ((oldValue = statusCounter.putIfAbsent(statusCode, 1L)) != null) {
+            statusCounter.put(statusCode, oldValue + 1L);
+        }
+    }
+
 }

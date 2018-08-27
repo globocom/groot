@@ -16,7 +16,7 @@
 
 package com.globocom.grou.groot.handler;
 
-import com.globocom.grou.groot.test.ReportService;
+import com.globocom.grou.groot.monit.MonitorService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.ChannelHandlerContext;
@@ -24,17 +24,17 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 public class TrafficHandler extends ChannelInboundHandlerAdapter {
 
-    private final ReportService reportService;
+    private final MonitorService monitorService;
 
-    public TrafficHandler(ReportService reportService) {
-        this.reportService = reportService;
+    public TrafficHandler(MonitorService monitorService) {
+        this.monitorService = monitorService;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         long size = calculateSize(msg);
         if (size > 0) {
-            reportService.bodySizeAccumulator(size);
+            monitorService.bodySizeAccumulator(size);
         }
         ctx.fireChannelRead(msg);
     }

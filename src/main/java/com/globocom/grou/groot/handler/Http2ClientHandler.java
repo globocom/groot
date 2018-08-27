@@ -16,8 +16,8 @@
 
 package com.globocom.grou.groot.handler;
 
+import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.CookieService;
-import com.globocom.grou.groot.test.ReportService;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -34,23 +34,23 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
     private static final int MAX_RESPONSE_STATUS = 599;
 
     private static final Log LOGGER = LogFactory.getLog(Http2ClientHandler.class);
-    private final ReportService reportService;
+    private final MonitorService monitorService;
     private final CookieService cookieService;
 
-    public Http2ClientHandler(ReportService reportService, CookieService cookieService) {
-        this.reportService = reportService;
+    public Http2ClientHandler(MonitorService monitorService, CookieService cookieService) {
+        this.monitorService = monitorService;
         this.cookieService = cookieService;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        reportService.connIncr();
+        monitorService.incrementConnectionCount();
         super.channelActive(ctx);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        reportService.connDecr();
+        monitorService.decrementConnectionCount();
         super.channelInactive(ctx);
     }
 
@@ -65,7 +65,7 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
         cookieService.loadCookies(headers);
         final int statusCode = msg.status().code();
         if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
-            reportService.statusIncr(statusCode);
+            monitorService.statusIncr(statusCode);
         }
 
         final ByteBuf content = msg.content();
