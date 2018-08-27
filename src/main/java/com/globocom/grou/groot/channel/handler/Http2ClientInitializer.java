@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.channel.handler;
 
+import com.globocom.grou.groot.channel.BootstrapFactory;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.loader.CookieService;
 import io.netty.channel.ChannelHandlerContext;
@@ -35,9 +36,10 @@ import io.netty.handler.codec.http2.Http2Connection;
 import io.netty.handler.codec.http2.HttpToHttp2ConnectionHandler;
 import io.netty.handler.codec.http2.HttpToHttp2ConnectionHandlerBuilder;
 import io.netty.handler.codec.http2.InboundHttp2ToHttpAdapterBuilder;
-import io.netty.handler.ssl.ApplicationProtocolNames;
-import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.Attribute;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Configures the client pipeline to support HTTP/2 frames.
@@ -48,6 +50,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
     private final int maxContentLength;
     private final MonitorService monitorService;
     private final CookieService cookieService;
+
     private HttpToHttp2ConnectionHandler connectionHandler;
     private Http2ClientHandler responseHandler;
 
@@ -88,41 +91,17 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
      */
     private void configureSsl(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
+        final Attribute<Integer> idleTimeoutAttr = ch.attr(BootstrapFactory.IDLE_TIMEOUT_ATTR);
+        if (idleTimeoutAttr != null) {
+            Integer idleTimeout = idleTimeoutAttr.get();
+            pipeline.addLast(new IdleStateHandler(idleTimeout, idleTimeout, 0, TimeUnit.SECONDS));
+        }
         pipeline.addLast(new TrafficHandler(monitorService));
         pipeline.addLast(sslCtx.newHandler(ch.alloc()));
         // We must wait for the handshake to finish and the protocol to be negotiated before configuring
         // the HTTP/2 components of the pipeline.
-        pipeline.addLast(new ApplicationProtocolNegotiationHandler("") {
-            @Override
-            protected void configurePipeline(ChannelHandlerContext ctx, String protocol) {
-                if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
-                    ChannelPipeline p = ctx.pipeline();
-                    p.addLast(connectionHandler);
-                    p.addLast(responseHandler);
-                    p.addLast(new ChannelInboundHandlerAdapter() {
-                        @Override
-                        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                            monitorService.fail(cause);
-                        }
-                    });
-                    return;
-                }
-                ctx.close();
-                throw new IllegalStateException("unknown protocol: " + protocol);
-            }
-
-            @Override
-            protected void handshakeFailure(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                monitorService.fail(cause);
-                ctx.close();
-            }
-
-            @Override
-            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                monitorService.fail(cause);
-                ctx.close();
-            }
-        });
+        pipeline.addLast(new ApnChannelHandler(monitorService, connectionHandler, responseHandler));
+        pipeline.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
     }
 
     /**
@@ -156,12 +135,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             final ChannelPipeline pipeline = ctx.pipeline();
             pipeline.remove(this);
             pipeline.addLast(responseHandler);
-            pipeline.addLast(new ChannelInboundHandlerAdapter() {
-                @Override
-                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                    monitorService.fail(cause);
-                }
-            });
+            pipeline.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
         }
     }
 
@@ -174,4 +148,5 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             ctx.fireUserEventTriggered(evt);
         }
     }
+
 }

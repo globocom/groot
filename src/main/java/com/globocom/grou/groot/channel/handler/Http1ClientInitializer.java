@@ -16,11 +16,10 @@
 
 package com.globocom.grou.groot.channel.handler;
 
+import com.globocom.grou.groot.channel.BootstrapFactory;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.loader.CookieService;
 import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -28,6 +27,7 @@ import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.Attribute;
 import java.util.concurrent.TimeUnit;
 
 public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
@@ -49,7 +49,11 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(SocketChannel channel) throws Exception {
         final ChannelPipeline pipeline = channel.pipeline();
-        pipeline.addLast(new IdleStateHandler(10, 10, 0, TimeUnit.SECONDS));
+        final Attribute<Integer> idleTimeoutAttr = channel.attr(BootstrapFactory.IDLE_TIMEOUT_ATTR);
+        if (idleTimeoutAttr != null) {
+            Integer idleTimeout = idleTimeoutAttr.get();
+            pipeline.addLast(new IdleStateHandler(idleTimeout, idleTimeout, 0, TimeUnit.SECONDS));
+        }
         pipeline.addLast(new TrafficHandler(monitorService));
         if (sslContext != null) {
             pipeline.addLast(sslContext.newHandler(channel.alloc()));
@@ -57,11 +61,7 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
         pipeline.addLast(new HttpClientCodec());
         pipeline.addLast(new HttpContentDecompressor());
         pipeline.addLast(handler);
-        pipeline.addLast(new ChannelInboundHandlerAdapter() {
-            @Override
-            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                monitorService.fail(cause);
-            }
-        });
+        pipeline.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
     }
+
 }
