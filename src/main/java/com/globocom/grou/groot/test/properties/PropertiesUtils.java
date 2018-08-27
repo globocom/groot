@@ -1,13 +1,12 @@
-package com.globocom.grou.groot.entities.properties;
+package com.globocom.grou.groot.test.properties;
 
-import com.globocom.grou.groot.SystemEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.*;
 
-import static com.globocom.grou.groot.entities.properties.GrootProperties.*;
+import static com.globocom.grou.groot.test.properties.GrootProperties.*;
 
 public interface PropertiesUtils {
 

@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.globocom.grou.groot.SystemEnv.*;
-import static com.globocom.grou.groot.entities.events.services.TestListenerService.TEST_QUEUE;
+import static com.globocom.grou.groot.test.TestListenerService.TEST_QUEUE;
 
 @Configuration
 public class RedisConfiguration {

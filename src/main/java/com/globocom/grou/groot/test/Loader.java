@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.entities;
+package com.globocom.grou.groot.test;
 
 import java.io.Serializable;
 import java.time.Instant;

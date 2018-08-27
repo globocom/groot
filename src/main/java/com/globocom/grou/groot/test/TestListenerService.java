@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package com.globocom.grou.groot.entities.events.services;
+package com.globocom.grou.groot.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.SystemEnv;
-import com.globocom.grou.groot.entities.Loader;
-import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.entities.properties.PropertiesUtils;
+import com.globocom.grou.groot.test.properties.PropertiesUtils;
 import com.globocom.grou.groot.loader.LoaderService;
 import com.globocom.grou.groot.monit.SystemInfo;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package com.globocom.grou.groot.entities.properties;
+package com.globocom.grou.groot.test.properties;
 
 public interface GrootProperties {
 

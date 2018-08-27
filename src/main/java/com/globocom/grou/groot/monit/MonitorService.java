@@ -17,8 +17,8 @@
 package com.globocom.grou.groot.monit;
 
 import com.globocom.grou.groot.SystemEnv;
-import com.globocom.grou.groot.entities.Test;
-import com.globocom.grou.groot.entities.properties.GrootProperties;
+import com.globocom.grou.groot.test.Test;
+import com.globocom.grou.groot.test.properties.GrootProperties;
 import com.globocom.grou.groot.monit.collectors.MetricsCollector;
 import com.globocom.grou.groot.monit.collectors.MetricsCollectorByScheme;
 import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
