@@ -20,13 +20,18 @@ import com.globocom.grou.groot.monit.collectors.prometheus.PrometheusNodeMetrics
 import com.globocom.grou.groot.monit.collectors.snmp.SnmpMetricsCollector;
 import com.globocom.grou.groot.monit.collectors.zero.ZeroCollector;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 @SuppressWarnings("unused")
 public enum MetricsCollectorByScheme {
     ZERO       (ZeroCollector.class),
     SNMP       (SnmpMetricsCollector.class),
     PROMETHEUS (PrometheusNodeMetricsCollector.class);
+
+    private static final Log LOGGER = LogFactory.getLog(MetricsCollectorByScheme.class);
 
     private final Class<? extends MetricsCollector> targetCollectorClass;
 
@@ -35,7 +40,12 @@ public enum MetricsCollectorByScheme {
     }
 
     public MetricsCollector collect(final URI uri) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
-        return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).newInstance()).setUri(uri);
+        try {
+            return ((MetricsCollector) Class.forName(targetCollectorClass.getName()).getDeclaredConstructor().newInstance()).setUri(uri);
+        } catch (InvocationTargetException | NoSuchMethodException e) {
+            LOGGER.error(e);
+        }
+        return new ZeroCollector();
     }
 
 }
