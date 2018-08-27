@@ -148,7 +148,7 @@ public class RequestExecutorService {
         }
         cookieService.saveCookies(property.getSaveCookies());
         final Proto proto = Proto.valueOf(scheme.get().toUpperCase());
-        final Bootstrap bootstrap = BootstrapFactory.build(threads, property.getConnectTimeout());
+        final Bootstrap bootstrap = BootstrapFactory.build(threads, property.getConnectTimeout(), property.getIdleTimeout());
         final EventLoopGroup group = bootstrap.config().group();
         Channel[] channels = new Channel[numConn];
         double lastPerformanceRate = monitorService.lastPerformanceRate();

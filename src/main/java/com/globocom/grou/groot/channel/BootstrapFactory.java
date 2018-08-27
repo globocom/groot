@@ -10,6 +10,7 @@ import io.netty.channel.kqueue.KQueueEventLoopGroup;
 import io.netty.channel.kqueue.KQueueSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.AttributeKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -17,15 +18,18 @@ public class BootstrapFactory {
 
     private static final Log LOGGER = LogFactory.getLog(BootstrapFactory.class);
 
+    public static final AttributeKey<Integer> IDLE_TIMEOUT_ATTR = AttributeKey.newInstance("idleTimeout");
+
     private static final boolean IS_MAC = isMac();
     private static final boolean IS_LINUX = isLinux();
 
-    public static Bootstrap build(int threads, int connectTimeout) {
+    public static Bootstrap build(int threads, int connectTimeout, Integer idleTimeout) {
         final EventLoopGroup group = getEventLoopGroup(threads);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.
             group(group).
             channel(getSocketChannelClass()).
+            attr(IDLE_TIMEOUT_ATTR, idleTimeout).
             option(ChannelOption.SO_KEEPALIVE, true).
             option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout).
             option(ChannelOption.TCP_NODELAY, true).
