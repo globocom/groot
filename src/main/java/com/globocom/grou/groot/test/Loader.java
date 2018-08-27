@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.util.Date;
 
 @SuppressWarnings("unused")
-public class Loader implements Serializable, Cloneable {
+public class Loader implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -97,8 +97,7 @@ public class Loader implements Serializable, Cloneable {
     }
 
     @JsonIgnore
-    @Override
-    public Loader clone() {
+    public Loader copy() {
         Loader loader = new Loader();
         loader.setName(this.getName());
         loader.setStatus(this.getStatus());

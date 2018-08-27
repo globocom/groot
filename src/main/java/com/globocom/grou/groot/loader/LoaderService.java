@@ -89,9 +89,9 @@ public class LoaderService {
         try {
             LOGGER.info(property);
             channelManager.submit(property);
-            loaderClone = loader.clone();
+            loaderClone = loader.copy();
         } catch (Exception e) {
-            loaderClone = loader.clone();
+            loaderClone = loader.copy();
             updateStatus(Status.ERROR);
             loaderClone.setStatusDetailed(e.getMessage());
             if (LOGGER.isDebugEnabled()) {
