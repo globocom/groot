@@ -23,7 +23,7 @@ public class BootstrapFactory {
     private static final boolean IS_MAC = isMac();
     private static final boolean IS_LINUX = isLinux();
 
-    public static Bootstrap build(int threads, int connectTimeout, Integer idleTimeout) {
+    public static Bootstrap build(int threads, int connectTimeout, int idleTimeout) {
         final EventLoopGroup group = getEventLoopGroup(threads);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.
