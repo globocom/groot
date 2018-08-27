@@ -78,13 +78,12 @@ public class MonitorService {
     private final Map<Integer, Long> statusCounter = new ConcurrentHashMap<>();
     private final Map<String, Long> failCounter = new ConcurrentHashMap<>();
     private final AtomicLong sizeSum = new AtomicLong(0L);
-
-    private final AtomicLong sizeAccum = new AtomicLong(0L);
     private final AtomicInteger writeAsync = new AtomicInteger(0);
     private final AtomicInteger connCounter = new AtomicInteger(0);
     private final AtomicInteger connAccum = new AtomicInteger(0);
     private final Map<String, Integer> failedCounter = new ConcurrentHashMap<>();
     private final Map<String, Object> results = new LinkedHashMap<>();
+    private final AtomicLong testStart = new AtomicLong(System.currentTimeMillis());
 
     private double lastPerformanceRate = 1L;
 
@@ -98,6 +97,7 @@ public class MonitorService {
             if (!this.test.compareAndSet(null, test)) {
                 throw new IllegalStateException("Already monitoring other test");
             }
+            testStart.set(System.currentTimeMillis());
             prefixStatsdLoaderKey = getPrefixStatsdLoader(test);
             prefixStatsdTargetsKey = getPrefixStatsdTargets(test);
             extractMonitTargets(test);
@@ -105,7 +105,7 @@ public class MonitorService {
     }
 
     private String sanitize(String key, String to) {
-        return key.replaceAll("[@.:/\\s\\t\\\\]", to).toLowerCase();
+        return key.replaceAll("[@.:/\\s\\t\\\\\\(\\)\\[\\]]+", to).toLowerCase();
     }
 
     private String getPrefixBase(final Test test) {
@@ -182,7 +182,7 @@ public class MonitorService {
             this.tcpConn.set(0);
 
             writeAsync.set(0);
-            sizeAccum.set(0);
+            sizeSum.set(0);
             connCounter.set(0);
             connAccum.set(0);
             statusCounter.clear();
@@ -200,7 +200,7 @@ public class MonitorService {
         }
     }
 
-    public void fail(final Throwable t, long start) {
+    public void fail(final Throwable t) {
         boolean isInternalProblem = t.getMessage().contains("executor not accepting a task");
         if (!isInternalProblem) {
             String messageException = t.getMessage();
@@ -214,11 +214,16 @@ public class MonitorService {
                 messageException = "unknown_host";
             } else if (t instanceof java.net.NoRouteToHostException) {
                 messageException = "no_route";
+            } else if (messageException.startsWith("defaultchannelpromise")) {
+                messageException = "channelpromise_incomplete";
+            } else if (messageException.startsWith("unable_to_create_channel_from")) {
+                messageException = "unable_to_create_channel";
             } else {
                 messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
             }
-            sendFakeResponseToStatsd(messageException, start);
+            sendFakeResponseToStatsd(messageException, testStart.get());
             allStatus.add(messageException);
+            failedIncr(messageException);
             LOGGER.error(t);
         }
     }
@@ -229,7 +234,7 @@ public class MonitorService {
 
     private void sendFakeResponseToStatsd(String statusCode, long start) {
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
-        sendResponseTime(start);
+        sendResponseTime();
         sendSize(0);
 
         counterFromStatus(statusCode);
@@ -251,19 +256,21 @@ public class MonitorService {
         return realStatus;
     }
 
-    public void sendStatus(String statusCode, long start) {
+    public void sendStatus(String statusCode) {
         String realStatus = counterFromStatus(statusCode);
         allStatus.add(String.valueOf(realStatus));
-        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - start);
+        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - testStart.get());
     }
 
-    public void sendSize(int bodySize) {
-        statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
-        sizeSum.addAndGet(bodySize);
+    public void sendSize(long bodySize) {
+        if (bodySize > 0) {
+            statsdClient.recordExecutionTime(prefixResponse + "size", bodySize);
+            sizeSum.addAndGet(bodySize);
+        }
     }
 
-    public void sendResponseTime(long start) {
-        statsdClient.recordExecutionTime(prefixResponse + "completed", System.currentTimeMillis() - start);
+    public void sendResponseTime() {
+        statsdClient.recordExecutionTime(prefixResponse + "completed", System.currentTimeMillis() - testStart.get());
     }
 
     @Scheduled(fixedRate = 1000)
@@ -319,10 +326,10 @@ public class MonitorService {
     }
 
     public synchronized void showReport(long start) {
-        long durationSec = (System.currentTimeMillis() - start) / 1_000L;
+        long durationSec = (System.currentTimeMillis() - start - testStart.get()) / 1_000L;
         long numResp = statusCounter.entrySet().stream().mapToLong(Map.Entry::getValue).sum();
         int numWrites = writeAsync.get();
-        long sizeTotalKb = sizeAccum.get() / 1024L;
+        long sizeTotalKb = sizeSum.get() / 1024L;
         lastPerformanceRate = (numWrites * 1.0) / (numResp * 1.0);
 
         results.put("duration_sec", durationSec);
@@ -355,35 +362,24 @@ public class MonitorService {
         }
     }
 
+    @SuppressWarnings("unused")
     public void failedIncr(Throwable throwable) {
-        //unable_to_create_channel_from_class_class_io_netty_channel_epoll_epollsocketchannel
+        failedIncr(throwable.getMessage());
+    }
 
+    public void failedIncr(String msg) {
+        //unable_to_create_channel_from_class_class_io_netty_channel_epoll_epollsocketchannel
         final Integer oldValue;
-        final AtomicReference<String> key = new AtomicReference<>(
-            throwable.getMessage().replaceAll(".*Exception__", "")
-                .replaceAll("[@.:/\\s\\t\\\\\\(\\)\\[\\]]+", "_").toLowerCase());
-        if (key.get().startsWith("defaultchannelpromise")) {
-            key.set("failed_channelpromise_incomplete");
-        }
-        if (key.get().startsWith("unable_to_create_channel_from")) {
-            key.set("unable_to_create_channel");
-        }
-        if (PATTERNS_IGNORED.stream().map(p -> p.matcher(key.get()).matches()).count() > 0) {
+        if (PATTERNS_IGNORED.stream().map(p -> p.matcher(msg).matches()).count() > 0) {
             return;
         }
-        if ((oldValue = failedCounter.putIfAbsent(key.get(), 1)) != null) {
-            failedCounter.put(key.get(), oldValue + 1);
+        if ((oldValue = failedCounter.putIfAbsent(msg, 1)) != null) {
+            failedCounter.put(msg, oldValue + 1);
         }
     }
 
     public void writeCounterIncr() {
         writeAsync.incrementAndGet();
-    }
-
-    public void bodySizeAccumulator(long size) {
-        if (size > 0) {
-            sizeAccum.addAndGet(size);
-        }
     }
 
     public void statusIncr(int statusCode) {

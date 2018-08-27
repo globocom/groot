@@ -55,10 +55,10 @@ class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
             HttpResponse response = (HttpResponse) msg;
             final int statusCode = response.status().code();
             if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
-                monitorService.statusIncr(statusCode);
+                monitorService.sendStatus(String.valueOf(statusCode));
+                monitorService.sendResponseTime();
             }
             cookieService.loadCookies(response.headers());
-            monitorService.bodySizeAccumulator(response.toString().length());
         }
     }
 

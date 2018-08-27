@@ -60,7 +60,7 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
         pipeline.addLast(new ChannelInboundHandlerAdapter() {
             @Override
             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                monitorService.failedIncr(cause);
+                monitorService.fail(cause);
             }
         });
     }

@@ -65,13 +65,13 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
         cookieService.loadCookies(headers);
         final int statusCode = msg.status().code();
         if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
-            monitorService.statusIncr(statusCode);
+            monitorService.sendStatus(String.valueOf(statusCode));
+            monitorService.sendResponseTime();
         }
 
         final ByteBuf content = msg.content();
         if (content.isReadable()) {
             int contentLength = content.readableBytes();
-//            reportService.bodySizeAccumulator(contentLength);
             if (LOGGER.isDebugEnabled()) {
                 byte[] arr = new byte[contentLength];
                 content.readBytes(arr);

@@ -34,7 +34,7 @@ public class TrafficHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         long size = calculateSize(msg);
         if (size > 0) {
-            monitorService.bodySizeAccumulator(size);
+            monitorService.sendSize(size);
         }
         ctx.fireChannelRead(msg);
     }

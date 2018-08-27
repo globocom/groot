@@ -102,7 +102,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
                     p.addLast(new ChannelInboundHandlerAdapter() {
                         @Override
                         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                            monitorService.failedIncr(cause);
+                            monitorService.fail(cause);
                         }
                     });
                     return;
@@ -113,13 +113,13 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
 
             @Override
             protected void handshakeFailure(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                monitorService.failedIncr(cause);
+                monitorService.fail(cause);
                 ctx.close();
             }
 
             @Override
             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                monitorService.failedIncr(cause);
+                monitorService.fail(cause);
                 ctx.close();
             }
         });
@@ -159,7 +159,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             pipeline.addLast(new ChannelInboundHandlerAdapter() {
                 @Override
                 public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                    monitorService.failedIncr(cause);
+                    monitorService.fail(cause);
                 }
             });
         }

@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,7 +35,6 @@ public class RequestExecutorService {
     private final CookieService cookieService;
 
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
-    private final AtomicLong now = new AtomicLong(System.currentTimeMillis());
 
     private long schedPeriod = 50L;
 
@@ -58,7 +56,7 @@ public class RequestExecutorService {
         return new Http1ClientInitializer(sslService.sslContext(proto.isSsl()), monitorService, cookieService);
     }
 
-    private Channel newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long schedPeriod, AtomicLong now) {
+    private Channel newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long schedPeriod) {
         try {
             if (!bootstrap.config().group().isShuttingDown() && !bootstrap.config().group().isShutdown()) {
                 URI uri = URI.create(proto.name().toLowerCase() + "://" + requests[0].headers().get(HttpHeaderNames.HOST) + requests[0].uri());
@@ -80,8 +78,7 @@ public class RequestExecutorService {
                 return channel;
             }
         } catch (Exception e) {
-            monitorService.failedIncr(e);
-            monitorService.fail(e, now.get());
+            monitorService.fail(e);
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(e.getMessage(), e);
             }
@@ -89,11 +86,11 @@ public class RequestExecutorService {
         return null;
     }
 
-    private synchronized void activeChannels(int numConn, final Proto proto, final Bootstrap bootstrap, final Channel[] channels, final FullHttpRequest[] requests, long schedPeriod, AtomicLong now) {
+    private synchronized void activeChannels(int numConn, final Proto proto, final Bootstrap bootstrap, final Channel[] channels, final FullHttpRequest[] requests, long schedPeriod) {
         for (int chanId = 0; chanId < numConn; chanId++) {
             if (channels[chanId] == null || !channels[chanId].isActive()) {
 
-                Channel channel = newChannel(bootstrap, proto, requests, schedPeriod, now);
+                Channel channel = newChannel(bootstrap, proto, requests, schedPeriod);
                 if (channel != null) {
                     channels[chanId] = channel;
                 }
@@ -101,9 +98,9 @@ public class RequestExecutorService {
         }
     }
 
-    private void reconnectIfNecessary(boolean reconnect, int numConn, final Proto proto, final EventLoopGroup group, Bootstrap bootstrap, Channel[] channels, final FullHttpRequest[] requests, long schedPeriod, AtomicLong now) {
+    private void reconnectIfNecessary(boolean reconnect, int numConn, final Proto proto, final EventLoopGroup group, Bootstrap bootstrap, Channel[] channels, final FullHttpRequest[] requests, long schedPeriod) {
         while (reconnect && !group.isShutdown() && !group.isShuttingDown()) {
-            activeChannels(numConn, proto, bootstrap, channels, requests, schedPeriod, now);
+            activeChannels(numConn, proto, bootstrap, channels, requests, schedPeriod);
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e) {
@@ -159,21 +156,20 @@ public class RequestExecutorService {
 
         LOGGER.info("Sched Period: " + schedPeriod + " us");
 
-        activeChannels(numConn, proto, bootstrap, channels, requests, schedPeriod, now);
+        activeChannels(numConn, proto, bootstrap, channels, requests, schedPeriod);
 
-        now.set(System.currentTimeMillis());
         executor.schedule(() -> {
             long nowPreShut = System.currentTimeMillis();
 
             closeChannels(channels, 10, TimeUnit.SECONDS);
             group.shutdownGracefully(1L, 10L, TimeUnit.SECONDS);
 
-            monitorService.showReport(now.get() - (System.currentTimeMillis() - nowPreShut));
+            monitorService.showReport((System.currentTimeMillis() - nowPreShut));
             cookieService.reset();
         }, durationSec, TimeUnit.SECONDS);
 
         boolean forceReconnect = property.getForceReconnect();
-        reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests, schedPeriod, now);
+        reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests, schedPeriod);
     }
 
 }
