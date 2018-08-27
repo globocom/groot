@@ -27,6 +27,11 @@ public class RequestUtils {
 
     public static FullHttpRequest[] convertPropertyToHttpRequest(final BaseProperty property, final AtomicReference<String> scheme) {
         final TreeSet<RequestProperty> requestsProperties = requestsProperty(property);
+        property.setRequests(requestsProperty(property));
+        property.setUri(null);
+        property.setMethod(null);
+        property.setHeaders(null);
+
         final FullHttpRequest[] requests = new FullHttpRequest[requestsProperties.size()];
         int requestId = 0;
         for (RequestProperty requestProperty: requestsProperties) {
@@ -70,14 +75,7 @@ public class RequestUtils {
             singleRequestProperties.setHeaders(properties.getHeaders());
             singleRequestProperties.setSaveCookies(properties.getSaveCookies());
         }
-
-        TreeSet<RequestProperty> reqs = singleRequest ? new TreeSet<RequestProperty>(){{add(singleRequestProperties);}} : properties.getRequests();
-        properties.setRequests(requestsProperty(properties));
-        properties.setUri(null);
-        properties.setMethod(null);
-        properties.setHeaders(null);
-
-        return reqs;
+        return singleRequest ? new TreeSet<RequestProperty>(){{add(singleRequestProperties);}} : properties.getRequests();
     }
 
     private static String convertSchemeIfNecessary(String scheme) {
