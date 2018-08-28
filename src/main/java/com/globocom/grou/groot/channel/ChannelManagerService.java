@@ -16,6 +16,7 @@
 
 package com.globocom.grou.groot.channel;
 
+import com.globocom.grou.groot.channel.handler.CookieStorageHandler;
 import com.globocom.grou.groot.channel.handler.Http1ClientInitializer;
 import com.globocom.grou.groot.channel.handler.Http2ClientInitializer;
 import com.globocom.grou.groot.loader.Proto;
@@ -112,23 +113,29 @@ public class ChannelManagerService {
         }
     }
 
-    public void closeChannels(Channel[] channels, int timeout, TimeUnit unit) {
+    public void closeChannels(EventLoopGroup group, Channel[] channels, int timeout, TimeUnit unit) {
+        long nowPreShut = System.currentTimeMillis();
         CountDownLatch latch = new CountDownLatch(channels.length - 1);
-        for (Channel channel : channels) {
-            try {
-                if (channel != null && channel.isActive()) {
-                    channel.close();
-                }
-            } finally {
-                latch.countDown();
-            }
-        }
         try {
+            for (Channel channel : channels) {
+                try {
+                    if (channel != null && channel.isActive()) {
+                        channel.close();
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            }
             latch.await(timeout, unit);
         } catch (InterruptedException e) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(e.getMessage(), e);
             }
+        } finally {
+            group.shutdownGracefully(1L, 10L, TimeUnit.SECONDS);
+            CookieStorageHandler.reset();
+
+            monitorService.showReport((System.currentTimeMillis() - nowPreShut));
         }
     }
 

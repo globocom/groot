@@ -21,7 +21,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -29,7 +28,18 @@ public class RequestUtils {
 
     private static final Log LOGGER = LogFactory.getLog(RequestUtils.class);
 
-    public static FullHttpRequest[] convertPropertyToHttpRequest(final BaseProperty property, final AtomicReference<String> scheme) {
+    public static String extractScheme(final BaseProperty property) {
+        URI uri = null;
+        if (property.getUri() != null) {
+            uri = URI.create(property.getUri());
+        }
+        if (property.getRequests() != null && !property.getRequests().isEmpty()) {
+            uri = URI.create(property.getRequests().stream().findFirst().orElseThrow(IllegalArgumentException::new).getUri());
+        }
+        return uri != null ? uri.getScheme() : null;
+    }
+
+    public static FullHttpRequest[] convertPropertyToHttpRequest(final BaseProperty property) {
         final TreeSet<RequestProperty> requestsProperties = requestsProperty(property);
         property.setRequests(requestsProperty(property));
         property.setUri(null);
@@ -41,10 +51,8 @@ public class RequestUtils {
         final FullHttpRequest[] requests = new FullHttpRequest[requestsProperties.size()];
         int requestId = 0;
         for (RequestProperty requestProperty: requestsProperties) {
-            final URI uri = URI.create(requestProperty.getUri());
-            if (scheme.get() == null) {
-                scheme.set(uri.getScheme());
-            }
+            final String uriStr = requestProperty.getUri();
+            final URI uri = URI.create(uriStr);
             final HttpHeaders headers = new DefaultHttpHeaders()
                 .add(HOST, uri.getHost() + (uri.getPort() > 0 ? ":" + uri.getPort() : ""))
                 .add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), convertSchemeIfNecessary(uri.getScheme()));
