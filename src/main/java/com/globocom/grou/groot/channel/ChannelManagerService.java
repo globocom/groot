@@ -90,7 +90,6 @@ public class ChannelManagerService {
     public synchronized void activeChannels(int numConn, final Proto proto, final Bootstrap bootstrap, final Channel[] channels, final FullHttpRequest[] requests) {
         double lastPerformanceRate = monitorService.lastPerformanceRate();
         schedPeriod = Math.min(100, Math.max(10L, (long) (schedPeriod * lastPerformanceRate / 1.05)));
-        LOGGER.info("Sched Period: " + schedPeriod + " us");
 
         for (int chanId = 0; chanId < numConn; chanId++) {
             if (channels[chanId] == null || !channels[chanId].isActive()) {
@@ -103,6 +102,7 @@ public class ChannelManagerService {
     }
 
     public void reconnectIfNecessary(boolean reconnect, int numConn, final Proto proto, final EventLoopGroup group, Bootstrap bootstrap, Channel[] channels, final FullHttpRequest[] requests) {
+        LOGGER.info("Sched Period: " + schedPeriod + " us");
         while (reconnect && !group.isShutdown() && !group.isShuttingDown()) {
             activeChannels(numConn, proto, bootstrap, channels, requests);
             try {
