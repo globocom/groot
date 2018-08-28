@@ -1,5 +1,8 @@
 package com.globocom.grou.groot.channel;
 
+import static com.globocom.grou.groot.channel.handler.CookieStorageHandler.COOKIE_STORAGE_ENABLED_ATTR;
+
+import com.globocom.grou.groot.test.properties.BaseProperty;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -14,22 +17,30 @@ import io.netty.util.AttributeKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class BootstrapFactory {
+public class BootstrapBuilder {
 
-    private static final Log LOGGER = LogFactory.getLog(BootstrapFactory.class);
+    private static final Log LOGGER = LogFactory.getLog(BootstrapBuilder.class);
 
     public static final AttributeKey<Integer> IDLE_TIMEOUT_ATTR = AttributeKey.newInstance("idleTimeout");
 
     private static final boolean IS_MAC = isMac();
     private static final boolean IS_LINUX = isLinux();
 
-    public static Bootstrap build(int threads, int connectTimeout, int idleTimeout) {
+    public static Bootstrap build(final BaseProperty property) {
+        int threads = property.getThreads();
+        int idleTimeout = property.getIdleTimeout();
+        int connectTimeout = property.getConnectTimeout();
+        boolean cookieStorage = property.getSaveCookies();
+
+        LOGGER.info("Using " + threads + " thread(s)");
+
         final EventLoopGroup group = getEventLoopGroup(threads);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.
             group(group).
             channel(getSocketChannelClass()).
             attr(IDLE_TIMEOUT_ATTR, idleTimeout).
+            attr(COOKIE_STORAGE_ENABLED_ATTR, cookieStorage).
             option(ChannelOption.SO_KEEPALIVE, true).
             option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout).
             option(ChannelOption.TCP_NODELAY, true).

@@ -1,11 +1,12 @@
 package com.globocom.grou.groot.loader;
 
 import com.globocom.grou.groot.SystemEnv;
-import com.globocom.grou.groot.channel.BootstrapFactory;
+import com.globocom.grou.groot.channel.BootstrapBuilder;
 import com.globocom.grou.groot.channel.RequestUtils;
+import com.globocom.grou.groot.channel.handler.CookieStorageHandler;
 import com.globocom.grou.groot.channel.handler.Http1ClientInitializer;
 import com.globocom.grou.groot.channel.handler.Http2ClientInitializer;
-import com.globocom.grou.groot.channel.handler.SslService;
+import com.globocom.grou.groot.channel.SslService;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.properties.BaseProperty;
 import io.netty.bootstrap.Bootstrap;
@@ -32,7 +33,6 @@ public class RequestExecutorService {
 
     private final SslService sslService;
     private final MonitorService monitorService;
-    private final CookieService cookieService;
 
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
 
@@ -41,19 +41,17 @@ public class RequestExecutorService {
     @Autowired
     public RequestExecutorService(
         final SslService sslService,
-        final MonitorService monitorService,
-        final CookieService cookieService) {
+        final MonitorService monitorService) {
 
         this.sslService = sslService;
         this.monitorService = monitorService;
-        this.cookieService = cookieService;
     }
 
     private ChannelInitializer initializer(Proto proto) {
         if (proto == Proto.H2 || proto == Proto.H2C) {
-            return new Http2ClientInitializer(sslService.sslContext(proto.isSsl()), Integer.MAX_VALUE, monitorService, cookieService);
+            return new Http2ClientInitializer(sslService.sslContext(proto.isSsl()), Integer.MAX_VALUE, monitorService);
         }
-        return new Http1ClientInitializer(sslService.sslContext(proto.isSsl()), monitorService, cookieService);
+        return new Http1ClientInitializer(sslService.sslContext(proto.isSsl()), monitorService);
     }
 
     private Channel newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long schedPeriod) {
@@ -70,7 +68,6 @@ public class RequestExecutorService {
                     if (channel.isActive()) {
                         for (FullHttpRequest request : requests) {
                             monitorService.writeCounterIncr();
-                            cookieService.applyCookies(request.headers());
                             channel.writeAndFlush(request.copy());
                         }
                     }
@@ -135,9 +132,6 @@ public class RequestExecutorService {
         @SuppressWarnings("deprecation")
         int durationSec = Math.min(maxTestDuration, Optional.ofNullable(property.getDurationTimeSec())
             .orElse(property.getDurationTimeMillis() / 1000));
-        int threads = property.getThreads();
-
-        LOGGER.info("Using " + threads + " thread(s)");
 
         AtomicReference<String> scheme = new AtomicReference<>(null);
         final FullHttpRequest[] requests = RequestUtils.convertPropertyToHttpRequest(property, scheme);
@@ -146,10 +140,10 @@ public class RequestExecutorService {
             LOGGER.error(errMsg);
             throw new RuntimeException(errMsg);
         }
-        cookieService.saveCookies(property.getSaveCookies());
         final Proto proto = Proto.valueOf(scheme.get().toUpperCase());
-        final Bootstrap bootstrap = BootstrapFactory.build(threads, property.getConnectTimeout(), property.getIdleTimeout());
+        final Bootstrap bootstrap = BootstrapBuilder.build(property);
         final EventLoopGroup group = bootstrap.config().group();
+
         Channel[] channels = new Channel[numConn];
         double lastPerformanceRate = monitorService.lastPerformanceRate();
         schedPeriod = Math.min(100, Math.max(10L, (long) (schedPeriod * lastPerformanceRate / 1.05)));
@@ -165,7 +159,7 @@ public class RequestExecutorService {
             group.shutdownGracefully(1L, 10L, TimeUnit.SECONDS);
 
             monitorService.showReport((System.currentTimeMillis() - nowPreShut));
-            cookieService.reset();
+            CookieStorageHandler.reset();
         }, durationSec, TimeUnit.SECONDS);
 
         boolean forceReconnect = property.getForceReconnect();

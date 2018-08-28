@@ -16,9 +16,8 @@
 
 package com.globocom.grou.groot.channel.handler;
 
-import com.globocom.grou.groot.channel.BootstrapFactory;
+import com.globocom.grou.groot.channel.BootstrapBuilder;
 import com.globocom.grou.groot.monit.MonitorService;
-import com.globocom.grou.groot.loader.CookieService;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -38,18 +37,17 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
 
     public Http1ClientInitializer(
         SslContext sslContext,
-        MonitorService monitorService,
-        CookieService cookieService) {
+        MonitorService monitorService) {
 
         this.sslContext = sslContext;
         this.monitorService = monitorService;
-        this.handler = new Http1ClientHandler(monitorService, cookieService);
+        this.handler = new Http1ClientHandler(monitorService);
     }
 
     @Override
     protected void initChannel(SocketChannel channel) throws Exception {
         final ChannelPipeline pipeline = channel.pipeline();
-        final Attribute<Integer> idleTimeoutAttr = channel.attr(BootstrapFactory.IDLE_TIMEOUT_ATTR);
+        final Attribute<Integer> idleTimeoutAttr = channel.attr(BootstrapBuilder.IDLE_TIMEOUT_ATTR);
         if (idleTimeoutAttr != null) {
             Integer idleTimeout = idleTimeoutAttr.get();
             pipeline.addLast(new IdleStateHandler(idleTimeout, idleTimeout, 0, TimeUnit.SECONDS));
@@ -60,8 +58,9 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
         }
         pipeline.addLast(new HttpClientCodec());
         pipeline.addLast(new HttpContentDecompressor());
+        pipeline.addLast(new CookieStorageHandler());
         pipeline.addLast(handler);
-        pipeline.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
+        pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
     }
 
 }

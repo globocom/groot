@@ -17,7 +17,6 @@
 package com.globocom.grou.groot.channel.handler;
 
 import com.globocom.grou.groot.monit.MonitorService;
-import com.globocom.grou.groot.loader.CookieService;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpObject;
@@ -29,11 +28,9 @@ class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
     private static final int MAX_RESPONSE_STATUS = 599;
 
     private final MonitorService monitorService;
-    private final CookieService cookieService;
 
-    public Http1ClientHandler(MonitorService monitorService, CookieService cookieService) {
+    public Http1ClientHandler(MonitorService monitorService) {
         this.monitorService = monitorService;
-        this.cookieService = cookieService;
     }
 
     @Override
@@ -58,7 +55,6 @@ class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
                 monitorService.sendStatus(String.valueOf(statusCode));
                 monitorService.sendResponseTime();
             }
-            cookieService.loadCookies(response.headers());
         }
     }
 

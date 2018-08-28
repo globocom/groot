@@ -17,7 +17,6 @@
 package com.globocom.grou.groot.channel.handler;
 
 import com.globocom.grou.groot.monit.MonitorService;
-import com.globocom.grou.groot.loader.CookieService;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -35,11 +34,9 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
 
     private static final Log LOGGER = LogFactory.getLog(Http2ClientHandler.class);
     private final MonitorService monitorService;
-    private final CookieService cookieService;
 
-    public Http2ClientHandler(MonitorService monitorService, CookieService cookieService) {
+    public Http2ClientHandler(MonitorService monitorService) {
         this.monitorService = monitorService;
-        this.cookieService = cookieService;
     }
 
     @Override
@@ -62,7 +59,6 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
             LOGGER.error("HttpResponseHandler unexpected message received: " + msg);
             return;
         }
-        cookieService.loadCookies(headers);
         final int statusCode = msg.status().code();
         if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
             monitorService.sendStatus(String.valueOf(statusCode));

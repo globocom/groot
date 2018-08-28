@@ -29,8 +29,9 @@ public class ApnChannelHandler extends ApplicationProtocolNegotiationHandler {
         if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
             ChannelPipeline p = ctx.pipeline();
             p.addLast(connectionHandler);
+            p.addLast(new CookieStorageHandler());
             p.addLast(responseHandler);
-            p.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
+            p.addLast(new ExceptionChannelInboundHandler(monitorService));
             return;
         }
         ctx.close();

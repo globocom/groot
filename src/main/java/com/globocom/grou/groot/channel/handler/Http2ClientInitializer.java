@@ -16,9 +16,8 @@
 
 package com.globocom.grou.groot.channel.handler;
 
-import com.globocom.grou.groot.channel.BootstrapFactory;
+import com.globocom.grou.groot.channel.BootstrapBuilder;
 import com.globocom.grou.groot.monit.MonitorService;
-import com.globocom.grou.groot.loader.CookieService;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
@@ -49,7 +48,6 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
     private final SslContext sslCtx;
     private final int maxContentLength;
     private final MonitorService monitorService;
-    private final CookieService cookieService;
 
     private HttpToHttp2ConnectionHandler connectionHandler;
     private Http2ClientHandler responseHandler;
@@ -57,13 +55,11 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
     public Http2ClientInitializer(
         SslContext sslCtx,
         int maxContentLength,
-        MonitorService monitorService,
-        CookieService cookieService) {
+        MonitorService monitorService) {
 
         this.sslCtx = sslCtx;
         this.maxContentLength = maxContentLength;
         this.monitorService = monitorService;
-        this.cookieService = cookieService;
     }
 
     @Override
@@ -78,7 +74,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
                                 .build()))
                 .connection(connection)
                 .build();
-        responseHandler = new Http2ClientHandler(monitorService, cookieService);
+        responseHandler = new Http2ClientHandler(monitorService);
         if (sslCtx != null) {
             configureSsl(ch);
         } else {
@@ -91,7 +87,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
      */
     private void configureSsl(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
-        final Attribute<Integer> idleTimeoutAttr = ch.attr(BootstrapFactory.IDLE_TIMEOUT_ATTR);
+        final Attribute<Integer> idleTimeoutAttr = ch.attr(BootstrapBuilder.IDLE_TIMEOUT_ATTR);
         if (idleTimeoutAttr != null) {
             Integer idleTimeout = idleTimeoutAttr.get();
             pipeline.addLast(new IdleStateHandler(idleTimeout, idleTimeout, 0, TimeUnit.SECONDS));
@@ -101,7 +97,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
         // We must wait for the handshake to finish and the protocol to be negotiated before configuring
         // the HTTP/2 components of the pipeline.
         pipeline.addLast(new ApnChannelHandler(monitorService, connectionHandler, responseHandler));
-        pipeline.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
+        pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
     }
 
     /**
@@ -134,8 +130,9 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             // Done with this handler, remove it from the pipeline.
             final ChannelPipeline pipeline = ctx.pipeline();
             pipeline.remove(this);
+            pipeline.addLast(new CookieStorageHandler());
             pipeline.addLast(responseHandler);
-            pipeline.addLast(new ExceptionChannelInboundHandlerAdapter(monitorService));
+            pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
         }
     }
 
