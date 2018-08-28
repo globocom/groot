@@ -79,7 +79,6 @@ public class RequestUtils {
             singleRequestProperties.setBody(properties.getBody());
             singleRequestProperties.setAuth(properties.getAuth());
             singleRequestProperties.setHeaders(properties.getHeaders());
-            singleRequestProperties.setSaveCookies(properties.getSaveCookies());
         }
         return singleRequest ? new TreeSet<RequestProperty>(){{add(singleRequestProperties);}} : properties.getRequests();
     }

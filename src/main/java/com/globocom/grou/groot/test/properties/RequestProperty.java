@@ -35,11 +35,6 @@ public class RequestProperty implements Serializable, Comparable<RequestProperty
     private String uri;
 
     /**
-     * Enable saving and using cookies
-     */
-    private Boolean saveCookies = false;
-
-    /**
      * Authentication properties. Contains credentials & preemptive properties
      */
     private AuthProperty auth;
@@ -74,15 +69,6 @@ public class RequestProperty implements Serializable, Comparable<RequestProperty
 
     public RequestProperty setUri(String uri) {
         this.uri = uri;
-        return this;
-    }
-
-    public Boolean getSaveCookies() {
-        return saveCookies;
-    }
-
-    public RequestProperty setSaveCookies(Boolean saveCookies) {
-        this.saveCookies = saveCookies;
         return this;
     }
 
