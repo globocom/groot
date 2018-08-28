@@ -185,6 +185,11 @@ public class BaseProperty implements Serializable {
      */
     private Boolean forceReconnect = true;
 
+    /**
+     * Force HTTP2. Enable use of HTTP/2 without HTTP/1.1 Upgrade. (WIP)
+     */
+    private Boolean forceHttp2;
+
     public String getUri() {
         return uri;
     }
@@ -439,6 +444,15 @@ public class BaseProperty implements Serializable {
 
     public BaseProperty setForceReconnect(Boolean forceReconnect) {
         this.forceReconnect = forceReconnect;
+        return this;
+    }
+
+    public Boolean getForceHttp2() {
+        return forceHttp2;
+    }
+
+    public BaseProperty setForceHttp2(Boolean forceHttp2) {
+        this.forceHttp2 = forceHttp2;
         return this;
     }
 

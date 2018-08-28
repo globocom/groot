@@ -54,6 +54,11 @@ public class RequestProperty implements Serializable, Comparable<RequestProperty
      */
     private String method = "GET";
 
+    /**
+     * Force HTTP2. Enable use of HTTP/2 without HTTP/1.1 Upgrade. (WIP)
+     */
+    private Boolean forceHttp2;
+
     public Integer getOrder() {
         return order;
     }
@@ -105,6 +110,15 @@ public class RequestProperty implements Serializable, Comparable<RequestProperty
 
     public RequestProperty setMethod(String method) {
         this.method = method;
+        return this;
+    }
+
+    public Boolean getForceHttp2() {
+        return forceHttp2;
+    }
+
+    public RequestProperty setForceHttp2(Boolean forceHttp2) {
+        this.forceHttp2 = forceHttp2;
         return this;
     }
 
