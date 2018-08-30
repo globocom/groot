@@ -87,7 +87,7 @@ public class LoaderService {
 
         Loader loaderClone;
         try {
-            monitorService.monitoring(test);
+            monitorService.start(test);
             channelManager.submit(property);
             loaderClone = loader.copy();
         } catch (Exception e) {
@@ -98,18 +98,18 @@ public class LoaderService {
                 LOGGER.debug(e.getMessage(), e);
             }
         } finally {
-            stop(projectDotTest);
+            monitorService.stop();
+            idle(projectDotTest);
         }
 
         return loaderClone;
     }
 
-    private void stop(String projectDotTest) {
-        monitorService.reset();
-        updateStatus(Status.IDLE);
+    private void idle(String projectDotTest) {
         abortNow.set(false);
-        LOGGER.info("Finished test " + projectDotTest);
         loader.setStatusDetailed("");
+        updateStatus(Status.IDLE);
+        LOGGER.info("Finished test " + projectDotTest);
     }
 
     private void updateStatus(Status loaderStatus) {

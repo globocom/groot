@@ -28,6 +28,7 @@ import com.globocom.grou.groot.test.properties.BaseProperty;
 import io.galeb.statsd.StatsDClient;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +59,8 @@ public class MonitorService {
 
     private static final Pattern IS_INT = Pattern.compile("\\d+");
 
+    private static final String LIST_SEPARATOR = ",";
+
     private static final ObjectMapper MAPPER = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
 
     private final String prefixTag = SystemEnv.PREFIX_TAG.getValue();
@@ -86,7 +89,7 @@ public class MonitorService {
         this.statsdClient = statsdService.client();
     }
 
-    public void monitoring(final Test test) {
+    public void start(final Test test) {
         synchronized (lock) {
             if (!this.test.compareAndSet(null, test)) {
                 throw new IllegalStateException("Already monitoring other test");
@@ -131,12 +134,17 @@ public class MonitorService {
     private void extractMonitTargets(final Test test) {
         this.prefixResponse = getStatsdPrefixResponse(test);
         final BaseProperty properties = test.getProperties();
-        List<String> monitTargets = properties.getMonitTargets();
-        if (monitTargets != null) {
+        Object monitTargetsObj = properties.getMonitTargets();
+        if (monitTargetsObj != null) {
+            final List<String> monitTargets = convertObjToMonitTargets(monitTargetsObj);
             targets = monitTargets.stream().map(String::trim).map(URI::create).map(mapUriToMetricsCollector()).collect(Collectors.toList());
         } else {
             targets = Collections.emptyList();
         }
+    }
+
+    private List<String> convertObjToMonitTargets(Object obj) {
+        return obj instanceof List ? (List) obj : Arrays.asList(obj.toString().split(LIST_SEPARATOR));
     }
 
     private Function<URI, MetricsCollector> mapUriToMetricsCollector() {
@@ -154,7 +162,7 @@ public class MonitorService {
         };
     }
 
-    public void reset() {
+    public void stop() {
         synchronized (lock) {
             completeWithFakeEmptyResponse();
             test.set(null);

@@ -108,7 +108,7 @@ public class BaseProperty implements Serializable {
     /**
      * Target list to monitoring
      */
-    private List<String> monitTargets = new ArrayList<>();
+    private Object monitTargets;
 
     /**
      * List of properties per test to enable multiple requests
@@ -298,11 +298,11 @@ public class BaseProperty implements Serializable {
         return this;
     }
 
-    public List<String> getMonitTargets() {
+    public Object getMonitTargets() {
         return monitTargets;
     }
 
-    public BaseProperty setMonitTargets(List<String> monitTargets) {
+    public BaseProperty setMonitTargets(Object monitTargets) {
         this.monitTargets = monitTargets;
         return this;
     }
