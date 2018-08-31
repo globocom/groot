@@ -26,6 +26,18 @@ public class TrafficHandler extends ChannelInboundHandlerAdapter {
 
     private final MonitorService monitorService;
 
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        monitorService.incrementConnectionCount();
+        super.channelActive(ctx);
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        monitorService.decrementConnectionCount();
+        super.channelInactive(ctx);
+    }
+
     public TrafficHandler(MonitorService monitorService) {
         this.monitorService = monitorService;
     }

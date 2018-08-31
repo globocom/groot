@@ -40,14 +40,8 @@ public class Http2ResponseHandler extends SimpleChannelInboundHandler<FullHttpRe
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        monitorService.incrementConnectionCount();
-        super.channelActive(ctx);
-    }
-
-    @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        monitorService.decrementConnectionCount();
+        requestQueueTimes.clear();
         super.channelInactive(ctx);
     }
 
