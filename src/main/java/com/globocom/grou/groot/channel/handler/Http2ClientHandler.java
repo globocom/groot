@@ -62,7 +62,9 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
         final int statusCode = msg.status().code();
         if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
             monitorService.sendStatus(String.valueOf(statusCode));
-            monitorService.sendResponseTime();
+            //TODO: long startRequest = RequestStartStamperHandler.queue.poll();
+            long startRequest = System.currentTimeMillis();
+            monitorService.sendResponseTime(startRequest);
         }
 
         final ByteBuf content = msg.content();

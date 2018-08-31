@@ -214,7 +214,7 @@ public class MonitorService {
                 }
             }
             messageException = sanitize(messageException, "_").replaceAll(".*Exception__", "");
-            sendFakeResponseToStatsd(messageException, testStart.get(), true);
+            sendFakeResponseToStatsd(messageException, System.currentTimeMillis(), true);
             failedIncr(messageException);
             LOGGER.error(t);
         }
@@ -226,7 +226,7 @@ public class MonitorService {
 
     private void sendFakeResponseToStatsd(String statusCode, long start, boolean needCount) {
         statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + statusCode, System.currentTimeMillis() - start);
-        sendResponseTime();
+        sendResponseTime(start);
         sendSize(0);
         if (needCount) {
             counterFromStatus(statusCode);
@@ -258,8 +258,8 @@ public class MonitorService {
         }
     }
 
-    public void sendResponseTime() {
-        statsdClient.recordExecutionTime(prefixResponse + "completed", System.currentTimeMillis() - testStart.get());
+    public void sendResponseTime(long startRequest) {
+        statsdClient.recordExecutionTime(prefixResponse + "completed", System.currentTimeMillis() - startRequest);
     }
 
     @Scheduled(fixedRate = 1000)
