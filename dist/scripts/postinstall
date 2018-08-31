@@ -1,7 +1,7 @@
 #!/bin/bash
-chmod 777 -R /opt/groot/logs || true
-mkdir -p /opt/logs/groot|| true
-ln -sf /opt/groot/logs /opt/logs/groot
-ln -sf /opt/groot/lib/wrapper/bin/initscript /etc/init.d/groot
-useradd -d /opt/groot -s /bin/bash groot
-/usr/bin/systemctl enable groot || true
+chmod 777 -R /opt/groot2/logs || true
+mkdir -p /opt/logs/groot2|| true
+ln -sf /opt/groot2/logs /opt/logs/groot2
+ln -sf /opt/groot2/lib/wrapper/bin/initscript /etc/init.d/groot2
+useradd -d /opt/groot2 -s /bin/bash groot2
+/usr/bin/systemctl enable groot2 || true
