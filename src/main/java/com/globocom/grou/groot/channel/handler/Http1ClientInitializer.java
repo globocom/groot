@@ -18,7 +18,6 @@ package com.globocom.grou.groot.channel.handler;
 
 import com.globocom.grou.groot.channel.BootstrapBuilder;
 import com.globocom.grou.groot.monit.MonitorService;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -32,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
 
     private final SslContext sslContext;
-    private final Http1ClientHandler handler;
+    private final Http1ResponseHandler http1ResponseHandler;
     private final MonitorService monitorService;
 
     public Http1ClientInitializer(
@@ -41,7 +40,7 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
 
         this.sslContext = sslContext;
         this.monitorService = monitorService;
-        this.handler = new Http1ClientHandler(monitorService);
+        this.http1ResponseHandler = new Http1ResponseHandler(monitorService);
     }
 
     @Override
@@ -58,9 +57,9 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
         }
         pipeline.addLast(new HttpClientCodec());
         pipeline.addLast(new HttpContentDecompressor());
-        pipeline.addLast(new RequestStartStamperHandler(handler));
+        pipeline.addLast(new RequestStartStamperHandler(http1ResponseHandler));
         pipeline.addLast(new CookieStorageHandler());
-        pipeline.addLast(handler);
+        pipeline.addLast(http1ResponseHandler);
         pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
     }
 

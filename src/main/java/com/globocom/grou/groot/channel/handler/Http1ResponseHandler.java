@@ -23,13 +23,13 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpResponse;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> implements RequestQueueStamper {
+class Http1ResponseHandler extends SimpleChannelInboundHandler<HttpObject> implements RequestQueueStamper {
 
     private final ConcurrentLinkedQueue<Long> requestQueueTimes = new ConcurrentLinkedQueue<>();
 
     private final MonitorService monitorService;
 
-    public Http1ClientHandler(MonitorService monitorService) {
+    public Http1ResponseHandler(MonitorService monitorService) {
         this.monitorService = monitorService;
     }
 

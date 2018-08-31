@@ -27,12 +27,12 @@ public class ApnChannelHandler extends ApplicationProtocolNegotiationHandler {
 
     private final MonitorService monitorService;
     private final HttpToHttp2ConnectionHandler connectionHandler;
-    private final Http2ClientHandler http2ClientHandler;
+    private final Http2ResponseHandler http2ClientHandler;
 
     public ApnChannelHandler(
         final MonitorService monitorService,
         final HttpToHttp2ConnectionHandler connectionHandler,
-        final Http2ClientHandler responseHandler) {
+        final Http2ResponseHandler responseHandler) {
 
         super("");
         this.monitorService = monitorService;

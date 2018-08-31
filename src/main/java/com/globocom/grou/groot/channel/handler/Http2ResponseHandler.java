@@ -28,14 +28,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResponse> implements RequestQueueStamper {
+public class Http2ResponseHandler extends SimpleChannelInboundHandler<FullHttpResponse> implements RequestQueueStamper {
 
-    private static final Log LOGGER = LogFactory.getLog(Http2ClientHandler.class);
+    private static final Log LOGGER = LogFactory.getLog(Http2ResponseHandler.class);
 
     private final MonitorService monitorService;
     private final ConcurrentLinkedQueue<Long> requestQueueTimes = new ConcurrentLinkedQueue<>();
 
-    public Http2ClientHandler(MonitorService monitorService) {
+    public Http2ResponseHandler(MonitorService monitorService) {
         this.monitorService = monitorService;
     }
 

@@ -50,7 +50,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
     private final MonitorService monitorService;
 
     private HttpToHttp2ConnectionHandler connectionHandler;
-    private Http2ClientHandler http2ClientHandler;
+    private Http2ResponseHandler http2ClientHandler;
 
     public Http2ClientInitializer(
         SslContext sslCtx,
@@ -74,7 +74,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
                                 .build()))
                 .connection(connection)
                 .build();
-        http2ClientHandler = new Http2ClientHandler(monitorService);
+        http2ClientHandler = new Http2ResponseHandler(monitorService);
         if (sslCtx != null) {
             configureSsl(ch);
         } else {
@@ -130,8 +130,8 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             // Done with this handler, remove it from the pipeline.
             final ChannelPipeline pipeline = ctx.pipeline();
             pipeline.remove(this);
-            pipeline.addLast(new CookieStorageHandler());
             pipeline.addLast(new RequestStartStamperHandler(http2ClientHandler));
+            pipeline.addLast(new CookieStorageHandler());
             pipeline.addLast(http2ClientHandler);
             pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
         }
