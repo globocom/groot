@@ -25,6 +25,8 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.util.concurrent.ScheduledFuture;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Optional;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +55,7 @@ public class RequestExecutorService {
         @SuppressWarnings("deprecation")
         int durationSec = Math.min(maxTestDuration, Optional.ofNullable(property.getDurationTimeSec())
             .orElse(property.getDurationTimeMillis() / 1000));
+        int fixedDelay = property.getFixedDelay();
 
         String scheme = RequestUtils.extractScheme(property);
         if (scheme == null) {
@@ -66,14 +69,15 @@ public class RequestExecutorService {
         final Bootstrap bootstrap = BootstrapBuilder.build(property);
         final EventLoopGroup group = bootstrap.config().group();
 
-        Channel[] channels = new Channel[numConn];
-        channelManagerService.activeChannels(numConn, proto, bootstrap, channels, requests);
-
+        @SuppressWarnings("unchecked")
+        final SimpleImmutableEntry<Channel, ScheduledFuture>[] channels = new SimpleImmutableEntry[numConn];
         executor.schedule(() ->
             channelManagerService.closeChannels(group, channels, 10, TimeUnit.SECONDS), durationSec, TimeUnit.SECONDS);
 
+        channelManagerService.activeChannels(numConn, proto, bootstrap, channels, requests, fixedDelay);
+
         boolean forceReconnect = property.getForceReconnect();
-        channelManagerService.reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests);
+        channelManagerService.reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests, fixedDelay);
     }
 
 }

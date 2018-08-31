@@ -312,16 +312,11 @@ public class MonitorService {
         connCounter.decrementAndGet();
     }
 
-    public double lastPerformanceRate() {
-        return lastPerformanceRate;
-    }
-
     public synchronized void showReport(long start) {
         long durationSec = (System.currentTimeMillis() - start - testStart) / 1_000L;
         long numResp = statusCounter.entrySet().stream().mapToLong(Map.Entry::getValue).sum();
         int numWrites = writeAsync.get();
         long sizeTotalKb = sizeSum.get() / 1024L;
-        lastPerformanceRate = (numWrites * 1.0) / (numResp * 1.0);
 
         results.put("duration_sec", durationSec);
         results.put("conns_rate", connAccum.get() / durationSec);
@@ -344,7 +339,7 @@ public class MonitorService {
 
         LOGGER.info("conns actives: " + connCounter.get());
         LOGGER.info("writes total: " + numWrites);
-        LOGGER.info("rate writes/resps: " + lastPerformanceRate);
+        LOGGER.info("rate writes/resps: " + (numWrites * 1.0) / (numResp * 1.0));
         try {
             LOGGER.info(MAPPER.writeValueAsString(results));
         } catch (JsonProcessingException e) {
