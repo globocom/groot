@@ -23,12 +23,16 @@ import io.netty.handler.codec.http.HttpRequest;
 
 public class RequestStartStamperHandler extends ChannelOutboundHandlerAdapter {
 
-    // TODO: ConcurrentQueue
+    private final Class<? extends RequestQueueStamper> handlerClass;
+
+    public RequestStartStamperHandler(RequestQueueStamper handler) {
+        this.handlerClass = handler.getClass();
+    }
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         if (msg instanceof HttpRequest) {
-            //TODO: queue.offer(System.currentTimeMillis())
+            ctx.pipeline().get(handlerClass).offer(System.currentTimeMillis());
         }
         super.write(ctx, msg, promise);
     }

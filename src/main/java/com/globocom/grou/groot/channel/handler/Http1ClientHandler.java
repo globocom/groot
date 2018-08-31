@@ -21,11 +21,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
+class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> implements RequestQueueStamper {
 
-    private static final int MAX_RESPONSE_STATUS = 599;
+    private final ConcurrentLinkedQueue<Long> requestQueueTimes = new ConcurrentLinkedQueue<>();
 
     private final MonitorService monitorService;
 
@@ -47,18 +47,15 @@ class Http1ClientHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
-
         if (msg instanceof HttpResponse) {
             HttpResponse response = (HttpResponse) msg;
-            final int statusCode = response.status().code();
-            if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
-
-                monitorService.sendStatus(String.valueOf(statusCode));
-                //TODO: long startRequest = RequestStartStamperHandler.queue.poll();
-                long startRequest = System.currentTimeMillis();
-                monitorService.sendResponseTime(startRequest);
-            }
+            sendMetrics(response.status().code(), requestQueueTimes, monitorService);
         }
+    }
+
+    @Override
+    public void offer(long timestamp) {
+        requestQueueTimes.offer(timestamp);
     }
 
 }

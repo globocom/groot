@@ -27,7 +27,7 @@ public class ApnChannelHandler extends ApplicationProtocolNegotiationHandler {
 
     private final MonitorService monitorService;
     private final HttpToHttp2ConnectionHandler connectionHandler;
-    private final Http2ClientHandler responseHandler;
+    private final Http2ClientHandler http2ClientHandler;
 
     public ApnChannelHandler(
         final MonitorService monitorService,
@@ -37,7 +37,7 @@ public class ApnChannelHandler extends ApplicationProtocolNegotiationHandler {
         super("");
         this.monitorService = monitorService;
         this.connectionHandler = connectionHandler;
-        this.responseHandler = responseHandler;
+        this.http2ClientHandler = responseHandler;
     }
 
     @Override
@@ -46,7 +46,8 @@ public class ApnChannelHandler extends ApplicationProtocolNegotiationHandler {
             ChannelPipeline p = ctx.pipeline();
             p.addLast(connectionHandler);
             p.addLast(new CookieStorageHandler());
-            p.addLast(responseHandler);
+            p.addLast(new RequestStartStamperHandler(http2ClientHandler));
+            p.addLast(http2ClientHandler);
             p.addLast(new ExceptionChannelInboundHandler(monitorService));
             return;
         }

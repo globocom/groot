@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
 
     private final SslContext sslContext;
-    private final ChannelHandler handler;
+    private final Http1ClientHandler handler;
     private final MonitorService monitorService;
 
     public Http1ClientInitializer(
@@ -58,6 +58,7 @@ public class Http1ClientInitializer extends ChannelInitializer<SocketChannel> {
         }
         pipeline.addLast(new HttpClientCodec());
         pipeline.addLast(new HttpContentDecompressor());
+        pipeline.addLast(new RequestStartStamperHandler(handler));
         pipeline.addLast(new CookieStorageHandler());
         pipeline.addLast(handler);
         pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));

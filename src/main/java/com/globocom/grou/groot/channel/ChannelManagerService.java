@@ -135,7 +135,7 @@ public class ChannelManagerService {
             group.shutdownGracefully(1L, 10L, TimeUnit.SECONDS);
             CookieStorageHandler.reset();
 
-            monitorService.showReport((System.currentTimeMillis() - nowPreShut));
+            monitorService.showReport(System.currentTimeMillis() - nowPreShut);
         }
     }
 

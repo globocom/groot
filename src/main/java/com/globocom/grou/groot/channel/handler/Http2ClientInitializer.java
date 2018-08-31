@@ -50,7 +50,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
     private final MonitorService monitorService;
 
     private HttpToHttp2ConnectionHandler connectionHandler;
-    private Http2ClientHandler responseHandler;
+    private Http2ClientHandler http2ClientHandler;
 
     public Http2ClientInitializer(
         SslContext sslCtx,
@@ -74,7 +74,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
                                 .build()))
                 .connection(connection)
                 .build();
-        responseHandler = new Http2ClientHandler(monitorService);
+        http2ClientHandler = new Http2ClientHandler(monitorService);
         if (sslCtx != null) {
             configureSsl(ch);
         } else {
@@ -96,7 +96,7 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
         pipeline.addLast(sslCtx.newHandler(ch.alloc()));
         // We must wait for the handshake to finish and the protocol to be negotiated before configuring
         // the HTTP/2 components of the pipeline.
-        pipeline.addLast(new ApnChannelHandler(monitorService, connectionHandler, responseHandler));
+        pipeline.addLast(new ApnChannelHandler(monitorService, connectionHandler, http2ClientHandler));
         pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
     }
 
@@ -131,7 +131,8 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
             final ChannelPipeline pipeline = ctx.pipeline();
             pipeline.remove(this);
             pipeline.addLast(new CookieStorageHandler());
-            pipeline.addLast(responseHandler);
+            pipeline.addLast(new RequestStartStamperHandler(http2ClientHandler));
+            pipeline.addLast(http2ClientHandler);
             pipeline.addLast(new ExceptionChannelInboundHandler(monitorService));
         }
     }

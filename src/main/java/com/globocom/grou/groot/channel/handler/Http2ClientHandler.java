@@ -22,18 +22,18 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http2.HttpConversionUtil;
 import io.netty.util.CharsetUtil;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
-
-    private static final int MAX_RESPONSE_STATUS = 599;
+public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResponse> implements RequestQueueStamper {
 
     private static final Log LOGGER = LogFactory.getLog(Http2ClientHandler.class);
+
     private final MonitorService monitorService;
+    private final ConcurrentLinkedQueue<Long> requestQueueTimes = new ConcurrentLinkedQueue<>();
 
     public Http2ClientHandler(MonitorService monitorService) {
         this.monitorService = monitorService;
@@ -59,13 +59,7 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
             LOGGER.error("HttpResponseHandler unexpected message received: " + msg);
             return;
         }
-        final int statusCode = msg.status().code();
-        if (statusCode >= HttpResponseStatus.CONTINUE.code() && statusCode <= MAX_RESPONSE_STATUS) {
-            monitorService.sendStatus(String.valueOf(statusCode));
-            //TODO: long startRequest = RequestStartStamperHandler.queue.poll();
-            long startRequest = System.currentTimeMillis();
-            monitorService.sendResponseTime(startRequest);
-        }
+        sendMetrics(msg.status().code(), requestQueueTimes, monitorService);
 
         final ByteBuf content = msg.content();
         if (content.isReadable()) {
@@ -77,5 +71,10 @@ public class Http2ClientHandler extends SimpleChannelInboundHandler<FullHttpResp
             }
         }
 
+    }
+
+    @Override
+    public void offer(long startRequest) {
+        requestQueueTimes.offer(startRequest);
     }
 }

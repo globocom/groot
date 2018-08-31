@@ -80,7 +80,8 @@ public class MonitorService {
     private final AtomicInteger connCounter = new AtomicInteger(0);
     private final AtomicInteger connAccum = new AtomicInteger(0);
     private final Map<String, Object> results = new LinkedHashMap<>();
-    private final AtomicLong testStart = new AtomicLong(System.currentTimeMillis());
+
+    private long testStart = System.currentTimeMillis();
 
     private double lastPerformanceRate = 1L;
 
@@ -91,10 +92,10 @@ public class MonitorService {
 
     public void start(final Test test) {
         synchronized (lock) {
+            testStart = System.currentTimeMillis();
             if (!this.test.compareAndSet(null, test)) {
                 throw new IllegalStateException("Already monitoring other test");
             }
-            testStart.set(System.currentTimeMillis());
             prefixStatsdLoaderKey = getPrefixStatsdLoader(test);
             prefixStatsdTargetsKey = getPrefixStatsdTargets(test);
             extractMonitTargets(test);
@@ -246,9 +247,9 @@ public class MonitorService {
         return realStatus;
     }
 
-    public void sendStatus(String statusCode) {
+    public void sendStatus(String statusCode, Long startRequest) {
         String realStatus = counterFromStatus(statusCode);
-        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - testStart.get());
+        statsdClient.recordExecutionTime(prefixResponse + "status." + prefixTag + "status." + realStatus, System.currentTimeMillis() - startRequest);
     }
 
     public void sendSize(long bodySize) {
@@ -316,7 +317,7 @@ public class MonitorService {
     }
 
     public synchronized void showReport(long start) {
-        long durationSec = (System.currentTimeMillis() - start - testStart.get()) / 1_000L;
+        long durationSec = (System.currentTimeMillis() - start - testStart) / 1_000L;
         long numResp = statusCounter.entrySet().stream().mapToLong(Map.Entry::getValue).sum();
         int numWrites = writeAsync.get();
         long sizeTotalKb = sizeSum.get() / 1024L;
