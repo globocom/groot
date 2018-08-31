@@ -1,5 +1,5 @@
 # Groot Makefile
-GROOT_VERSION ?= 1.0.5
+GROOT_VERSION ?= 2.0.0
 VERSION=${GROOT_VERSION}
 RPM_VER=${GROOT_VERSION}
 RELEASE=1
@@ -35,14 +35,14 @@ dist: groot
     fpm -s dir \
         --rpm-rpmbuild-define '_binaries_in_noarch_packages_terminate_build 0' \
         -t rpm \
-        -n "groot" \
+        -n "groot2" \
         -v ${RPM_VER} \
         --iteration ${RELEASE}.el7 \
         -a noarch \
         --rpm-os linux \
-        --prefix /opt/groot \
+        --prefix /opt/groot2 \
         -m '<a-team@corp.globo.com>' \
         --vendor 'Globo.com' \
-        --description 'Groot service' \
+        --description 'Groot2 service' \
         --after-install scripts/postinstall \
-        -f -p ../groot-${RPM_VER}-${RELEASE}.el7.noarch.rpm lib conf logs scripts
+        -f -p ../groot2-${RPM_VER}-${RELEASE}.el7.noarch.rpm lib conf logs scripts

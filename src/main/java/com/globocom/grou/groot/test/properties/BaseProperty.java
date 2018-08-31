@@ -186,6 +186,11 @@ public class BaseProperty implements Serializable {
     private Boolean forceReconnect = true;
 
     /**
+     *  Define group name
+     */
+    private String groupName;
+
+    /**
      * Force HTTP2. Enable use of HTTP/2 without HTTP/1.1 Upgrade. (WIP)
      */
     private Boolean forceHttp2;
@@ -453,6 +458,15 @@ public class BaseProperty implements Serializable {
 
     public BaseProperty setForceHttp2(Boolean forceHttp2) {
         this.forceHttp2 = forceHttp2;
+        return this;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public BaseProperty setGroupName(String groupName) {
+        this.groupName = groupName;
         return this;
     }
 
