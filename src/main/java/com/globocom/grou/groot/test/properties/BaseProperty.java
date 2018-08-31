@@ -25,9 +25,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import org.apache.commons.logging.Log;
@@ -101,9 +99,9 @@ public class BaseProperty implements Serializable {
     private Boolean followRedirect = false;
 
     /**
-     * Insert delay between requests (in milliseconds)
+     * Insert delay between requests (in microseconds)
      */
-    private Integer fixedDelay;
+    private Integer fixedDelay = 45;
 
     /**
      * Target list to monitoring

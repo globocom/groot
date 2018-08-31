@@ -53,6 +53,7 @@ public class RequestExecutorService {
         @SuppressWarnings("deprecation")
         int durationSec = Math.min(maxTestDuration, Optional.ofNullable(property.getDurationTimeSec())
             .orElse(property.getDurationTimeMillis() / 1000));
+        int schedPeriod = property.getFixedDelay();
 
         String scheme = RequestUtils.extractScheme(property);
         if (scheme == null) {
@@ -67,13 +68,13 @@ public class RequestExecutorService {
         final EventLoopGroup group = bootstrap.config().group();
 
         Channel[] channels = new Channel[numConn];
-        channelManagerService.activeChannels(numConn, proto, bootstrap, channels, requests);
+        channelManagerService.activeChannels(numConn, proto, bootstrap, channels, requests, schedPeriod);
 
         executor.schedule(() ->
             channelManagerService.closeChannels(group, channels, 10, TimeUnit.SECONDS), durationSec, TimeUnit.SECONDS);
 
         boolean forceReconnect = property.getForceReconnect();
-        channelManagerService.reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests);
+        channelManagerService.reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests, schedPeriod);
     }
 
 }

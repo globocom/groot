@@ -17,6 +17,7 @@
 package com.globocom.grou.groot.test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.test.Loader.Status;
@@ -44,7 +45,8 @@ public class TestListenerService {
     private static final String CALLBACK_QUEUE = "grou:test_callback";
     public static final String TEST_QUEUE = "grou:test_queue";
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final LoaderService loaderService;
     private final StringRedisTemplate template;

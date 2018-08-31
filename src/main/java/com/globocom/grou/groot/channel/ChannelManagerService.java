@@ -30,6 +30,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +43,6 @@ public class ChannelManagerService {
 
     private final SslService sslService;
     private final MonitorService monitorService;
-
-    private long schedPeriod = 50L;
 
     @Autowired
     public ChannelManagerService(SslService sslService, MonitorService monitorService) {
@@ -87,24 +86,38 @@ public class ChannelManagerService {
         return null;
     }
 
-    public synchronized void activeChannels(int numConn, final Proto proto, final Bootstrap bootstrap, final Channel[] channels, final FullHttpRequest[] requests) {
-        double lastPerformanceRate = monitorService.lastPerformanceRate();
-        schedPeriod = Math.min(100, Math.max(10L, (long) (schedPeriod * lastPerformanceRate / 1.05)));
+    public synchronized void activeChannels(
+        int numConn,
+        final Proto proto,
+        final Bootstrap bootstrap,
+        final Channel[] channels,
+        final FullHttpRequest[] requests,
+        final int fixedDelay) {
 
-        for (int chanId = 0; chanId < numConn; chanId++) {
+        final CountDownLatch latch = new CountDownLatch(numConn);
+        IntStream.range(0, numConn).parallel().forEach(chanId -> {
             if (channels[chanId] == null || !channels[chanId].isActive()) {
-                Channel channel = newChannel(bootstrap, proto, requests, schedPeriod);
+                Channel channel = newChannel(bootstrap, proto, requests, fixedDelay);
                 if (channel != null) {
                     channels[chanId] = channel;
                 }
+                latch.countDown();
+            }
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(e.getMessage(), e);
             }
         }
     }
 
-    public void reconnectIfNecessary(boolean reconnect, int numConn, final Proto proto, final EventLoopGroup group, Bootstrap bootstrap, Channel[] channels, final FullHttpRequest[] requests) {
-        LOGGER.info("Sched Period: " + schedPeriod + " us");
+    public void reconnectIfNecessary(boolean reconnect, int numConn, final Proto proto, final EventLoopGroup group,
+        Bootstrap bootstrap, Channel[] channels, final FullHttpRequest[] requests, int fixedDelay) {
+        LOGGER.info("Sched Period: " + fixedDelay + " us");
         while (reconnect && !group.isShutdown() && !group.isShuttingDown()) {
-            activeChannels(numConn, proto, bootstrap, channels, requests);
+            activeChannels(numConn, proto, bootstrap, channels, requests, fixedDelay);
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e) {
