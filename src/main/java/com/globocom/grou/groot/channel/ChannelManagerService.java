@@ -30,6 +30,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.concurrent.ScheduledFuture;
 import java.net.URI;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -59,7 +60,7 @@ public class ChannelManagerService {
         return new Http1ClientInitializer(sslService.sslContext(proto.isSsl()), monitorService);
     }
 
-    private SimpleImmutableEntry<Channel, ScheduledFuture> newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long schedPeriod) {
+    private SimpleImmutableEntry<Channel, ScheduledFuture> newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long fixedRate) {
         try {
             if (!bootstrap.config().group().isShuttingDown() && !bootstrap.config().group().isShutdown()) {
                 URI uri = URI.create(proto.name().toLowerCase() + "://" + requests[0].headers().get(HttpHeaderNames.HOST) + requests[0].uri());
@@ -76,8 +77,12 @@ public class ChannelManagerService {
                             channel.writeAndFlush(request.copy());
                         }
                     }
-                }, schedPeriod, schedPeriod, TimeUnit.MICROSECONDS);
+                }, fixedRate, fixedRate, TimeUnit.MICROSECONDS);
                 return new SimpleImmutableEntry<>(channel, scheduledFuture);
+            }
+        } catch (CancellationException | InterruptedException e) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(e.getMessage(), e);
             }
         } catch (Exception e) {
             monitorService.fail(e);
