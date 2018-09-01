@@ -27,7 +27,9 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.util.concurrent.ScheduledFuture;
 import java.net.URI;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -57,7 +59,7 @@ public class ChannelManagerService {
         return new Http1ClientInitializer(sslService.sslContext(proto.isSsl()), monitorService);
     }
 
-    private Channel newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long schedPeriod) {
+    private SimpleImmutableEntry<Channel, ScheduledFuture> newChannel(final Bootstrap bootstrap, Proto proto, final FullHttpRequest[] requests, long schedPeriod) {
         try {
             if (!bootstrap.config().group().isShuttingDown() && !bootstrap.config().group().isShutdown()) {
                 URI uri = URI.create(proto.name().toLowerCase() + "://" + requests[0].headers().get(HttpHeaderNames.HOST) + requests[0].uri());
@@ -67,7 +69,7 @@ public class ChannelManagerService {
                     .connect(uri.getHost(), uri.getPort())
                     .sync()
                     .channel();
-                channel.eventLoop().scheduleAtFixedRate(() -> {
+                final ScheduledFuture<?> scheduledFuture = channel.eventLoop().scheduleAtFixedRate(() -> {
                     if (channel.isActive()) {
                         for (FullHttpRequest request : requests) {
                             monitorService.writeCounterIncr();
@@ -75,7 +77,7 @@ public class ChannelManagerService {
                         }
                     }
                 }, schedPeriod, schedPeriod, TimeUnit.MICROSECONDS);
-                return channel;
+                return new SimpleImmutableEntry<>(channel, scheduledFuture);
             }
         } catch (Exception e) {
             monitorService.fail(e);
@@ -90,14 +92,14 @@ public class ChannelManagerService {
         int numConn,
         final Proto proto,
         final Bootstrap bootstrap,
-        final Channel[] channels,
+        final SimpleImmutableEntry<Channel, ScheduledFuture>[] channels,
         final FullHttpRequest[] requests,
         final int fixedDelay) {
 
         final CountDownLatch latch = new CountDownLatch(numConn);
         IntStream.range(0, numConn).parallel().forEach(chanId -> {
-            if (channels[chanId] == null || !channels[chanId].isActive()) {
-                Channel channel = newChannel(bootstrap, proto, requests, fixedDelay);
+            if (channels[chanId] == null || channels[chanId].getKey() == null || !channels[chanId].getKey().isActive()) {
+                SimpleImmutableEntry<Channel, ScheduledFuture> channel = newChannel(bootstrap, proto, requests, fixedDelay);
                 if (channel != null) {
                     channels[chanId] = channel;
                 }
@@ -114,7 +116,7 @@ public class ChannelManagerService {
     }
 
     public void reconnectIfNecessary(boolean reconnect, int numConn, final Proto proto, final EventLoopGroup group,
-        Bootstrap bootstrap, Channel[] channels, final FullHttpRequest[] requests, int fixedDelay) {
+        Bootstrap bootstrap, SimpleImmutableEntry<Channel, ScheduledFuture>[] channels, final FullHttpRequest[] requests, int fixedDelay) {
         LOGGER.info("Sched Period: " + fixedDelay + " us");
         while (reconnect && !group.isShutdown() && !group.isShuttingDown()) {
             activeChannels(numConn, proto, bootstrap, channels, requests, fixedDelay);
@@ -126,14 +128,15 @@ public class ChannelManagerService {
         }
     }
 
-    public void closeChannels(EventLoopGroup group, Channel[] channels, int timeout, TimeUnit unit) {
+    public void closeChannels(EventLoopGroup group, SimpleImmutableEntry<Channel, ScheduledFuture>[] channels, int timeout, TimeUnit unit) {
         long nowPreShut = System.currentTimeMillis();
         CountDownLatch latch = new CountDownLatch(channels.length - 1);
         try {
-            for (Channel channel : channels) {
+            for (SimpleImmutableEntry<Channel, ScheduledFuture> channel : channels) {
                 try {
-                    if (channel != null && channel.isActive()) {
-                        channel.close();
+                    if (channel != null && channel.getKey() != null && channel.getKey().isActive()) {
+                        channel.getValue().cancel(true);
+                        channel.getKey().close();
                     }
                 } finally {
                     latch.countDown();
