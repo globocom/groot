@@ -47,7 +47,7 @@ public class LoaderService {
 
     private final MonitorService monitorService;
 
-    private final RequestExecutorService channelManager;
+    private final RequestExecutorService requestExecutorService;
     private final StringRedisTemplate template;
     private final Loader loader;
     private final String buildVersion;
@@ -58,12 +58,13 @@ public class LoaderService {
 
     @Autowired
     public LoaderService(final MonitorService monitorService,
-                         final RequestExecutorService channelManager,
-                         StringRedisTemplate template,
+                         final RequestExecutorService requestExecutorService,
+                         final StringRedisTemplate template,
                          @Value("${build.version}") String buildVersion,
                          @Value("${build.timestamp}") String buildTimestamp) {
+
         this.monitorService = monitorService;
-        this.channelManager = channelManager;
+        this.requestExecutorService = requestExecutorService;
         this.template = template;
         this.buildVersion = buildVersion;
         this.buildTimestamp = buildTimestamp;
@@ -85,13 +86,11 @@ public class LoaderService {
 
         LOGGER.info("Starting test " + loader.getStatusDetailed());
 
-        Loader loaderClone;
+        final Loader loaderClone = loader.copy();
         try {
             monitorService.start(test);
-            channelManager.submit(property);
-            loaderClone = loader.copy();
+            requestExecutorService.submit(property);
         } catch (Exception e) {
-            loaderClone = loader.copy();
             updateStatus(Status.ERROR);
             loaderClone.setStatusDetailed(e.getMessage());
             if (LOGGER.isDebugEnabled()) {

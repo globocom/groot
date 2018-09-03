@@ -18,17 +18,15 @@ package com.globocom.grou.groot.loader;
 
 import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.channel.BootstrapBuilder;
-import com.globocom.grou.groot.channel.ChannelManagerService;
+import com.globocom.grou.groot.channel.ChannelManager;
 import com.globocom.grou.groot.channel.RequestUtils;
+import com.globocom.grou.groot.channel.SslService;
+import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.properties.BaseProperty;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.util.concurrent.ScheduledFuture;
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Optional;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,21 +38,19 @@ public class RequestExecutorService {
 
     private static final Log LOGGER = LogFactory.getLog(RequestExecutorService.class);
 
-    private final ChannelManagerService channelManagerService;
-
-    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+    private final SslService sslService;
+    private final MonitorService monitorService;
 
     @Autowired
-    public RequestExecutorService(final ChannelManagerService channelManagerService) {
-        this.channelManagerService = channelManagerService;
+    public RequestExecutorService(SslService sslService, MonitorService monitorService) {
+        this.sslService = sslService;
+        this.monitorService = monitorService;
     }
 
     public void submit(BaseProperty property) throws RuntimeException {
         int numConn = property.getNumConn() / property.getParallelLoaders();
         int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
-        @SuppressWarnings("deprecation")
-        int durationSec = Math.min(maxTestDuration, Optional.ofNullable(property.getDurationTimeSec())
-            .orElse(property.getDurationTimeMillis() / 1000));
+        int durationSec = getDurationSec(property, maxTestDuration);
         int fixedDelay = property.getFixedDelay();
 
         String scheme = RequestUtils.extractScheme(property);
@@ -67,17 +63,34 @@ public class RequestExecutorService {
         final FullHttpRequest[] requests = RequestUtils.convertPropertyToHttpRequest(property);
         final Proto proto = Proto.valueOf(scheme.toUpperCase());
         final Bootstrap bootstrap = BootstrapBuilder.build(property);
-        final EventLoopGroup group = bootstrap.config().group();
+        final ChannelManager channelManager = new ChannelManager()
+            .setBootstrap(bootstrap)
+            .setMonitorService(monitorService)
+            .setSslService(sslService)
+            .setProto(proto)
+            .setDurationSec(durationSec)
+            .setFixedDelay(fixedDelay)
+            .setRequests(requests)
+            .setNumConn(numConn)
+            .check();
 
-        @SuppressWarnings("unchecked")
-        final SimpleImmutableEntry<Channel, ScheduledFuture>[] channels = new SimpleImmutableEntry[numConn];
-        executor.schedule(() ->
-            channelManagerService.closeChannels(group, channels, 10, TimeUnit.SECONDS), durationSec, TimeUnit.SECONDS);
-
-        channelManagerService.activeChannels(numConn, proto, bootstrap, channels, requests, fixedDelay);
-
+        CountDownLatch done = channelManager.closeFutureChannels();
+        channelManager.activeChannels();
         boolean forceReconnect = property.getForceReconnect();
-        channelManagerService.reconnectIfNecessary(forceReconnect, numConn, proto, group, bootstrap, channels, requests, fixedDelay);
+        if (forceReconnect) {
+            channelManager.reconnect();
+        }
+        try {
+            done.await(durationSec + 10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            LOGGER.warn("Test OverTime");
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private int getDurationSec(BaseProperty property, int maxTestDuration) {
+        return Math.min(maxTestDuration, Optional.ofNullable(property.getDurationTimeSec())
+            .orElse(property.getDurationTimeMillis() / 1000));
     }
 
 }
