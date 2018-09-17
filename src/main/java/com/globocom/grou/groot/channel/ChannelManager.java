@@ -43,6 +43,9 @@ public class ChannelManager {
 
     private static final Log LOGGER = LogFactory.getLog(ChannelManager.class);
 
+    private static final int TCP_HTTP = 80;
+    private static final int TCP_HTTPS = 443;
+
     private final long start;
     private final ScheduledExecutorService executor;
 
@@ -134,7 +137,7 @@ public class ChannelManager {
                 final Channel channel = bootstrap
                     .clone()
                     .handler(initializer(proto))
-                    .connect(uri.getHost(), uri.getPort())
+                    .connect(uri.getHost(), checkPort(uri))
                     .sync()
                     .channel();
 
@@ -159,6 +162,14 @@ public class ChannelManager {
             }
         }
         return null;
+    }
+
+    private int checkPort(URI uri) {
+        if (uri.getPort() == -1) {
+            int tcpPort = proto.isSsl() ? TCP_HTTPS : TCP_HTTP;
+            return tcpPort;
+        }
+        return uri.getPort();
     }
 
     public synchronized void activeChannels() {
