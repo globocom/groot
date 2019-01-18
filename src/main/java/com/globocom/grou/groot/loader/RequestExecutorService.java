@@ -20,11 +20,12 @@ import com.globocom.grou.groot.SystemEnv;
 import com.globocom.grou.groot.channel.BootstrapBuilder;
 import com.globocom.grou.groot.channel.ChannelManager;
 import com.globocom.grou.groot.channel.RequestUtils;
-import com.globocom.grou.groot.channel.SslService;
 import com.globocom.grou.groot.monit.MonitorService;
 import com.globocom.grou.groot.test.properties.BaseProperty;
+import com.globocom.grou.groot.test.properties.SslProperty;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.handler.codec.http.FullHttpRequest;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -38,12 +39,10 @@ public class RequestExecutorService {
 
     private static final Log LOGGER = LogFactory.getLog(RequestExecutorService.class);
 
-    private final SslService sslService;
     private final MonitorService monitorService;
 
     @Autowired
-    public RequestExecutorService(SslService sslService, MonitorService monitorService) {
-        this.sslService = sslService;
+    public RequestExecutorService(MonitorService monitorService) {
         this.monitorService = monitorService;
     }
 
@@ -52,6 +51,8 @@ public class RequestExecutorService {
         int maxTestDuration = Integer.parseInt(SystemEnv.MAX_TEST_DURATION.getValue());
         int durationSec = getDurationSec(property, maxTestDuration);
         int fixedDelay = property.getFixedDelay();
+        SslProperty sslProperty = Optional.ofNullable(property.getSsl()).orElse(new SslProperty());
+        List<String> ciphers = sslProperty.getCiphers();
 
         String scheme = RequestUtils.extractScheme(property);
         if (scheme == null) {
@@ -66,7 +67,7 @@ public class RequestExecutorService {
         final ChannelManager channelManager = new ChannelManager()
             .setBootstrap(bootstrap)
             .setMonitorService(monitorService)
-            .setSslService(sslService)
+            .setSslCiphers(ciphers)
             .setProto(proto)
             .setDurationSec(durationSec)
             .setFixedDelay(fixedDelay)
