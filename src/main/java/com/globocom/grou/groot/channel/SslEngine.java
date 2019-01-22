@@ -28,15 +28,22 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import java.util.List;
 import javax.net.ssl.SSLException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.stereotype.Service;
 
-@Service
-public class SslService {
+public class SslEngine {
 
-    private static final Log LOGGER = LogFactory.getLog(SslService.class);
+    private static final Log LOGGER = LogFactory.getLog(SslEngine.class);
+    private static final List<String> DEFAULT_CIPHERS = Http2SecurityUtil.CIPHERS;
+
+    private List<String> ciphers = null;
+
+    public SslEngine setCiphers(List<String> ciphers) {
+        this.ciphers = ciphers;
+        return this;
+    }
 
     public SslContext sslContext(boolean ssl) {
         if (ssl) {
@@ -46,7 +53,7 @@ public class SslService {
                     .sslProvider(provider)
                     /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
                      * Please refer to the HTTP/2 specification for cipher requirements. */
-                    .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+                    .ciphers(ciphers == null ? DEFAULT_CIPHERS : ciphers, SupportedCipherSuiteFilter.INSTANCE)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .applicationProtocolConfig(new ApplicationProtocolConfig(
                         Protocol.ALPN,

@@ -64,6 +64,11 @@ public class BaseProperty implements Serializable {
     private AuthProperty auth;
 
     /**
+     * SSL properties.
+     */
+    private SslProperty ssl;
+
+    /**
      * Body request
      */
     private String body;
@@ -226,6 +231,15 @@ public class BaseProperty implements Serializable {
 
     public BaseProperty setAuth(AuthProperty auth) {
         this.auth = auth;
+        return this;
+    }
+
+    public SslProperty getSsl() {
+        return ssl;
+    }
+
+    public BaseProperty setSsl(SslProperty ssl) {
+        this.ssl = ssl;
         return this;
     }
 

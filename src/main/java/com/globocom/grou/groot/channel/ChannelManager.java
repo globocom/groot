@@ -30,6 +30,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.concurrent.ScheduledFuture;
 import java.net.URI;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -49,7 +50,8 @@ public class ChannelManager {
     private final long start;
     private final ScheduledExecutorService executor;
 
-    private SslService sslService = null;
+    private final SslEngine sslEngine = new SslEngine();
+    private List<String> ciphers = null;
     private MonitorService monitorService = null;
     private Bootstrap bootstrap = null;
     private EventLoopGroup group = null;
@@ -64,11 +66,6 @@ public class ChannelManager {
     public ChannelManager() {
         this.start = System.currentTimeMillis();
         executor = Executors.newSingleThreadScheduledExecutor();
-    }
-
-    public ChannelManager setSslService(SslService sslService) {
-        this.sslService = sslService;
-        return this;
     }
 
     public ChannelManager setMonitorService(MonitorService monitorService) {
@@ -109,9 +106,13 @@ public class ChannelManager {
         return this;
     }
 
+    public ChannelManager setSslCiphers(List<String> ciphers) {
+        this.ciphers = ciphers;
+        return this;
+    }
+
     public ChannelManager check() throws IllegalArgumentException {
         if (monitorService == null ||
-            sslService == null ||
             numConn == 0 ||
             durationSec == 0 ||
             bootstrap == null ||
@@ -125,9 +126,9 @@ public class ChannelManager {
 
     private ChannelInitializer initializer(Proto proto) {
         if (proto == Proto.H2 || proto == Proto.H2C) {
-            return new Http2ClientInitializer(sslService.sslContext(proto.isSsl()), Integer.MAX_VALUE, monitorService);
+            return new Http2ClientInitializer(sslEngine.setCiphers(ciphers).sslContext(proto.isSsl()), Integer.MAX_VALUE, monitorService);
         }
-        return new Http1ClientInitializer(sslService.sslContext(proto.isSsl()), monitorService);
+        return new Http1ClientInitializer(sslEngine.setCiphers(ciphers).sslContext(proto.isSsl()), monitorService);
     }
 
     private SimpleImmutableEntry<Channel, ScheduledFuture> newChannel() throws Exception {
