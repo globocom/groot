@@ -79,7 +79,15 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     @Override
     public double getMemFree() {
         try {
-            return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_MemAvailable")).doubleValue();
+            if (nodeExporterClient.get(nodeUrl).containsKey("node_memory_MemAvailable")) {
+                return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_MemAvailable")).doubleValue();
+
+            } else if (nodeExporterClient.get(nodeUrl).containsKey("node_memory_MemFree_bytes")) {
+                return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_MemFree_bytes")).doubleValue();
+
+            } else {
+                return -1.0;
+            }
         } catch (Exception e) {
             return -1.0;
         }
@@ -88,7 +96,13 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     @Override
     public double getMemBuffers() {
         try {
-            return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Buffers")).doubleValue();
+            if (nodeExporterClient.get(nodeUrl).containsKey("node_memory_Buffers_bytes")) {
+                return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Buffers_bytes")).doubleValue();
+            } else if (nodeExporterClient.get(nodeUrl).containsKey("node_memory_Buffers")) {
+                return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Buffers")).doubleValue();
+            } else {
+                return -1.0;
+            }
         } catch (Exception e) {
             return -1.0;
         }
@@ -97,7 +111,13 @@ public class PrometheusNodeMetricsCollector extends MetricsCollector {
     @Override
     public double getMemCached() {
         try {
-            return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Cached")).doubleValue();
+            if (nodeExporterClient.get(nodeUrl).containsKey("node_memory_Cached_bytes")) {
+                return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Cached_bytes")).doubleValue();
+            } else if (nodeExporterClient.get(nodeUrl).containsKey("node_memory_Cached")) {
+                return new BigDecimal(nodeExporterClient.get(nodeUrl).get("node_memory_Cached")).doubleValue();
+            } else {
+                return -1.0;
+            }
         } catch (Exception e) {
             return -1.0;
         }
