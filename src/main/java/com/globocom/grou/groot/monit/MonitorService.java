@@ -294,7 +294,7 @@ public class MonitorService {
                     statsdClient.recordExecutionTime(prefixStatsd + "softirq", targetCpuSoftIrq);
                     statsdClient.recordExecutionTime(prefixStatsd + "memFree", (long) targetMemFree / 1024 / 1024);
                     statsdClient.recordExecutionTime(prefixStatsd + "memBuffers", (long) targetMemBuffers / 1024 / 1024);
-                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached / 1024 / 1024 );
+                    statsdClient.recordExecutionTime(prefixStatsd + "memCached", (long) targetMemCached / 1024 / 1024);
                     statsdClient.gauge(prefixStatsd + "load1m", targetLoad1m);
                     statsdClient.gauge(prefixStatsd + "load5m", targetLoad5m);
                     statsdClient.gauge(prefixStatsd + "load15m", targetLoad15m);
